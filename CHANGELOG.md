@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.30] - 2026-09-17
+
+### Fixes
+
+- Hardened GitHub release publishing so Windows and macOS workflows can safely converge on the same release.
+- Added retry-safe installer asset uploads for existing releases.
+
 ## [0.3.4-alpha.29] - 2026-09-17
 
 ### Additions
