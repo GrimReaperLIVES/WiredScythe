@@ -46,6 +46,29 @@ describe("parseChangelog", () => {
     ]);
   });
 
+  it("shows uncategorized release bullets as improvements", () => {
+    const result = parseChangelog(`# Changelog
+
+## [0.3.4-alpha.25] - 2026-09-16
+
+- Fixed black video in Theater and Fullscreen.
+- Verified active playback in the packaged app.
+`);
+
+    expect(result).toEqual([
+      {
+        version: "0.3.4-alpha.25",
+        date: "2026-09-16",
+        additions: [],
+        improvements: [
+          "Fixed black video in Theater and Fullscreen.",
+          "Verified active playback in the packaged app.",
+        ],
+        fixes: [],
+      },
+    ]);
+  });
+
   it("prefers remote versioned notes while retaining bundled unreleased and missing releases", () => {
     const bundled = parseChangelog(`
 ## [Unreleased]

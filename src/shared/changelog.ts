@@ -83,12 +83,20 @@ export function parseChangelog(markdown: string): ChangelogEntry[] {
     const bodyStart = (match.index ?? 0) + match[0].length;
     const bodyEnd = matches[index + 1]?.index ?? markdown.length;
     const body = markdown.slice(bodyStart, bodyEnd);
+    const additions = parseList(sectionBody(body, "Additions"));
+    const improvements = parseList(sectionBody(body, "Improvements"));
+    const fixes = parseList(sectionBody(body, "Fixes"));
+    const hasCategorizedNotes =
+      additions.length > 0 || improvements.length > 0 || fixes.length > 0;
     releases.push({
       version: match[1],
       date: match[2],
-      additions: parseList(sectionBody(body, "Additions")),
-      improvements: parseList(sectionBody(body, "Improvements")),
-      fixes: parseList(sectionBody(body, "Fixes")),
+      additions,
+      // Older and GitHub-authored release notes may use a simple flat list.
+      // Keep those notes visible in What's New instead of rendering an empty
+      // release card merely because category headings were omitted.
+      improvements: hasCategorizedNotes ? improvements : parseList(body),
+      fixes,
     });
   });
   return releases;

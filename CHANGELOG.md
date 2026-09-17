@@ -2,6 +2,14 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.26] - 2026-09-17
+
+### Fixes
+
+- Fixed empty release cards in the in-app What's New panel.
+- Added support for both categorized changelog sections and simple release-note bullet lists.
+- Added automated coverage to prevent packaged release notes from silently disappearing again.
+
 ## [0.3.4-alpha.25] - 2026-09-16
 
 - Fixed black video in Multistream Theater and Fullscreen by keeping the video grid in the active layout row.
