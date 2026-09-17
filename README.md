@@ -47,4 +47,4 @@ Guest viewing does not require a WiredScythe account. Twitch or Kick sign-in is 
 
 ## License
 
-WiredScythe is distributed under the GNU General Public License v3.0 or later. See `LICENSE`, `NOTICE.md`, and `THIRD_PARTY_NOTICES.md`.
+WiredScythe is distributed under the GNU General Public License v3.0 or later. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
