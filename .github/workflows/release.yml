@@ -64,8 +64,8 @@ jobs:
           if-no-files-found: error
           retention-days: 2
           path: |
-            release/WiredScythe-Setup-*-x64.exe
-            release/WiredScythe-Setup-*-x64.exe.blockmap
+            release/WiredScythe-Setup-x64.exe
+            release/WiredScythe-Setup-x64.exe.blockmap
             release/latest.yml
             release/release-notes.md
 
@@ -86,8 +86,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            release/WiredScythe-Setup-*-x64.exe \
-            release/WiredScythe-Setup-*-x64.exe.blockmap \
+            release/WiredScythe-Setup-x64.exe \
+            release/WiredScythe-Setup-x64.exe.blockmap \
             release/latest.yml \
             --repo "$GITHUB_REPOSITORY" \
             --title "WiredScythe $GITHUB_REF_NAME" \

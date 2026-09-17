@@ -1,20 +1,40 @@
-# WiredScythe
+<p align="center">
+  <img src="build/wiredscythe-icon.png" alt="WiredScythe" width="160">
+</p>
 
-WiredScythe is a red-and-black Windows desktop viewer for Twitch and Kick, with single-stream and multistream layouts.
+<h1 align="center">WiredScythe</h1>
 
-## Features
+<p align="center">
+  A red-and-black Windows viewer for Twitch and Kick with guest playback and multistream.
+</p>
+
+<p align="center">
+  <a href="https://github.com/GrimReaperLIVES/WiredScythe/releases/latest/download/WiredScythe-Setup-x64.exe">
+    <img alt="Download WiredScythe for Windows" src="https://img.shields.io/badge/DOWNLOAD-WIREDScythe_for_Windows-e11d2e?style=for-the-badge&logo=windows&logoColor=white">
+  </a>
+</p>
+
+<p align="center">
+  <strong>One installer. No WiredScythe account required.</strong>
+</p>
+
+## Watch your way
 
 - Watch public Twitch and Kick streams without signing in
-- Search Twitch and Kick channels from Browse or Multistream
-- Watch up to nine streams together
-- Optional account sign-in for followed channels and account-aware features
-- Automatic updates from GitHub Releases
+- Search either service from Browse or Multistream
+- Watch up to nine complete, uncropped streams together
+- Use fullscreen clean view to hide the interface and chat
+- Sign in only when you want followed channels or account-aware features
+- Receive future releases through automatic updates
 
 ## Install
 
-Download the newest Windows installer from the [Releases](https://github.com/GrimReaperLIVES/WiredScythe/releases) page. Windows may display a SmartScreen warning until the project has a trusted code-signing certificate.
+Click the large **DOWNLOAD** button above and run `WiredScythe-Setup-x64.exe`.
 
-## Development
+Windows may display a SmartScreen warning until the project has a trusted code-signing certificate.
+
+<details>
+<summary><strong>Source code and development</strong></summary>
 
 Requirements: Node.js 22 and npm.
 
@@ -30,20 +50,15 @@ npm run lint
 npm test
 ```
 
-## Publishing an update
-
-1. Update the version in `package.json` and `package-lock.json`.
-2. Add the release notes to `CHANGELOG.md`.
-3. Commit and push the change.
-4. Tag that commit with the matching version, such as `v0.3.4-alpha.19`, and push the tag.
-
-GitHub Actions builds the installer, publishes the release files, and produces the metadata used by the in-app updater. Installed copies then receive the update automatically.
+To publish an update, update the version in `package.json` and `package-lock.json`, add the release to `CHANGELOG.md`, and push a matching version tag. GitHub Actions builds the installer and automatic-update metadata.
 
 Optional Windows signing secrets are `WINDOWS_CSC_LINK`, `WINDOWS_CSC_KEY_PASSWORD`, and `WINDOWS_PUBLISHER_NAME`.
 
+</details>
+
 ## Privacy
 
-Guest viewing does not require a WiredScythe account. Twitch or Kick sign-in is optional and is handled through those services.
+Guest viewing does not require a WiredScythe account. Twitch or Kick sign-in is optional and handled through those services.
 
 ## License
 

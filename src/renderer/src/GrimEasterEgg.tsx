@@ -45,7 +45,7 @@ export function GrimEasterEgg() {
 
   return (
     <div className="grim-easter-egg" role="status">
-      <span>GRIM</span>
+      <span>THIS IS A PRODUCT DESIGN BY GRIM</span>
       <strong>666</strong>
     </div>
   );

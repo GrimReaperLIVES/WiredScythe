@@ -1138,7 +1138,17 @@ h1 em { color: #a78bfa; font-style: normal; font-weight: 420; }
    drops the title bar and collapses the shell to a single row, so that pin
    would push main into a phantom second row and the video would vanish. */
 .fullscreen-mode.chat-left main { grid-row: 1; }
-.fullscreen-mode .viewer-layout { height: 100%; }
+.fullscreen-mode .viewer-layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+  height: 100%;
+}
+.fullscreen-mode .viewer-layout > .chat-panel,
+.fullscreen-mode .viewer-layout > .chat-resize-handle,
+.fullscreen-mode .native-video-chat,
+.fullscreen-mode .chat-edge-restore,
+.fullscreen-mode .native-chat-edge-restore {
+  display: none !important;
+}
 .fullscreen-mode .chat-overlay-mode .chat-panel.overlay { top: 24px; right: 24px; bottom: 66px; width: min(390px, 30vw); }
 .fullscreen-mode.controls-hidden .chat-overlay-mode .chat-panel.overlay { bottom: 24px; }
 @keyframes native-spin { to { transform: rotate(360deg); } }

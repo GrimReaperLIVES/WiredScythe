@@ -6,7 +6,7 @@ const windowsPublisherName = process.env.WINDOWS_PUBLISHER_NAME?.trim();
 module.exports = {
   appId: "app.wiredscythe.viewer",
   productName: "WiredScythe",
-  artifactName: "WiredScythe-Setup-${version}-${arch}.${ext}",
+  artifactName: "WiredScythe-Setup-x64.${ext}",
   asar: true,
   compression: "normal",
   electronUpdaterCompatibility: ">=2.16",

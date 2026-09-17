@@ -271,6 +271,11 @@
   display: none;
 }
 
+.multi-theater .multi-stream-bar,
+.fullscreen-mode .multi-stream-bar {
+  display: none;
+}
+
 .multi-theater .multi-stream-layout,
 .fullscreen-mode .multi-stream-layout {
   height: 100%;
@@ -332,13 +337,11 @@
   cursor: pointer;
 }
 
-/* Multistream tiles can be much wider than a 16:9 feed, particularly in the
-   two-stream stacked layout. Fill the whole tile instead of presenting a
-   small centered picture with large black sidebars. The stream stays centered
-   and only its outer edges are trimmed when its aspect ratio differs. */
+/* Preserve every stream's complete frame. Cropping here can remove a facecam,
+   subtitles, or HUD elements near the edge of a Twitch or Kick broadcast. */
 .multi-tile .native-hls-video,
 .multi-tile .native-hls-paused-frame {
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -346,6 +349,11 @@
    player. Any pointer move reveals the controls and restores the cursor. */
 .multi-tile.controls-hidden {
   cursor: none;
+}
+
+.multi-tile.controls-hidden .multi-tile-name-box {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .multi-tile-overlay {

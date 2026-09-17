@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.20] - 2026-09-16
+
+- Added a prominent, permanent direct-download link for the Windows installer.
+- Fixed multistream video cropping so the complete Twitch or Kick frame remains visible.
+- Added a clean fullscreen view that hides application chrome, chat, labels, and controls.
+- Added a hidden product-design signature for Grim.
+
 ## [0.3.4-alpha.19] - 2026-09-16
 
 - Rebuilt the application as WiredScythe with a red-and-black interface.
