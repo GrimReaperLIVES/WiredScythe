@@ -811,6 +811,7 @@ export function App() {
   });
   const [multiStreamActive, setMultiStreamActive] = useState(false);
   const [multiTheater, setMultiTheater] = useState(false);
+  const [multiChatVisible, setMultiChatVisible] = useState(true);
   const [multiTiles, setMultiTiles] = useState<MultiStreamTileState[]>([]);
   // Which tile's chat the tabbed Stream Chat is currently showing.
   const [multiChatChannel, setMultiChatChannel] = useState<string | null>(null);
@@ -3942,7 +3943,7 @@ export function App() {
         </header>
 
         {multiStreamActive ? (
-          <div className="multi-stream-layout">
+          <div className={multiChatVisible ? "multi-stream-layout" : "multi-stream-layout multi-chat-hidden"}>
             <MultiStreamView
               tiles={multiTiles}
               followedLive={liveFollowedChannels}
@@ -3985,6 +3986,8 @@ export function App() {
               onSetQuality={(id, quality) =>
                 void window.desktop.player.multiSetQuality(id, quality)
               }
+              chatVisible={multiChatVisible}
+              onToggleChat={() => setMultiChatVisible((current) => !current)}
               theater={multiTheater}
               onToggleTheater={() => setMultiTheater((current) => !current)}
               fullscreen={fullscreen}

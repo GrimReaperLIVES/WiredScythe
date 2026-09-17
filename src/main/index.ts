@@ -112,6 +112,7 @@ let channelActionWindow: BrowserWindow | null = null;
 let subscriptionWindow: BrowserWindow | null = null;
 // Must match CHAT_WINDOW_NAME in the renderer’s use-chat-window module.
 const CHAT_WINDOW_NAME = "wiredscythe-chat";
+const STREAM_WINDOW_PREFIX = "wiredscythe-stream-";
 let chatPopoutWindow: BrowserWindow | null = null;
 let activePlayerMode: PlayerMode | null = null;
 let activeChannelName: string | null = null;
@@ -357,18 +358,18 @@ function lockLocalRendererNavigation(
   window: BrowserWindow,
 ): void {
   window.webContents.setWindowOpenHandler(({ frameName, url }) => {
-    // Chat renders itself into a window of its own. That window is opened blank
-    // and never navigated — the renderer puts the panel's own nodes into it —
-    // so anything carrying a destination is still refused.
-    if (frameName === CHAT_WINDOW_NAME && (url === "" || url === "about:blank")) {
+    // Chat and stream pop-outs render into blank local windows. Anything with
+    // a destination is still refused.
+    const streamWindow = frameName.startsWith(STREAM_WINDOW_PREFIX);
+    if ((frameName === CHAT_WINDOW_NAME || streamWindow) && (url === "" || url === "about:blank")) {
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
-          title: "WiredScythe Chat",
+          title: streamWindow ? "WiredScythe Stream" : "WiredScythe Chat",
           icon: applicationIcon,
-          backgroundColor: "#0e0e10",
-          minWidth: 300,
-          minHeight: 320,
+          backgroundColor: streamWindow ? "#000000" : "#0e0e10",
+          minWidth: streamWindow ? 480 : 300,
+          minHeight: streamWindow ? 270 : 320,
           autoHideMenuBar: true,
         },
       };
@@ -376,6 +377,11 @@ function lockLocalRendererNavigation(
     return { action: "deny" };
   });
   window.webContents.on("did-create-window", (created, { frameName }) => {
+    if (frameName.startsWith(STREAM_WINDOW_PREFIX)) {
+      enableDevToolsShortcut(created);
+      created.setAspectRatio(16 / 9);
+      return;
+    }
     if (frameName !== CHAT_WINDOW_NAME) return;
     chatPopoutWindow = created;
     enableDevToolsShortcut(created);

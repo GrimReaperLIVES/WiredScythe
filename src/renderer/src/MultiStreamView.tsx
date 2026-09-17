@@ -1,11 +1,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AudioLines,
   ChevronLeft,
+  ExternalLink,
   Maximize,
   Maximize2,
   Minimize,
   Minimize2,
+  MessageSquare,
   Plus,
   RotateCcw,
   Search,
@@ -24,6 +27,7 @@ import type { FollowedChannel } from "../../shared/twitch";
 import { channelKey, isValidChannelName, parseChannelKey, type Platform } from "../../shared/platform";
 import { ProviderLogo } from "./ProviderLogo";
 import { HlsNativeVideo } from "./HlsNativeVideo";
+import { useStreamWindows } from "./use-stream-windows";
 import "./multi-stream.css";
 
 interface MultiStreamViewProps {
@@ -42,6 +46,8 @@ interface MultiStreamViewProps {
   onSetVolume: (id: number, volume: number) => void;
   onToggleCompressor: (id: number, enabled: boolean) => void;
   onSetQuality: (id: number, quality: NativeQualityValue) => void;
+  chatVisible: boolean;
+  onToggleChat: () => void;
   theater: boolean;
   onToggleTheater: () => void;
   fullscreen: boolean;
@@ -65,6 +71,8 @@ export function MultiStreamView({
   onSetVolume,
   onToggleCompressor,
   onSetQuality,
+  chatVisible,
+  onToggleChat,
   theater,
   onToggleTheater,
   fullscreen,
@@ -74,6 +82,19 @@ export function MultiStreamView({
   const [pickerOpen, setPickerOpen] = useState(tiles.length === 0);
   const canAdd = tiles.length < MAX_MULTISTREAM_TILES;
   const usedLogins = useMemo(() => new Set(tiles.map((tile) => tile.channel)), [tiles]);
+  const {
+    targets: streamWindowTargets,
+    open: openStreamWindow,
+    close: closeStreamWindow,
+  } = useStreamWindows();
+  const dockedCount = tiles.filter((tile) => !streamWindowTargets.has(tile.id)).length;
+
+  useEffect(() => {
+    const liveIds = new Set(tiles.map((tile) => tile.id));
+    for (const id of streamWindowTargets.keys()) {
+      if (!liveIds.has(id)) closeStreamWindow(id);
+    }
+  }, [closeStreamWindow, streamWindowTargets, tiles]);
 
   // Close the add-stream menu when clicking anywhere outside it or its toggle.
   useEffect(() => {
@@ -121,6 +142,15 @@ export function MultiStreamView({
             </button>
           )}
           <button
+            aria-pressed={!chatVisible}
+            className={!chatVisible ? "multi-bar-btn active" : "multi-bar-btn"}
+            onClick={onToggleChat}
+            title={chatVisible ? "Hide chat" : "Show chat"}
+            type="button"
+          >
+            <MessageSquare size={16} /> {chatVisible ? "Hide chat" : "Show chat"}
+          </button>
+          <button
             aria-pressed={theater}
             className={theater ? "multi-bar-btn active" : "multi-bar-btn"}
             onClick={onToggleTheater}
@@ -158,29 +188,50 @@ export function MultiStreamView({
         </div>
       </header>
 
-      <div className={`multi-grid count-${tiles.length}`}>
-        {tiles.map((tile) => (
-          <MultiTile
-            key={tile.id}
-            tile={tile}
-            name={nameFor(tile.channel)}
-            tooltip={tooltipFor(tile.channel)}
-            platform={parseChannelKey(tile.channel).platform}
-            controlsHideDelay={controlsHideDelay}
-            onRemove={onRemove}
-            onActivate={onActivate}
-            onToggleMute={onToggleMute}
-            onSetVolume={onSetVolume}
-            onToggleCompressor={onToggleCompressor}
-            onSetQuality={onSetQuality}
-          />
-        ))}
+      <div className={`multi-grid count-${dockedCount}`}>
+        {tiles.map((tile) => {
+          const popoutTarget = streamWindowTargets.get(tile.id);
+          const player = (
+            <MultiTile
+              key={tile.id}
+              tile={tile}
+              name={nameFor(tile.channel)}
+              tooltip={tooltipFor(tile.channel)}
+              platform={parseChannelKey(tile.channel).platform}
+              controlsHideDelay={controlsHideDelay}
+              onRemove={onRemove}
+              onActivate={onActivate}
+              onToggleMute={onToggleMute}
+              onSetVolume={onSetVolume}
+              onToggleCompressor={onToggleCompressor}
+              onSetQuality={onSetQuality}
+              poppedOut={Boolean(popoutTarget)}
+              onTogglePopout={(id, name) => {
+                if (popoutTarget) closeStreamWindow(id);
+                else openStreamWindow(id, name);
+              }}
+            />
+          );
+          return popoutTarget
+            ? createPortal(
+                <div className="stream-popout-shell">{player}</div>,
+                popoutTarget.document.body,
+                `stream-popout-${tile.id}`,
+              )
+            : player;
+        })}
         {tiles.length === 0 && (
           <div className="multi-empty">
             <p>Add up to {MAX_MULTISTREAM_TILES} streams to watch them together.</p>
             <button className="multi-add-toggle" onClick={() => setPickerOpen(true)} type="button">
               <Plus size={16} /> Add a stream
             </button>
+          </div>
+        )}
+        {tiles.length > 0 && dockedCount === 0 && (
+          <div className="multi-empty">
+            <p>Every stream is open in its own window.</p>
+            <span>Close a pop-out window to dock that stream here again.</span>
           </div>
         )}
       </div>
@@ -200,6 +251,8 @@ interface MultiTileProps {
   onSetVolume: (id: number, volume: number) => void;
   onToggleCompressor: (id: number, enabled: boolean) => void;
   onSetQuality: (id: number, quality: NativeQualityValue) => void;
+  poppedOut: boolean;
+  onTogglePopout: (id: number, name: string) => void;
 }
 
 const MultiTile = memo(function MultiTile({
@@ -214,6 +267,8 @@ const MultiTile = memo(function MultiTile({
   onSetVolume,
   onToggleCompressor,
   onSetQuality,
+  poppedOut,
+  onTogglePopout,
 }: MultiTileProps) {
   const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
   const [qualities, setQualities] = useState<NativeQuality[]>([]);
@@ -387,6 +442,15 @@ const MultiTile = memo(function MultiTile({
             </div>
           )}
         </div>
+        <button
+          aria-label={poppedOut ? `Dock ${name}` : `Pop out ${name}`}
+          className="multi-tile-btn"
+          onClick={() => onTogglePopout(tile.id, name)}
+          title={poppedOut ? "Dock stream" : "Open in resizable window"}
+          type="button"
+        >
+          {poppedOut ? <Minimize2 size={14} /> : <ExternalLink size={14} />}
+        </button>
         <button
           aria-label={`Remove ${name}`}
           className="multi-tile-btn multi-tile-remove"

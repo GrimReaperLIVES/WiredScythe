@@ -7,6 +7,14 @@
   min-height: 0;
 }
 
+.multi-stream-layout.multi-chat-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.multi-stream-layout.multi-chat-hidden > .multi-chat {
+  display: none;
+}
+
 .multi-stream-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -310,17 +318,11 @@
   grid-template-columns: 1fr;
 }
 
-/* Two streams share the whole viewing surface in full-width top/bottom rows.
-   Each source is deliberately stretched to its row instead of being cropped
-   or surrounded by large black side bands. */
+/* Two streams use the familiar full-width top/bottom layout. Video remains
+   true 16:9; pop-outs are available when each stream needs more room. */
 .multi-grid.count-2 {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: repeat(2, minmax(0, 1fr));
-}
-
-.multi-grid.count-2 .multi-tile .native-hls-video,
-.multi-grid.count-2 .multi-tile .native-hls-paused-frame {
-  object-fit: fill;
 }
 
 .multi-grid.count-3,
@@ -362,6 +364,21 @@
 .multi-tile .native-hls-paused-frame {
   object-fit: contain;
   object-position: center;
+}
+
+.stream-window-root,
+.stream-window-body,
+.stream-popout-shell {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.stream-popout-shell .multi-tile {
+  width: 100%;
+  height: 100%;
 }
 
 /* Once a tile's controls auto-hide, hide its cursor too — same as the single
