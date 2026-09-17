@@ -2,6 +2,17 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.27] - 2026-09-17
+
+### Additions
+
+- Added a resizable, always-on-top Pop out control to Standard-mode streams.
+- Added a Dock stream control inside the Standard-mode pop-out window.
+
+### Improvements
+
+- Audited pop-out coverage: Multistream supports individual and all-stream windows; Native retains Chromium picture-in-picture; Standard now has an app-level stream pop-out.
+
 ## [0.3.4-alpha.26] - 2026-09-17
 
 ### Fixes

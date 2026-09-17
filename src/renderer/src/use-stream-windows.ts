@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const STREAM_WINDOW_PREFIX = "wiredscythe-stream-";
+export type StreamWindowId = number | string;
 
 function adoptStyles(target: Window): void {
   for (const node of document.querySelectorAll(
@@ -26,22 +27,22 @@ function adoptStyles(target: Window): void {
 }
 
 export interface StreamWindows {
-  targets: Map<number, Window>;
-  open: (id: number, name: string) => void;
-  close: (id: number) => void;
+  targets: Map<StreamWindowId, Window>;
+  open: (id: StreamWindowId, name: string) => void;
+  close: (id: StreamWindowId) => void;
 }
 
 /** Keeps each popped stream in the same React tree while its DOM moves to a
  * separate, resizable native window. Closing that window docks it again. */
 export function useStreamWindows(): StreamWindows {
-  const [targets, setTargets] = useState<Map<number, Window>>(() => new Map());
+  const [targets, setTargets] = useState<Map<StreamWindowId, Window>>(() => new Map());
   const targetsRef = useRef(targets);
 
   useEffect(() => {
     targetsRef.current = targets;
   }, [targets]);
 
-  const open = useCallback((id: number, name: string) => {
+  const open = useCallback((id: StreamWindowId, name: string) => {
     const current = targetsRef.current.get(id);
     if (current && !current.closed) {
       current.focus();
@@ -61,7 +62,7 @@ export function useStreamWindows(): StreamWindows {
     setTargets((previous) => new Map(previous).set(id, opened));
   }, []);
 
-  const close = useCallback((id: number) => {
+  const close = useCallback((id: StreamWindowId) => {
     const target = targetsRef.current.get(id);
     if (target && !target.closed) target.close();
     setTargets((previous) => {

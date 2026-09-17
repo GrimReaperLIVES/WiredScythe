@@ -93,7 +93,7 @@ export function MultiStreamView({
   useEffect(() => {
     const liveIds = new Set(tiles.map((tile) => tile.id));
     for (const id of streamWindowTargets.keys()) {
-      if (!liveIds.has(id)) closeStreamWindow(id);
+      if (typeof id !== "number" || !liveIds.has(id)) closeStreamWindow(id);
     }
   }, [closeStreamWindow, streamWindowTargets, tiles]);
 

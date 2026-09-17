@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowDown,
   Clock,
@@ -32,6 +33,7 @@ import {
   Pin,
   Play,
   Pause,
+  PictureInPicture2,
   RotateCcw,
   RefreshCw,
   Reply,
@@ -127,6 +129,7 @@ import { ChatMessageRow } from "./ChatMessageRow";
 import { ChatWindowPlacer } from "./ChatWindowPlacer";
 import { ChatWindowPortal } from "./ChatWindowPortal";
 import { useChatWindow } from "./use-chat-window";
+import { useStreamWindows } from "./use-stream-windows";
 import { renderChatMessageText } from "./chat-message-text";
 import { HlsNativeVideo } from "./HlsNativeVideo";
 import { PinnedChatMessage } from "./PinnedChatMessage";
@@ -615,6 +618,12 @@ export function App() {
   const [chatVisible, setChatVisible] = useState(true);
   const { target: chatWindowTarget, open: openChatWindow, close: closeChatWindow } =
     useChatWindow();
+  const {
+    targets: singleStreamWindowTargets,
+    open: openSingleStreamWindow,
+    close: closeSingleStreamWindow,
+  } = useStreamWindows();
+  const singleStreamWindowTarget = singleStreamWindowTargets.get("single-player");
   const closeChatWindowRef = useRef(closeChatWindow);
   useEffect(() => {
     if (settingsSection !== "emotes" || !settingsOpen) return;
@@ -788,6 +797,13 @@ export function App() {
       window.localStorage.getItem("wiredscythe.playback.audioCompression") === "true",
   });
   const [activeMode, setActiveMode] = useState<PlayerMode | null>(null);
+  useEffect(() => {
+    // Standard streams can render in a resizable local window. Native
+    // playback uses Chromium's picture-in-picture surface to retain its one
+    // active decoder and live buffer.
+    if (activeChannel && activeMode === "official") return;
+    closeSingleStreamWindow("single-player");
+  }, [activeChannel, activeMode, closeSingleStreamWindow]);
   // Twitch-style floating mini player: the HLS session keeps playing in a
   // small draggable corner while the user browses other sections.
   const [miniPlayerActive, setMiniPlayerActive] = useState(false);
@@ -4493,6 +4509,38 @@ export function App() {
                 {activeMode !== "native" && (
                   <>
                     <button
+                      aria-label={
+                        singleStreamWindowTarget ? "Dock stream" : "Pop out stream"
+                      }
+                      aria-pressed={Boolean(singleStreamWindowTarget)}
+                      className={
+                        singleStreamWindowTarget
+                          ? "toolbar-action active"
+                          : "toolbar-action"
+                      }
+                      onClick={() => {
+                        if (singleStreamWindowTarget) {
+                          closeSingleStreamWindow("single-player");
+                          return;
+                        }
+                        if (activeChannel) {
+                          openSingleStreamWindow(
+                            "single-player",
+                            activeChannelDisplayName ?? activeChannel,
+                          );
+                        }
+                      }}
+                      title={
+                        singleStreamWindowTarget
+                          ? "Dock stream back in WiredScythe"
+                          : "Open a resizable picture-in-picture window"
+                      }
+                      type="button"
+                    >
+                      <PictureInPicture2 size={16} />
+                      <span>{singleStreamWindowTarget ? "Dock" : "Pop out"}</span>
+                    </button>
+                    <button
                       aria-pressed={theaterMode}
                       className={theaterMode ? "toolbar-action active" : "toolbar-action"}
                       onClick={() => setTheaterMode((current) => !current)}
@@ -4598,17 +4646,43 @@ export function App() {
                     event.preventDefault();
                   }}
                 >
-                  {activeMode === "official" && (
-                    <iframe
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                      className="standard-player-frame"
-                      key={`standard-player:${activeChannel}`}
-                      sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
-                      src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
-                      aria-label={`Official Twitch player for ${activeChannel}`}
-                    />
-                  )}
+                  {activeMode === "official" &&
+                    (singleStreamWindowTarget
+                      ? createPortal(
+                          <div className="single-stream-popout-shell">
+                            <iframe
+                              allow="autoplay; fullscreen; picture-in-picture"
+                              allowFullScreen
+                              className="standard-player-frame"
+                              key={`standard-player:${activeChannel}`}
+                              sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
+                              src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
+                              aria-label={`Official Twitch player for ${activeChannel}`}
+                            />
+                            <button
+                              aria-label="Dock stream"
+                              className="single-stream-popout-dock"
+                              onClick={() => closeSingleStreamWindow("single-player")}
+                              title="Dock stream back in WiredScythe"
+                              type="button"
+                            >
+                              Dock stream
+                            </button>
+                          </div>,
+                          singleStreamWindowTarget.document.body,
+                          "single-stream-popout",
+                        )
+                      : (
+                          <iframe
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                            className="standard-player-frame"
+                            key={`standard-player:${activeChannel}`}
+                            sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
+                            src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
+                            aria-label={`Official Twitch player for ${activeChannel}`}
+                          />
+                        ))}
                   {activeMode === "native" && (
                     <>
                       <NativeControls
