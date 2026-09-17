@@ -2,6 +2,11 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.22] - 2026-09-16
+
+- Protected the `main` branch against direct commits, force pushes, and deletion.
+- Marked original WiredScythe code and artwork as proprietary and all rights reserved by Grim.
+
 ## [0.3.4-alpha.21] - 2026-09-16
 
 - Recentered the WiredScythe artwork and corrected logo framing throughout the application.

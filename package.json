@@ -1,10 +1,10 @@
 {
   "name": "wiredscythe",
-  "version": "0.3.4-alpha.21",
+  "version": "0.3.4-alpha.22",
   "private": true,
   "description": "A focused Windows Twitch and Kick viewer",
-  "author": "WiredScythe contributors",
-  "license": "GPL-3.0-or-later",
+  "author": "Grim",
+  "license": "UNLICENSED",
   "main": "dist-electron/main/index.js",
   "type": "module",
   "scripts": {

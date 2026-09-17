@@ -3,9 +3,9 @@
 WiredScythe is an independent application and is not affiliated with Twitch,
 Kick, 7TV, FrankerFaceZ, BetterTTV, or Streamlink.
 
-The GNU General Public License v3.0 or later in the repository root applies
-only to WiredScythe-authored source code. The software and assets listed below
-retain their original licenses and are not relicensed under the GPL.
+The proprietary license in the repository root applies only to original
+WiredScythe-authored code and assets. The software and assets listed below
+retain their original licenses and are not relicensed by WiredScythe.
 
 ## Emote-provider logos
 
