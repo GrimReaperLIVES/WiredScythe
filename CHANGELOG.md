@@ -2,6 +2,10 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.21] - 2026-09-16
+
+- Recentered the WiredScythe artwork and corrected logo framing throughout the application.
+
 ## [0.3.4-alpha.20] - 2026-09-16
 
 - Added a prominent, permanent direct-download link for the Windows installer.
