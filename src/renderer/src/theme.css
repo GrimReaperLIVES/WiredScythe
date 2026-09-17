@@ -1,0 +1,191 @@
+/* WiredScythe's house palette: black surfaces, iron neutrals, and red signal
+   accents. This intentionally loads after component styles so the branding is
+   consistent across the whole desktop app. */
+:root {
+  --wired-red: #dc2626;
+  --wired-red-bright: #ef4444;
+  --wired-red-soft: #fca5a5;
+  --wired-red-dark: #7f1d1d;
+  --wired-red-surface: #26090a;
+}
+
+.app-shell,
+.app-shell .sidebar,
+.app-shell .topbar,
+.app-shell .titlebar,
+.app-shell .settings-modal,
+.app-shell .app-modal,
+.app-shell .chat-panel,
+.app-shell .multi-stream-page,
+.app-shell .multi-stream-bar,
+.app-shell .multi-chat,
+.app-shell .chat-window-root,
+.app-shell .chat-window-body {
+  background-color: #050506;
+}
+
+.app-shell :is(
+  .top-nav-item.active,
+  .top-multistream.active,
+  .settings-link.active,
+  .mode-switch button.active,
+  .multi-bar-btn.active,
+  .multi-chat-tab.twitch.active,
+  .settings-modal-nav button.active,
+  .multi-tile-btn.active,
+  .emote-picker-tabs button.active,
+  .native-chat-input .emote-picker-button.active,
+  .chat-toggle-setting input:checked + span,
+  .settings-switch.active
+) {
+  border-color: var(--wired-red) !important;
+  color: #fff1f2 !important;
+  background-color: var(--wired-red-surface) !important;
+  box-shadow: inset 0 0 0 1px #ef444455 !important;
+}
+
+.app-shell :is(
+  .primary-button,
+  .channel-input-row button,
+  .section-channel-form button,
+  .native-chat-input .chat-send-button,
+  .multi-empty button
+) {
+  border-color: var(--wired-red) !important;
+  color: white !important;
+  background: #b91c1c !important;
+}
+
+.app-shell :is(
+  .primary-button,
+  .channel-input-row button,
+  .section-channel-form button,
+  .native-chat-input .chat-send-button,
+  .multi-empty button
+):hover:not(:disabled) {
+  background: var(--wired-red) !important;
+}
+
+.app-shell :is(
+  .service-ring.twitch,
+  .multi-tile-live-dot.twitch,
+  .native-status-orb,
+  .waiting-label i
+) {
+  --service-color: var(--wired-red-bright);
+  border-color: var(--wired-red-bright) !important;
+  background-color: var(--wired-red-bright) !important;
+  box-shadow: 0 0 9px #ef444499 !important;
+}
+
+.app-shell :is(
+  .top-nav-item.active svg,
+  .settings-link.active svg,
+  .section-icon,
+  .browse-signed-out > span,
+  .home-empty-state > span,
+  .following-home-kicker,
+  .eyebrow,
+  h1 em,
+  .settings-section-heading > span,
+  .settings-modal-header span,
+  .settings-dependencies dt,
+  .changelog-release > header span,
+  .app-modal .modal-icon
+) {
+  color: var(--wired-red-soft) !important;
+}
+
+.app-shell :is(
+  .search-box:focus-within,
+  .browse-search:focus-within,
+  .channel-input-row:focus-within,
+  .section-channel-form:focus-within,
+  .settings-modal-search:focus-within,
+  .chat-composer-editor:focus,
+  .native-chat-input textarea:focus,
+  .emote-picker > input:focus,
+  .chat-user-search:focus-within
+) {
+  border-color: var(--wired-red) !important;
+  box-shadow: 0 0 0 3px #dc262633 !important;
+}
+
+.app-shell input[type="range"],
+.app-shell input[type="checkbox"] {
+  accent-color: var(--wired-red-bright) !important;
+}
+
+.app-shell :is(.native-chat-message.mentioned, .native-video-chat-message.mentioned) {
+  background: #dc262629 !important;
+  box-shadow: inset 3px 0 0 var(--wired-red-bright) !important;
+}
+
+.app-shell :is(.native-chat-message.first-message, .native-video-chat-message.first-message) {
+  background: #b91c1c1f !important;
+  box-shadow: inset 3px 0 0 var(--wired-red-bright) !important;
+}
+
+.app-shell :is(.chat-reply-parent, .native-chat-reply-parent) {
+  border-left-color: var(--wired-red) !important;
+}
+
+.app-shell .brand-mark {
+  box-shadow: 0 6px 20px #dc262655 !important;
+}
+
+.app-shell .preview-glow {
+  background: #dc262655 !important;
+}
+
+.app-shell :focus-visible {
+  outline-color: var(--wired-red-bright) !important;
+}
+
+/* Clean WiredScythe chrome: black surfaces with restrained red bleed. */
+.app-shell {
+  background:
+    radial-gradient(ellipse 75% 45% at 4% 100%, #7f1d1d40 0%, transparent 68%),
+    radial-gradient(ellipse 50% 35% at 100% 0%, #dc262620 0%, transparent 70%),
+    #050506;
+}
+
+.app-shell :is(.sidebar, .topbar, .multi-stream-bar, .settings-modal, .app-modal) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-image:
+    linear-gradient(115deg, #050506f2 0%, #160607e8 48%, #050506f5 100%) !important;
+}
+
+.app-shell :is(.sidebar, .topbar, .multi-stream-bar, .settings-modal, .app-modal)::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: .45;
+  background: linear-gradient(90deg, transparent 0%, #ef44441f 45%, transparent 56%);
+  content: "";
+  pointer-events: none;
+}
+
+.app-shell :is(.sidebar, .topbar, .multi-stream-bar) {
+  box-shadow: inset 0 -1px #ef444438, inset 0 1px #7f1d1d66;
+}
+
+/* The global channel finder is positioned just below the top bar. The chrome
+   effect above clips most surfaces, but never the top bar or its result menu. */
+.app-shell :is(.topbar, .multi-stream-bar) {
+  overflow: visible;
+}
+
+.app-shell .sidebar::after {
+  position: absolute;
+  top: 82px;
+  right: 0;
+  bottom: 12px;
+  width: 1px;
+  background: linear-gradient(transparent, #ef4444aa 18%, #7f1d1d 82%, transparent);
+  box-shadow: 0 0 14px #dc262677;
+  content: "";
+  pointer-events: none;
+}
