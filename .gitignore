@@ -8,6 +8,7 @@ coverage/
 .env
 .env.local
 .cache/
+.tools/
 vendor/native/
 native/*/build/
 AGENTS.md
