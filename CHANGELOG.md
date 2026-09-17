@@ -7,6 +7,7 @@ All notable WiredScythe changes are documented here.
 - Restored true 16:9 playback in the full-width top/bottom two-stream layout.
 - Added individually resizable 16:9 stream pop-out windows that dock again when closed.
 - Added a Show/Hide chat control so streams can reclaim the full window width.
+- Fixed Multistream fullscreen so the video grid reliably owns the complete display.
 - Made multistream fullscreen a clean video-only mode that hides chat, application chrome, labels, and controls.
 - Protected the `main` branch against direct commits, force pushes, and deletion.
 - Marked original WiredScythe code and artwork as proprietary and all rights reserved by Grim.

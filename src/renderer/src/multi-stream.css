@@ -302,6 +302,37 @@
   display: none !important;
 }
 
+/* Native fullscreen must not depend on the normal two-row application grid.
+   Pin Multistream to the fullscreen viewport so no titlebar, sidebar, topbar,
+   chat column, or implicit grid row can leave unused space around the video. */
+.app-shell.multi-fullscreen {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.multi-fullscreen > main {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100vw;
+  height: 100vh;
+  min-width: 0;
+  min-height: 0;
+}
+
+.multi-fullscreen .multi-stream-layout {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.multi-fullscreen .multi-stream-page,
+.multi-fullscreen .multi-grid {
+  width: 100%;
+  height: 100%;
+}
+
 /* Grid layouts scale from a solo stream up through nine tiles. */
 .multi-grid {
   display: grid;

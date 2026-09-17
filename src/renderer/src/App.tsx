@@ -2424,9 +2424,9 @@ export function App() {
       if (key === "t") {
         setMultiTheater((current) => !current);
       } else if (key === "f") {
-        void window.desktop.player.setFullscreen(!fullscreen);
+        void setFullscreenMode(!fullscreen);
       } else if (event.key === "Escape" && fullscreen) {
-        void window.desktop.player.setFullscreen(false);
+        void setFullscreenMode(false);
       } else if (event.key === "Escape" && multiTheater) {
         setMultiTheater(false);
       }
@@ -3406,6 +3406,7 @@ export function App() {
         theaterMode ? "theater-mode" : "",
         multiStreamActive && multiTheater ? "multi-theater" : "",
         fullscreen ? "fullscreen-mode" : "",
+        multiStreamActive && fullscreen ? "multi-fullscreen" : "",
         fullscreen && !nativeControlsVisible ? "controls-hidden" : "",
       ].join(" ")}
       style={{
@@ -3991,7 +3992,7 @@ export function App() {
               theater={multiTheater}
               onToggleTheater={() => setMultiTheater((current) => !current)}
               fullscreen={fullscreen}
-              onToggleFullscreen={() => void window.desktop.player.setFullscreen(!fullscreen)}
+              onToggleFullscreen={() => void setFullscreenMode(!fullscreen)}
               onExit={exitMultiStream}
             />
             <aside className="multi-chat" aria-label="Stream chat">
