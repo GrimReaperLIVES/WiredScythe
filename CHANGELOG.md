@@ -4,7 +4,7 @@ All notable WiredScythe changes are documented here.
 
 ## [0.3.4-alpha.22] - 2026-09-16
 
-- Corrected the two-stream multiview layout so complete 16:9 feeds sit side by side without cropped faces or oversized side gaps.
+- Added a focused two-stream layout: the selected feed fills the player without cropping, while the second remains visible as a clickable 16:9 inset.
 - Protected the `main` branch against direct commits, force pushes, and deletion.
 - Marked original WiredScythe code and artwork as proprietary and all rights reserved by Grim.
 
