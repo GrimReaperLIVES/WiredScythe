@@ -281,6 +281,19 @@
   height: 100%;
 }
 
+/* Fullscreen is the clean viewing mode: give every pixel to the streams and
+   remove chat plus all per-tile labels and controls. Theater keeps chat while
+   hiding the surrounding app chrome. */
+.fullscreen-mode .multi-stream-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fullscreen-mode .multi-chat,
+.fullscreen-mode .multi-tile-name-box,
+.fullscreen-mode .multi-tile-controls {
+  display: none !important;
+}
+
 /* Grid layouts scale from a solo stream up through nine tiles. */
 .multi-grid {
   display: grid;
@@ -297,42 +310,17 @@
   grid-template-columns: 1fr;
 }
 
-/* Two equal 16:9 feeds cannot fill this tall viewing area without either
-   severe cropping or large letterbox bands. Use the active feed as a complete
-   uncropped canvas and keep the other feed visible as a 16:9 inset. Clicking
-   either tile already activates it, so this also provides a natural swap. */
+/* Two streams share the whole viewing surface in full-width top/bottom rows.
+   Each source is deliberately stretched to its row instead of being cropped
+   or surrounded by large black side bands. */
 .multi-grid.count-2 {
-  position: relative;
-  display: block;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
-.multi-grid.count-2 .multi-tile {
-  position: absolute;
-  inset: 2px;
-}
-
-.multi-grid.count-2 .multi-tile.active {
-  z-index: 1;
-}
-
-.multi-grid.count-2 .multi-tile:not(.active) {
-  z-index: 5;
-  top: auto;
-  right: 20px;
-  bottom: 20px;
-  left: auto;
-  width: clamp(280px, 31%, 480px);
-  height: auto;
-  aspect-ratio: 16 / 9;
-  border: 2px solid rgb(239 68 68 / 72%);
-  border-radius: 10px;
-  box-shadow: 0 16px 42px rgb(0 0 0 / 78%);
-  transition: width 160ms ease, border-color 160ms ease, transform 160ms ease;
-}
-
-.multi-grid.count-2 .multi-tile:not(.active):hover {
-  border-color: #ef4444;
-  transform: translateY(-2px);
+.multi-grid.count-2 .multi-tile .native-hls-video,
+.multi-grid.count-2 .multi-tile .native-hls-paused-frame {
+  object-fit: fill;
 }
 
 .multi-grid.count-3,
