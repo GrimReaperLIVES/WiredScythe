@@ -362,6 +362,16 @@ function lockLocalRendererNavigation(
     // a destination is still refused.
     const streamWindow = frameName.startsWith(STREAM_WINDOW_PREFIX);
     if ((frameName === CHAT_WINDOW_NAME || streamWindow) && (url === "" || url === "about:blank")) {
+      const streamId = streamWindow
+        ? Number.parseInt(frameName.slice(STREAM_WINDOW_PREFIX.length), 10) || 0
+        : 0;
+      const anchor = window.getBounds();
+      const workArea = screen.getDisplayMatching(anchor).workArea;
+      const streamWidth = Math.min(960, Math.max(480, workArea.width - 80));
+      const streamHeight = Math.round(streamWidth * 9 / 16);
+      const cascade = (streamId % 6) * 30;
+      const streamX = Math.min(workArea.x + workArea.width - streamWidth, workArea.x + 30 + cascade);
+      const streamY = Math.min(workArea.y + workArea.height - streamHeight, workArea.y + 30 + cascade);
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
@@ -371,6 +381,16 @@ function lockLocalRendererNavigation(
           minWidth: streamWindow ? 480 : 300,
           minHeight: streamWindow ? 270 : 320,
           autoHideMenuBar: true,
+          ...(streamWindow
+            ? {
+                width: streamWidth,
+                height: streamHeight,
+                x: streamX,
+                y: streamY,
+                alwaysOnTop: true,
+                resizable: true,
+              }
+            : {}),
         },
       };
     }
@@ -380,6 +400,7 @@ function lockLocalRendererNavigation(
     if (frameName.startsWith(STREAM_WINDOW_PREFIX)) {
       enableDevToolsShortcut(created);
       created.setAspectRatio(16 / 9);
+      created.setAlwaysOnTop(true, "floating");
       return;
     }
     if (frameName !== CHAT_WINDOW_NAME) return;

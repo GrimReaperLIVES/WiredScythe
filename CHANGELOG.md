@@ -2,6 +2,11 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.24] - 2026-09-16
+
+- Added Pop out all and Dock all controls for Multistream.
+- Made every stream pop-out a resizable, always-on-top 16:9 picture-in-picture window.
+
 ## [0.3.4-alpha.23] - 2026-09-16
 
 - Fixed Multistream Fullscreen and Theater viewport takeover.

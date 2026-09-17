@@ -9,6 +9,7 @@ import {
   Minimize,
   Minimize2,
   MessageSquare,
+  PictureInPicture2,
   Plus,
   RotateCcw,
   Search,
@@ -139,6 +140,31 @@ export function MultiStreamView({
               type="button"
             >
               <Plus size={16} /> Add stream
+            </button>
+          )}
+          {tiles.length > 0 && (
+            <button
+              aria-pressed={dockedCount === 0}
+              className={dockedCount === 0 ? "multi-bar-btn active" : "multi-bar-btn"}
+              onClick={() => {
+                if (dockedCount === 0) {
+                  for (const tile of tiles) closeStreamWindow(tile.id);
+                  return;
+                }
+                for (const tile of tiles) {
+                  if (!streamWindowTargets.has(tile.id)) {
+                    openStreamWindow(tile.id, nameFor(tile.channel));
+                  }
+                }
+              }}
+              title={
+                dockedCount === 0
+                  ? "Dock every picture-in-picture window"
+                  : "Open every stream in a resizable picture-in-picture window"
+              }
+              type="button"
+            >
+              <PictureInPicture2 size={16} /> {dockedCount === 0 ? "Dock all" : "Pop out all"}
             </button>
           )}
           <button
@@ -446,7 +472,7 @@ const MultiTile = memo(function MultiTile({
           aria-label={poppedOut ? `Dock ${name}` : `Pop out ${name}`}
           className="multi-tile-btn"
           onClick={() => onTogglePopout(tile.id, name)}
-          title={poppedOut ? "Dock stream" : "Open in resizable window"}
+          title={poppedOut ? "Dock stream" : "Open resizable picture-in-picture"}
           type="button"
         >
           {poppedOut ? <Minimize2 size={14} /> : <ExternalLink size={14} />}
