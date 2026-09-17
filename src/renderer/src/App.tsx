@@ -3343,6 +3343,10 @@ export function App() {
     () => sortFavoritesFirst(offlineFollowedChannels),
     [offlineFollowedChannels, sortFavoritesFirst],
   );
+  const localOnlyFavorites = useMemo(
+    () => [...favoriteChannels].filter((channel) => !combinedFollowedChannels.some((entry) => entry.login === channel)),
+    [combinedFollowedChannels, favoriteChannels],
+  );
 
   function toggleFavoriteChannel(login: string) {
     setFavoriteChannels((current) => {
@@ -3539,6 +3543,40 @@ export function App() {
             ))}
           </div>
           <div className="followed-list">
+            {localOnlyFavorites.length > 0 && (
+              <>
+                <div className="followed-group-label">
+                  <span>Local favorites</span>
+                  <b>{localOnlyFavorites.length}</b>
+                </div>
+                {localOnlyFavorites.map((channel) => {
+                  const parsed = parseChannelKey(channel);
+                  const label = parsed.login;
+                  return (
+                    <button
+                      className="followed-channel offline"
+                      key={channel}
+                      onClick={() => void watchChannel(channel)}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        openFollowedChannelMenu(channel, event.clientX, event.clientY);
+                      }}
+                      title="Play this local favorite"
+                      type="button"
+                    >
+                      <span className="channel-avatar">
+                        <ProviderLogo name={parsed.platform} />
+                        <Star aria-hidden="true" className="channel-favorite-star" size={10} />
+                      </span>
+                      <span className="followed-copy">
+                        <strong>{label}</strong>
+                        <small>{parsed.platform === "kick" ? "Kick" : "Twitch"} · Local favorite</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
             {sidebarLiveChannels.length + sidebarOfflineChannels.length === 0 &&
               platformFilter === "kick" &&
               kickAccount === null && (
@@ -4442,6 +4480,16 @@ export function App() {
               </div>
 
               <div className="player-actions" aria-label="Channel and player actions">
+                <button
+                  aria-label={favoriteChannels.has(activeChannel ?? "") ? "Remove local favorite" : "Add local favorite"}
+                  aria-pressed={favoriteChannels.has(activeChannel ?? "")}
+                  className={favoriteChannels.has(activeChannel ?? "") ? "toolbar-icon follow-action active" : "toolbar-icon follow-action"}
+                  onClick={() => activeChannel && toggleFavoriteChannel(activeChannel)}
+                  title={favoriteChannels.has(activeChannel ?? "") ? "Remove local favorite" : "Add local favorite"}
+                  type="button"
+                >
+                  <Star fill={favoriteChannels.has(activeChannel ?? "") ? "currentColor" : "none"} size={17} />
+                </button>
                 <button
                   aria-label={activeChannelIsFollowed ? "Following channel" : "Follow channel"}
                   aria-pressed={activeChannelIsFollowed}

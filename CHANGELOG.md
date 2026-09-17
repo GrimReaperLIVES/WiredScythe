@@ -2,6 +2,18 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.28] - 2026-09-17
+
+### Additions
+
+- Added sign-in-free Local favorites for Twitch and Kick channels.
+- Added a local favorites sidebar section with quick playback and context-menu removal.
+- Added an in-player favorite button so any channel can be saved while watching.
+
+### Improvements
+
+- Local favorites remain available when platform follow data is offline or unavailable, while account-level follows stay separate.
+
 ## [0.3.4-alpha.27] - 2026-09-17
 
 ### Additions
