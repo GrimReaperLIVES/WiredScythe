@@ -5,8 +5,10 @@
 <h1 align="center">WiredScythe</h1>
 
 <p align="center">
-  A red-and-black Windows viewer for Twitch and Kick with guest playback and multistream.
+  A red-and-black Twitch and Kick viewer for Windows and macOS with guest playback and multistream.
 </p>
+
+Mac users can download the `.dmg` or `.zip` from the [latest GitHub Release](https://github.com/GrimReaperLIVES/WiredScythe/releases/latest).
 
 <p align="center">
   <a href="https://github.com/GrimReaperLIVES/WiredScythe/releases/latest/download/WiredScythe-Setup-x64.exe">
@@ -34,6 +36,8 @@
 Click the large **DOWNLOAD** button above and run `WiredScythe-Setup-x64.exe`.
 
 Windows may display a SmartScreen warning until the project has a trusted code-signing certificate.
+
+The macOS package is currently unsigned. macOS may require you to approve it in Privacy & Security on first launch. Apple Developer signing and notarization can be added through the documented release secrets later.
 
 <details>
 <summary><strong>Source code and development</strong></summary>

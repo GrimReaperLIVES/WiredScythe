@@ -2,6 +2,17 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.29] - 2026-09-17
+
+### Additions
+
+- Added macOS release packaging for `.dmg` and `.zip` downloads.
+- Added a macOS GitHub Actions release workflow that attaches packages to each GitHub Release.
+
+### Improvements
+
+- Documented that macOS packages are currently unsigned and may require first-launch approval in Privacy & Security.
+
 ## [0.3.4-alpha.28] - 2026-09-17
 
 ### Additions

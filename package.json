@@ -1,6 +1,6 @@
 {
   "name": "wiredscythe",
-  "version": "0.3.4-alpha.28",
+  "version": "0.3.4-alpha.29",
   "private": true,
   "description": "A focused Windows Twitch and Kick viewer",
   "author": "Grim",
@@ -13,6 +13,7 @@
     "prepare:native": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-native-runtime.ps1",
     "package:win": "npm run prepare:native && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never",
     "release:win": "npm run prepare:native && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never",
+    "release:mac": "npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never",
     "preview": "electron-vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

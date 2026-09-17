@@ -45,6 +45,23 @@ module.exports = {
         ]
       : undefined,
   },
+  mac: {
+    category: "public.app-category.entertainment",
+    target: ["dmg", "zip"],
+    // A PNG is accepted by electron-builder for unsigned local builds. Add an
+    // Apple Developer identity later to enable signing and notarization.
+    icon: "build/wiredscythe-icon.png",
+    publish: hasGitHubRepository
+      ? [
+          {
+            provider: "github",
+            owner: repositoryOwner,
+            repo: repositoryName,
+            releaseType: "release",
+          },
+        ]
+      : undefined,
+  },
   nsis: {
     oneClick: false,
     allowToChangeInstallationDirectory: true,
