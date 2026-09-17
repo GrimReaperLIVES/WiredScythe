@@ -12,7 +12,7 @@ WiredScythe is a red-and-black Windows desktop viewer for Twitch and Kick, with 
 
 ## Install
 
-Download the newest Windows installer from this repository's **Releases** page. Windows may display a SmartScreen warning until the project has a trusted code-signing certificate.
+Download the newest Windows installer from the [Releases](https://github.com/GrimReaperLIVES/WiredScythe/releases) page. Windows may display a SmartScreen warning until the project has a trusted code-signing certificate.
 
 ## Development
 

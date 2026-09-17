@@ -3,7 +3,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 
-const RELEASES_URL = process.env.WIREDSCYTHE_RELEASES_URL?.trim();
+const RELEASES_URL =
+  process.env.WIREDSCYTHE_RELEASES_URL?.trim() ||
+  "https://api.github.com/repos/GrimReaperLIVES/WiredScythe/releases";
 const CACHE_TTL_MS = 15 * 60 * 1_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
 const MAX_MARKDOWN_BYTES = 750_000;
