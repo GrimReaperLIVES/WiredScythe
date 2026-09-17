@@ -2,6 +2,11 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.23] - 2026-09-16
+
+- Fixed Multistream Fullscreen and Theater viewport takeover.
+- Packaged the latest Multistream layout, pop-out, and chat visibility changes into a new installer.
+
 ## [0.3.4-alpha.22] - 2026-09-16
 
 - Restored true 16:9 playback in the full-width top/bottom two-stream layout.
