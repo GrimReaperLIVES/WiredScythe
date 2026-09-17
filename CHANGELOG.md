@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.31] - 2026-09-17
+
+### Improvements
+
+- Reworked the About page Core dependencies card with a black-and-red presentation and clearer dependency rows.
+- Removed remaining purple About-page accents in favor of the WiredScythe red theme.
+
 ## [0.3.4-alpha.30] - 2026-09-17
 
 ### Fixes
