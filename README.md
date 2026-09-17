@@ -23,7 +23,9 @@
 - Watch public Twitch and Kick streams without signing in
 - Search either service from Browse or Multistream
 - Watch up to nine complete, uncropped streams together
-- Use fullscreen clean view to hide the interface and chat
+- Use Theater or fullscreen clean view without interrupting active video
+- Pop out one or all streams into independent, resizable 16:9 picture-in-picture windows
+- Hide Multistream chat to give the video grid the full available width
 - Sign in only when you want followed channels or account-aware features
 - Receive future releases through automatic updates
 

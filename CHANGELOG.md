@@ -2,6 +2,12 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.25] - 2026-09-16
+
+- Fixed black video in Multistream Theater and Fullscreen by keeping the video grid in the active layout row.
+- Removed the fixed-position compositor layer that could collapse active video elements to zero height.
+- Verified Theater and Fullscreen against the packaged renderer with active 1920×1080 playback and advancing decoded frames.
+
 ## [0.3.4-alpha.24] - 2026-09-16
 
 - Added Pop out all and Dock all controls for Multistream.

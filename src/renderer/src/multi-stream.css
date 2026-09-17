@@ -299,12 +299,6 @@
   height: 100%;
 }
 
-.multi-theater .multi-stream-layout {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-}
-
 /* Fullscreen is the clean viewing mode: give every pixel to the streams and
    remove chat plus all per-tile labels and controls. Theater keeps chat while
    hiding the surrounding app chrome. */
@@ -318,9 +312,7 @@
   display: none !important;
 }
 
-/* Native fullscreen must not depend on the normal two-row application grid.
-   Pin Multistream to the fullscreen viewport so no titlebar, sidebar, topbar,
-   chat column, or implicit grid row can leave unused space around the video. */
+/* Native fullscreen must not depend on the normal two-row application grid. */
 .app-shell.multi-fullscreen {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -336,15 +328,18 @@
 }
 
 .multi-fullscreen .multi-stream-layout {
-  position: fixed;
-  z-index: 200;
-  inset: 0;
   width: 100vw;
   height: 100vh;
 }
 
-.multi-fullscreen .multi-stream-page,
+.multi-theater .multi-stream-page,
+.multi-fullscreen .multi-stream-page {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.multi-theater .multi-grid,
 .multi-fullscreen .multi-grid {
+  grid-row: 1;
   width: 100%;
   height: 100%;
 }
