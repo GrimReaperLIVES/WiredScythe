@@ -64,7 +64,11 @@ export function plainTextSegments(
       return;
     }
 
-    const emote = emotes.get(token);
+    // Accept the common colon form (for example `:grimwuv`) as well as the
+    // provider's native space-delimited form (`grimwuv`). Keep the provider's
+    // canonical name for rendering and modifier lookups.
+    const emote = emotes.get(token) ??
+      (token.startsWith(":") ? emotes.get(token.slice(1)) : undefined);
     if (emote?.zeroWidth) {
       // A zero-width emote is authored after its base emote with whitespace in
       // between. Remove only that separating whitespace, then leave the
@@ -92,7 +96,10 @@ export function plainTextSegments(
     }
     if (emote?.modifier) {
       const nextToken = tokens.slice(index + 1).find((item) => item && !/^\s+$/.test(item));
-      const nextEmote = nextToken ? emotes.get(nextToken) : undefined;
+      const nextEmote = nextToken
+        ? emotes.get(nextToken) ??
+          (nextToken.startsWith(":") ? emotes.get(nextToken.slice(1)) : undefined)
+        : undefined;
       const actsAsPrefix =
         isPrefixEmoteModifier(emote) || Boolean(nextEmote && !nextEmote.modifier);
 
