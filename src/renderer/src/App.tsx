@@ -2894,6 +2894,26 @@ export function App() {
     channel: string,
     identity?: ChannelNavigationIdentity,
   ) {
+    const nextChannel = channel.trim().toLowerCase();
+    // When a native player is already open, keep it visible and turn the next
+    // selection into a second multistream tile instead of replacing it.
+    if (
+      activeChannel &&
+      activeMode === "native" &&
+      !multiStreamActive &&
+      activeChannel.trim().toLowerCase() !== nextChannel
+    ) {
+      const existingChannel = activeChannel;
+      setMiniPlayerActive(false);
+      setActiveChannel(null);
+      setActiveMode(null);
+      setActiveSection("home");
+      setMultiStreamActive(true);
+      const tiles = await window.desktop.player.multiStart([existingChannel]);
+      setMultiTiles(tiles);
+      await addMultiTile(nextChannel);
+      return;
+    }
     // Opening a single stream replaces multistream rather than layering over it.
     leaveMultiStream();
     // Re-clicking the channel that is already playing must not restart or
