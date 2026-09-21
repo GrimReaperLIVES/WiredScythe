@@ -2881,6 +2881,12 @@ export function App() {
 
   function chooseSearchChannel(channel: SearchChannelResult) {
     setTopSearchOpen(false);
+    if (multiStreamActive) {
+      // Search results selected while Multistream is open should add a tile;
+      // opening the single-player view here would tear down the whole grid.
+      void addMultiTile(channelKey("twitch", channel.login));
+      return;
+    }
     void watchChannel(channel.login, channel);
   }
 
