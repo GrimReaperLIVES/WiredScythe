@@ -2,6 +2,16 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.32] - 2026-09-20
+
+### Fixes
+
+- Added channels selected from search to the active Multistream grid.
+- Preserved the current native stream when opening another channel.
+- Restored colon-prefixed third-party emote names such as `:grimwuv`.
+- Replaced remaining purple Settings accents with red styling.
+- Corrected Windows shortcut icon packaging.
+
 ## [0.3.4-alpha.31] - 2026-09-17
 
 ### Improvements
