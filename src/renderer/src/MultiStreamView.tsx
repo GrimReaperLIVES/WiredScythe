@@ -127,7 +127,7 @@ export function MultiStreamView({
           >
             <ChevronLeft size={24} />
           </button>
-          <strong>Multistream</strong>
+          <strong>MultiWired</strong>
           <span>
             {tiles.length}/{MAX_MULTISTREAM_TILES} streams
           </span>

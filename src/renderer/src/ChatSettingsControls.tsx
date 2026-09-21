@@ -12,7 +12,7 @@ const TWITCH_CHAT_COLORS: {
   hex: string;
 }[] = [
   { label: "Blue", name: "blue", hex: "#0000FF" },
-  { label: "Blue violet", name: "blue_violet", hex: "#8A2BE2" },
+  { label: "Signal red", name: "blue_violet", hex: "#dc2626" },
   { label: "Cadet blue", name: "cadet_blue", hex: "#5F9EA0" },
   { label: "Chocolate", name: "chocolate", hex: "#D2691E" },
   { label: "Coral", name: "coral", hex: "#FF7F50" },

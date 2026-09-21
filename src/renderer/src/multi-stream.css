@@ -121,7 +121,7 @@
 }
 
 .multi-chat-tab.twitch {
-  color: #e9d5ff;
+  color: #fff1f2;
   background: #2b1a3c;
 }
 
@@ -153,8 +153,8 @@
 }
 
 .multi-chat-tab.twitch.audio-active::after {
-  background: #a970ff;
-  box-shadow: 0 0 7px #a970ff99;
+  background: #ef4444;
+  box-shadow: 0 0 7px #ef444499;
 }
 
 .multi-chat-tab.kick.audio-active::after {
@@ -557,8 +557,8 @@
 }
 
 .multi-tile-live-dot.twitch {
-  background: #a970ff;
-  box-shadow: 0 0 6px #a970ff;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
 }
 
 .multi-tile-live-dot.kick {
@@ -654,8 +654,8 @@
 }
 
 .multi-tile-quality-option.active {
-  color: #e9d5ff;
-  background: #2c1c44;
+  color: #fff1f2;
+  background: #26090a;
 }
 
 .multi-tile-quality-loading {
@@ -667,7 +667,7 @@
 .multi-tile-volume {
   flex: 0 1 74px;
   min-width: 40px;
-  accent-color: #a78bfa;
+  accent-color: #fca5a5;
   cursor: pointer;
 }
 
@@ -685,10 +685,10 @@
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
-  border: 1px solid #7c3aed;
+  border: 1px solid #b91c1c;
   border-radius: 9px;
-  color: #e9d5ff;
-  background: #2c1c44;
+  color: #fff1f2;
+  background: #26090a;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -761,7 +761,7 @@
 }
 
 .multi-add-picker input:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid #b91c1c;
   outline-offset: 1px;
 }
 
