@@ -29,7 +29,10 @@ module.exports = {
     },
   ],
   win: {
-    icon: "build/wiredscythe-icon.png",
+    // Windows shortcuts and the installed executable need a real ICO
+    // container; using the source PNG here can fall back to a blank document
+    // icon on some Windows shells.
+    icon: "build/icon.ico",
     executableName: "WiredScythe",
     verifyUpdateCodeSignature: true,
     ...(windowsPublisherName ? { publisherName: windowsPublisherName } : {}),

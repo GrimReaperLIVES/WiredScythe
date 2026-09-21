@@ -40,7 +40,7 @@ Mac users can use the separate macOS button above, then choose the `.dmg` or `.z
 
 Windows may display a SmartScreen warning until the project has a trusted code-signing certificate.
 
-The macOS package is currently unsigned. macOS may require you to approve it in Privacy & Security on first launch. Apple Developer signing and notarization can be added through the documented release secrets later.
+The macOS package is currently unsigned while Apple Developer signing credentials are being set up. macOS may require you to approve it in Privacy & Security on first launch. The app is open-source for review; signed and notarized macOS packages will be published once the credentials are configured.
 
 <details>
 <summary><strong>Source code and development</strong></summary>
