@@ -189,3 +189,32 @@
   content: "";
   pointer-events: none;
 }
+
+/* Final brand pass for legacy component rules that still carry the old violet
+   palette. These overrides keep every interactive state black/red. */
+.app-shell .settings-modal-header {
+  background: linear-gradient(100deg, #26090a, #0b0708 65%) !important;
+}
+.app-shell .channel-favorite-star,
+.app-shell .favorite-star,
+.app-shell .favorite-button.active {
+  color: var(--wired-red-bright) !important;
+  fill: var(--wired-red-bright) !important;
+  border-color: var(--wired-red) !important;
+  background-color: var(--wired-red-surface) !important;
+}
+.app-shell .multi-stream-title strong,
+.app-shell .multi-stream-title span,
+.app-shell .multi-add-empty strong,
+.app-shell .multi-add-direct strong {
+  color: var(--wired-red-soft) !important;
+}
+.app-shell .multi-stream-page :is(.multi-add-picker, .multi-add-field, .multi-add-list),
+.app-shell .multi-stream-page :is(.multi-tile, .multi-chat) {
+  border-color: #4a171b !important;
+}
+.app-shell .multi-stream-page :is(.multi-bar-btn:hover, .multi-bar-btn.active, .multi-tile-btn:hover, .multi-tile-btn.active) {
+  border-color: var(--wired-red) !important;
+  color: #fff1f2 !important;
+  background: var(--wired-red-surface) !important;
+}
