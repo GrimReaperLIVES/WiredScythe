@@ -232,7 +232,7 @@ input {
   padding-left: 8px;
   border-radius: 5px;
   background: #9147ff33;
-  box-shadow: inset 3px 0 0 #a970ff;
+  box-shadow: inset 3px 0 0 #ef4444;
 }
 
 .native-video-chat-message.mentioned:hover {
@@ -246,16 +246,16 @@ input {
 .native-video-chat-message.first-message {
   margin: 1px 0;
   padding-left: 8px;
-  background: #7c3aed26;
-  box-shadow: inset 3px 0 0 #a970ff;
+  background: #b91c1c26;
+  box-shadow: inset 3px 0 0 #ef4444;
 }
 
 .native-video-chat-message.first-message:hover {
-  background: #7c3aed3d;
+  background: #b91c1c3d;
 }
 
 .controls-surface.oled-mode .native-video-chat-message.first-message {
-  background: #7c3aed33;
+  background: #b91c1c33;
 }
 
 .native-video-chat-message .chat-new-chatter-label {
@@ -277,7 +277,7 @@ input {
   margin: 2px 0 4px;
   padding: 0 0 0 8px;
   border: 0;
-  border-left: 2px solid #8b5cf6;
+  border-left: 2px solid #dc2626;
   color: #a1a1aa;
   background: transparent;
   cursor: pointer;
@@ -464,8 +464,8 @@ input {
   isolation: isolate;
   margin: 6px;
   padding: 9px !important;
-  border: 1px solid #5b3d76;
-  border-left: 3px solid #a855f7;
+  border: 1px solid #4a171b;
+  border-left: 3px solid #ef4444;
   border-radius: 8px;
   background: linear-gradient(135deg, rgb(45 23 59 / 94%), rgb(25 24 30 / 94%));
 }
@@ -526,7 +526,7 @@ input {
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  color: #e9d5ff;
+  color: #fff1f2;
   line-height: 1.4;
 }
 
@@ -546,7 +546,7 @@ input {
 .native-chat-notice-facts span {
   padding: 3px 6px;
   border-radius: 999px;
-  color: #d8b4fe;
+  color: #fca5a5;
   background: rgb(255 255 255 / 5%);
   font-size: 9px;
   font-weight: 700;
@@ -756,7 +756,7 @@ input {
 }
 
 .chat-composer-editor:focus {
-  border-color: #8b5cf6;
+  border-color: #dc2626;
 }
 
 .chat-composer-editor[data-empty="true"]::before {
@@ -791,7 +791,7 @@ input {
   margin: -2px 0 7px;
   padding: 7px 8px;
   border: 1px solid #ffffff1f;
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid #dc2626;
   border-radius: 6px;
   color: #c4c4cc;
   background: rgb(35 35 41 / 94%);
@@ -902,7 +902,7 @@ input {
 }
 
 .native-video-chat-input textarea:focus {
-  border-color: #8b5cf6;
+  border-color: #dc2626;
 }
 
 .native-video-chat-input button,
@@ -913,7 +913,7 @@ input {
   border: 1px solid #59416e;
   border-radius: 7px;
   color: white;
-  background: #7c3aed;
+  background: #b91c1c;
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -951,7 +951,7 @@ input {
 .native-video-chat-input button.native-emote-button:hover,
 .native-video-chat-input button.native-emote-button.active {
   border-color: #7652a2;
-  color: #e9d5ff;
+  color: #fff1f2;
   background: #30203f;
 }
 
@@ -992,7 +992,7 @@ input {
 }
 
 .native-emote-picker > input:focus {
-  border-color: #8b5cf6;
+  border-color: #dc2626;
 }
 
 .native-emote-tabs {
@@ -1018,7 +1018,7 @@ input {
 
 .native-video-chat-input .native-emote-tabs button.active {
   border-color: #7652a2;
-  color: #e9d5ff;
+  color: #fff1f2;
   background: #30203f;
 }
 
@@ -1055,7 +1055,7 @@ input {
 
 .native-emote-groups summary::before {
   margin-right: 7px;
-  color: #8b5cf6;
+  color: #dc2626;
   content: "›";
   font-size: 16px;
   transition: transform 120ms ease;
@@ -1115,7 +1115,7 @@ input {
   bottom: 1px;
   padding: 1px 3px;
   border-radius: 3px;
-  color: #e9d5ff;
+  color: #fff1f2;
   background: #3b1d55e6;
   content: "SUB";
   font-size: 6px;
@@ -1311,7 +1311,7 @@ input {
 
 .native-video-chat-settings input {
   width: 100%;
-  accent-color: #a78bfa;
+  accent-color: #fca5a5;
 }
 
 .native-video-chat-settings .chat-toggle-setting {
@@ -1539,7 +1539,7 @@ input {
 .stats-fps-toggle input {
   width: 14px;
   height: 14px;
-  accent-color: #8b5cf6;
+  accent-color: #dc2626;
   cursor: pointer;
 }
 
@@ -1769,7 +1769,7 @@ input {
 
 .controls-bar input[type="range"] {
   width: 105px;
-  accent-color: #a78bfa;
+  accent-color: #fca5a5;
   cursor: pointer;
 }
 
@@ -1838,7 +1838,7 @@ input {
 }
 
 .deleted-message-toggle:hover {
-  color: #d8b4fe;
+  color: #fca5a5;
   text-decoration: underline;
 }
 .native-video-chat-message.deleted-dimmed {

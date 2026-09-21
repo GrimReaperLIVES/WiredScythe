@@ -73,7 +73,7 @@
 
 .reply-thread-message.selected {
   background: #9147ff1f;
-  box-shadow: inset 3px 0 #a970ff;
+  box-shadow: inset 3px 0 #ef4444;
 }
 
 .reply-thread-message.older-context {

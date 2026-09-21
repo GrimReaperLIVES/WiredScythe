@@ -43,8 +43,8 @@
 }
 
 .chat-toggle-switch input:checked + .chat-toggle-track {
-  border-color: #a970ff;
-  background: #7c3aed;
+  border-color: #ef4444;
+  background: #b91c1c;
 }
 
 .chat-toggle-switch input:checked + .chat-toggle-track::after {
@@ -151,7 +151,7 @@
 }
 
 .mention-sound-preview:hover {
-  border-color: #8b5cf6;
+  border-color: #dc2626;
   background: #3a2948;
 }
 
@@ -171,7 +171,7 @@
 .mention-sound-volume input {
   width: 100%;
   margin: 0;
-  accent-color: #a970ff;
+  accent-color: #ef4444;
 }
 
 .twitch-chat-color-controls {
@@ -224,7 +224,7 @@
 
 .twitch-chat-color-grid button.active {
   border-color: #fff;
-  outline: 2px solid #a970ff;
+  outline: 2px solid #ef4444;
   outline-offset: 1px;
 }
 
@@ -263,7 +263,7 @@
 }
 
 .twitch-chat-custom-color button:hover:not(:disabled) {
-  border-color: #8b5cf6;
+  border-color: #dc2626;
   background: #3a2948;
 }
 

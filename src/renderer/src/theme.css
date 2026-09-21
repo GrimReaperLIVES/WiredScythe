@@ -190,8 +190,7 @@
   pointer-events: none;
 }
 
-/* Final brand pass for legacy component rules that still carry the old violet
-   palette. These overrides keep every interactive state black/red. */
+/* Final brand pass keeps every interactive state black/red. */
 .app-shell .settings-modal-header {
   background: linear-gradient(100deg, #26090a, #0b0708 65%) !important;
 }

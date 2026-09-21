@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.34] - 2026-09-20
+
+### Fixes
+
+- Replaced remaining purple/violet styling across Standard, Multistream, chat, settings, and the changelog with the WiredScythe black-and-red palette.
+- Updated the packaged app version so installed clients can receive this release instead of remaining on alpha.32.
+
 ## [0.3.4-alpha.33] - 2026-09-20
 
 ### Fixes
