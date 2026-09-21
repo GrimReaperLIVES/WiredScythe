@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.33] - 2026-09-20
+
+### Fixes
+
+- Finished replacing legacy purple controls with the red-and-black theme.
+- Restyled Settings and Multistream active states consistently.
+
 ## [0.3.4-alpha.32] - 2026-09-20
 
 ### Fixes
