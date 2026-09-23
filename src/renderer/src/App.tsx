@@ -734,6 +734,9 @@ export function App() {
     () => window.localStorage.getItem("wiredscythe.chat.onLeft") === "true",
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(
+    () => window.localStorage.getItem("wiredscythe.sidebar.hidden") === "true",
+  );
   const [chatSidebarWidth, setChatSidebarWidth] = useState(384);
   const playerPageRef = useRef<HTMLElement>(null);
   const chatResizeState = useRef<{ layoutLeft: number; layoutRight: number } | null>(null);
@@ -3449,6 +3452,7 @@ export function App() {
         oledMode ? "oled-mode" : "",
         chatOnLeft ? "chat-left" : "",
         sidebarCollapsed ? "sidebar-collapsed" : "",
+        sidebarHidden ? "sidebar-hidden" : "",
         theaterMode ? "theater-mode" : "",
         multiStreamActive && multiTheater ? "multi-theater" : "",
         fullscreen ? "fullscreen-mode" : "",
@@ -3542,6 +3546,18 @@ export function App() {
               ) : (
                 <ChevronLeft size={16} />
               )}
+            </button>
+            <button
+              aria-label="Hide followed channels sidebar"
+              className="sidebar-hide-toggle"
+              onClick={() => {
+                setSidebarHidden(true);
+                window.localStorage.setItem("wiredscythe.sidebar.hidden", "true");
+              }}
+              title="Hide sidebar"
+              type="button"
+            >
+              <X size={14} />
             </button>
           </div>
           <div className="followed-platforms" role="group" aria-label="Services to show">
@@ -3661,6 +3677,20 @@ export function App() {
         </section>
 
       </aside>
+      {sidebarHidden && (
+        <button
+          aria-label="Show followed channels sidebar"
+          className="sidebar-reveal-toggle"
+          onClick={() => {
+            setSidebarHidden(false);
+            window.localStorage.setItem("wiredscythe.sidebar.hidden", "false");
+          }}
+          title="Show sidebar"
+          type="button"
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
 
       <main>
         <header className="topbar">
