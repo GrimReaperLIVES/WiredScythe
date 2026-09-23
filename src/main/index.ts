@@ -387,7 +387,6 @@ function lockLocalRendererNavigation(
                 height: streamHeight,
                 x: streamX,
                 y: streamY,
-                alwaysOnTop: true,
                 resizable: true,
               }
             : {}),
@@ -400,7 +399,6 @@ function lockLocalRendererNavigation(
     if (frameName.startsWith(STREAM_WINDOW_PREFIX)) {
       enableDevToolsShortcut(created);
       created.setAspectRatio(16 / 9);
-      created.setAlwaysOnTop(true, "floating");
       return;
     }
     if (frameName !== CHAT_WINDOW_NAME) return;

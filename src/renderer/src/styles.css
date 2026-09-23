@@ -1158,6 +1158,8 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 /* Collapse toggle at the top of the followed rail. */
 .sidebar-collapse-toggle { display: grid; flex: 0 0 auto; width: 24px; height: 24px; padding: 0; place-items: center; border: 0; border-radius: 6px; color: #9b9ba6; background: transparent; cursor: pointer; }
 .sidebar-collapse-toggle:hover { color: #e4e4e7; background: #1c1c21; }
+.sidebar-hide-toggle { display: grid; flex: 0 0 auto; width: 24px; height: 24px; padding: 0; place-items: center; border: 0; border-radius: 6px; color: #9b9ba6; background: transparent; cursor: pointer; }
+.sidebar-hide-toggle:hover { color: #fca5a5; background: #26090a; }
 /* Live dot on the avatar, shown only when the sidebar is an icon rail so live
    channels stay recognizable without their names. */
 .channel-live-dot { position: absolute; right: -1px; bottom: -1px; display: none; width: 11px; height: 11px; border: 2px solid #111114; border-radius: 50%; background: #eb4057; }
@@ -1178,6 +1180,14 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
    between the two groups by showing the offline label as a divider. */
 .sidebar-collapsed .followed-group-label.offline { display: block; width: 60%; height: 0; margin: 8px auto; padding: 0; overflow: hidden; border-top: 1px solid #242429; font-size: 0; }
 .sidebar-collapsed .channel-live-dot { display: block; }
+
+/* Fully hide the followed-channels rail when the viewer needs every pixel for
+   video. A small reveal tab remains attached to the left edge so the sidebar
+   is always recoverable without opening Settings. */
+.app-shell.sidebar-hidden { --sidebar-width: 0px; }
+.sidebar-hidden .sidebar, .sidebar-hidden .brand { display: none; }
+.sidebar-reveal-toggle { position: fixed; z-index: 60; top: 50%; left: 0; display: grid; width: 22px; height: 46px; padding: 0; place-items: center; border: 1px solid #4a171b; border-left: 0; border-radius: 0 8px 8px 0; color: #fca5a5; background: #26090a; box-shadow: 0 0 14px #dc262644; cursor: pointer; transform: translateY(-50%); }
+.sidebar-reveal-toggle:hover { color: white; background: #b91c1c; }
 
 @media (max-width: 1400px) {
   /* At compact widths the screen-centered absolute search can collide with
