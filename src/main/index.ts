@@ -1284,6 +1284,11 @@ handleTrusted("twitch-playback:get-state", () => playbackSessionService.getState
 handleTrusted("twitch-playback:link", () => playbackSessionService.link());
 handleTrusted("twitch-playback:unlink", () => playbackSessionService.unlink());
 handleTrusted("twitch:get-followed-channels", () => twitchService.getFollowedChannels());
+handleTrusted("twitch:set-following", async (_event, rawChannel: unknown, rawFollow: unknown) => {
+  const channel = channelNameSchema.parse(rawChannel);
+  if (typeof rawFollow !== "boolean") throw new Error("Invalid follow state.");
+  await twitchService.setFollowing(channel, rawFollow);
+});
 handleTrusted("twitch:get-chat-color", () => twitchService.getChatColor());
 handleTrusted("twitch:update-chat-color", (_event, rawColor: unknown) =>
   twitchService.updateChatColor(twitchChatColorInputSchema.parse(rawColor)),

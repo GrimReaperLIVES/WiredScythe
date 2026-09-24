@@ -254,6 +254,7 @@ export interface TwitchApi {
   linkPlaybackSession(): Promise<PlaybackSessionState>;
   unlinkPlaybackSession(): Promise<PlaybackSessionState>;
   getFollowedChannels(): Promise<FollowedChannel[]>;
+  setFollowing(channel: string, follow: boolean): Promise<void>;
   getBrowseCategories(query?: string, after?: string): Promise<BrowsePage<BrowseCategory>>;
   getCategoryStreams(gameId: string, after?: string): Promise<BrowsePage<BrowseStream>>;
   search(query: string): Promise<TwitchSearchResults>;

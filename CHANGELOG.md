@@ -2,6 +2,14 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.35] - 2026-09-24
+
+### Additions
+
+- Added signed-in Twitch follow and unfollow directly from the player toolbar.
+- Added the Twitch follow permission to the device sign-in request.
+- Kept channel-owner and recent-chatter mention suggestions available for replies.
+
 ## [0.3.4-alpha.34] - 2026-09-20
 
 ### Fixes
