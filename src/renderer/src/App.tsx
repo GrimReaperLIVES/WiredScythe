@@ -3235,15 +3235,27 @@ export function App() {
       }
       return;
     }
-    await window.desktop.player.openChannelAction(activeChannel, "channel");
-    if (authState.status === "signed-in") {
-      setStreamMetadata(await window.desktop.twitch.getStreamMetadata(activeChannel));
+    if (authState.status !== "signed-in") {
+      setNotice("Sign in with Twitch to follow channels.");
+      return;
     }
-    setNotice(
-      streamMetadata?.isFollowed
-        ? "This channel is already followed. Twitch opened in WiredScythe."
-        : "Use Twitch's Follow button in the WiredScythe popup. Close it when finished.",
-    );
+    if (followPending) return;
+    const nextFollow = !activeChannelIsFollowed;
+    setFollowPending(true);
+    try {
+      await window.desktop.twitch.setFollowing(target.login, nextFollow);
+      const [channels, metadata] = await Promise.all([
+        window.desktop.twitch.getFollowedChannels(),
+        window.desktop.twitch.getStreamMetadata(activeChannel),
+      ]);
+      setFollowedChannels(channels);
+      setStreamMetadata(metadata);
+      setNotice(nextFollow ? `Following ${metadata?.displayName ?? target.login}.` : `Unfollowed ${metadata?.displayName ?? target.login}.`);
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : "Could not update follow.");
+    } finally {
+      setFollowPending(false);
+    }
   }
 
   async function createClip() {

@@ -49,6 +49,8 @@ const api: DesktopApi = {
     linkPlaybackSession: () => ipcRenderer.invoke("twitch-playback:link"),
     unlinkPlaybackSession: () => ipcRenderer.invoke("twitch-playback:unlink"),
     getFollowedChannels: () => ipcRenderer.invoke("twitch:get-followed-channels"),
+    setFollowing: (channel: string, follow: boolean): Promise<void> =>
+      ipcRenderer.invoke("twitch:set-following", channel, follow),
     getBrowseCategories: (query?: string, after?: string) =>
       ipcRenderer.invoke("twitch:get-browse-categories", query, after),
     getCategoryStreams: (gameId: string, after?: string) =>

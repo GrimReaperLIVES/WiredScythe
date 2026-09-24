@@ -32,6 +32,7 @@ const bundledTwitchClientId = "muthgxeegar3t0hj2qwm0ozocqbt8o";
 
 const scopes = [
   "user:read:follows",
+  "user:edit:follows",
   "user:read:subscriptions",
   "clips:edit",
   "user:read:chat",
@@ -516,6 +517,23 @@ export class TwitchService {
         };
       })
       .sort((left, right) => Number(right.isLive) - Number(left.isLive) || right.viewerCount - left.viewerCount);
+  }
+
+  async setFollowing(channel: string, follow: boolean): Promise<void> {
+    await this.ensureAuthenticated();
+    if (!this.account) throw new Error("Sign in with Twitch to follow channels.");
+    const users = await this.helix(`/users?login=${encodeURIComponent(channel)}`, usersResponseSchema);
+    const broadcaster = users.data[0];
+    if (!broadcaster) throw new Error("That Twitch channel could not be found.");
+    const query = new URLSearchParams({
+      broadcaster_id: broadcaster.id,
+      ...(follow ? { followed_user_id: broadcaster.id } : { user_id: this.account.id }),
+    });
+    await this.helix(
+      `/channels/${follow ? "follow" : "followed"}?${query.toString()}`,
+      z.object({ data: z.array(z.unknown()).optional(), total: z.number().optional() }),
+      { method: follow ? "POST" : "DELETE" },
+    );
   }
 
   async getBrowseCategories(
