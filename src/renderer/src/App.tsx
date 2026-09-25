@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   ArrowDown,
+  Badge,
   Clock,
   ChevronLeft,
   ChevronRight,
@@ -4552,7 +4553,7 @@ export function App() {
                 <button
                   aria-label={favoriteChannels.has(activeChannel ?? "") ? "Remove local favorite" : "Add local favorite"}
                   aria-pressed={favoriteChannels.has(activeChannel ?? "")}
-                  className={favoriteChannels.has(activeChannel ?? "") ? "toolbar-icon follow-action active" : "toolbar-icon follow-action"}
+                  className={favoriteChannels.has(activeChannel ?? "") ? "toolbar-icon favorite-action active" : "toolbar-icon favorite-action"}
                   onClick={() => activeChannel && toggleFavoriteChannel(activeChannel)}
                   title={favoriteChannels.has(activeChannel ?? "") ? "Remove local favorite" : "Add local favorite"}
                   type="button"
@@ -4599,7 +4600,7 @@ export function App() {
                   }
                   type="button"
                 >
-                  <Star
+                  <Badge
                     fill={streamMetadata?.subscription?.isSubscribed ? "currentColor" : "none"}
                     size={17}
                   />
