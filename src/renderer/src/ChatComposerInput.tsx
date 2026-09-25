@@ -626,7 +626,7 @@ export const ChatComposerInput = forwardRef<HTMLDivElement, ChatComposerInputPro
                 role="option"
                 type="button"
               >
-                <img alt="" src={emote.imageUrl} />
+                <img alt="" src={emoteImageUrl(emote.imageUrl)} />
                 <strong>{emote.name}</strong>
                 <small>{emote.provider}</small>
               </button>
@@ -659,7 +659,7 @@ export const ChatComposerInput = forwardRef<HTMLDivElement, ChatComposerInputPro
                     title={`${emote.name} · ${emote.provider}`}
                     type="button"
                   >
-                    <img alt="" src={emote.imageUrl} />
+                    <img alt="" src={emoteImageUrl(emote.imageUrl)} />
                     <span>{emote.name}</span>
                   </button>
                 );

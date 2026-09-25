@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.36] - 2026-09-24
+
+### Improvements
+
+- Replaced direct “open on Twitch/Kick” search actions with a clear WiredScythe watch action.
+- Updated Multistream direct-add results and browser controls to use neutral WiredScythe wording.
+
 ## [0.3.4-alpha.35] - 2026-09-24
 
 ### Additions
