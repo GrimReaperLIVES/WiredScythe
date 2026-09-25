@@ -500,9 +500,10 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 .toolbar-icon { flex: 0 0 auto; width: 32px; height: 32px; padding: 0; border-radius: 7px; }
 .toolbar-action:hover, .toolbar-icon:hover { border-color: #35353c; color: #f4f4f5; background: #222228; }
 .toolbar-action.active { border-color: #503b68; color: #ddd6fe; background: #2a2035; }
-.toolbar-action.follow-action { border-color: #5b3c81; color: #e9ddff; background: #30203f; }
-.toolbar-action.follow-action:hover { border-color: #7652a2; background: #3a2750; }
-.toolbar-icon.follow-action.active { border-color: #6d3d83; color: #f0abfc; background: #38203f; }
+.toolbar-action.follow-action { border-color: #7f1d1d; color: #ffe4e6; background: #26090a; }
+.toolbar-action.follow-action:hover { border-color: #b91c1c; background: #3a1113; }
+.toolbar-icon.favorite-action.active, .toolbar-icon.follow-action.active { border-color: #b91c1c; color: #fecaca; background: #3a1113; }
+.toolbar-icon.favorite-action:hover, .toolbar-icon.follow-action:hover { border-color: #7f1d1d; color: #fee2e2; background: #26090a; }
 .toolbar-icon.subscribe-action.active { border-color: #755a25; color: #fde68a; background: #3a2d17; }
 .toolbar-icon.subscribe-action.panel-open {
   border-color: #dc2626;
