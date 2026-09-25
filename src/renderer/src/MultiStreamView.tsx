@@ -28,6 +28,7 @@ import type { FollowedChannel } from "../../shared/twitch";
 import { channelKey, isValidChannelName, parseChannelKey, type Platform } from "../../shared/platform";
 import { ProviderLogo } from "./ProviderLogo";
 import { HlsNativeVideo } from "./HlsNativeVideo";
+import wiredScytheIcon from "./assets/wiredscythe-icon.png";
 import { useStreamWindows } from "./use-stream-windows";
 import "./multi-stream.css";
 
@@ -621,9 +622,9 @@ function AddStreamPicker({ followedLive, initialSearch, initialPlatform, twitchD
         )}
         {canAddTypedName && (
           <button className="multi-add-direct" onClick={() => onAdd(typedKey)} type="button">
-            <ProviderLogo name={scope} />
+            <img className="wiredscythe-add-icon" src={wiredScytheIcon} alt="" />
             <span className="multi-add-name">Add <strong>{typedName}</strong></span>
-            <span className="multi-add-game">{scope === "kick" ? "Kick channel" : "Twitch channel"}</span>
+            <span className="multi-add-game">to WiredScythe · {scope === "kick" ? "Kick" : "Twitch"}</span>
           </button>
         )}
         {choices.map((channel) => (

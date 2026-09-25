@@ -108,6 +108,7 @@ import { ChatSendStatus } from "./ChatSendStatus";
 import { useChatSendQueue } from "./use-chat-send-queue";
 import { EmotePicker } from "./EmotePicker";
 import { forgetWarmedEmoteImages, warmEmoteImages } from "./emote-preload";
+import { emoteImageUrl } from "./emote-image-url";
 import { setChatEmoteHeight } from "./emote-scale";
 import { preloadUnicodeEmoji } from "./unicode-emoji";
 import { MultiStreamView } from "./MultiStreamView";
@@ -3835,8 +3836,8 @@ export function App() {
                         }}
                         type="button"
                       >
-                        <ProviderLogo name="twitch" />
-                        Go to <strong>{channelInput.trim()}</strong> on Twitch
+                        <img className="wiredscythe-search-icon" src={wiredScytheIcon} alt="" />
+                        Watch <strong>{channelInput.trim()}</strong> in WiredScythe
                       </button>
                     )}
                     {searchPlatformFilter !== "twitch" && (
@@ -3849,8 +3850,8 @@ export function App() {
                         }}
                         type="button"
                       >
-                        <ProviderLogo name="kick" />
-                        Go to <strong>{channelInput.trim()}</strong> on Kick
+                        <img className="wiredscythe-search-icon" src={wiredScytheIcon} alt="" />
+                        Watch <strong>{channelInput.trim()}</strong> in WiredScythe
                       </button>
                     )}
                     {topSearchResults.categories.length > 0 && (
@@ -4678,18 +4679,10 @@ export function App() {
                   </>
                 )}
                 <button
-                  aria-label={
-                    activeChannel && parseChannelKey(activeChannel).platform === "kick"
-                      ? "Open channel on Kick"
-                      : "Open channel on Twitch"
-                  }
+                  aria-label="Open channel in browser"
                   className="toolbar-icon"
                   onClick={() => void openChannelInBrowser()}
-                  title={
-                    activeChannel && parseChannelKey(activeChannel).platform === "kick"
-                      ? "Open channel on Kick"
-                      : "Open channel on Twitch"
-                  }
+                  title="Open channel in browser"
                   type="button"
                 >
                   <ExternalLink size={16} />
@@ -5273,7 +5266,7 @@ export function App() {
                                       decoding="async"
                                       fetchPriority={index < 24 ? "high" : "auto"}
                                       loading="lazy"
-                                      src={emote.imageUrl}
+                                      src={emoteImageUrl(emote.imageUrl)}
                                     />
                                   </button>
                                 ))}
@@ -5324,7 +5317,7 @@ export function App() {
                                             decoding="async"
                                             fetchPriority={index < 24 ? "high" : "auto"}
                                             loading="lazy"
-                                            src={emote.imageUrl}
+                                            src={emoteImageUrl(emote.imageUrl)}
                                           />
                                         </button>
                                       ))}

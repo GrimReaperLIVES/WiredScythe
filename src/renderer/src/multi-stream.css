@@ -851,6 +851,7 @@
   flex: 0 0 auto;
   border-radius: 50%;
 }
+.multi-add-list img.wiredscythe-add-icon { border-radius: 6px; object-fit: contain; }
 
 .multi-add-list button > svg {
   width: 22px;

@@ -789,7 +789,7 @@ export function EmotePicker({
                           decoding="async"
                           fetchPriority={sectionIndex === 0 && index < 24 ? "high" : "auto"}
                           loading={sectionIndex === 0 && index < 24 ? "eager" : "lazy"}
-                          src={emote.imageUrl}
+                          src={emoteImageUrl(emote.imageUrl)}
                         />
                       )}
                       {favorites.has(emote.key) && <Star className="favorite-mark" size={10} />}
