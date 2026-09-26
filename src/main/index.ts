@@ -1057,7 +1057,7 @@ handleTrusted(
   // session. Native is the dependable guest-capable route for both services.
   const effectiveMode: PlayerMode = "native";
   const requestedQuality =
-    requestedQualityInput === undefined ? "best" : nativeQualitySchema.parse(requestedQualityInput);
+    requestedQualityInput === undefined ? "720p" : nativeQualitySchema.parse(requestedQualityInput);
   // Opening a single stream leaves multistream mode; free those tiles first.
   if (multiStreamManager.isActive()) multiStreamManager.stop();
   const openGeneration = ++playerOpenGeneration;
