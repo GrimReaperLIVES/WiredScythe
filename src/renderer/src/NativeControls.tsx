@@ -112,7 +112,7 @@ const initialState: NativePlayerState = {
   volume: 100,
   compressorEnabled: false,
   behindLive: false,
-  quality: "best",
+  quality: "720p",
 };
 
 // The controls remount per channel, so their initial volume must already match

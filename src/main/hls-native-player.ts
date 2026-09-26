@@ -25,7 +25,7 @@ export class HlsNativePlayer {
     volume: 100,
     compressorEnabled: false,
     behindLive: false,
-    quality: "best",
+    quality: "720p",
   };
 
   constructor(
@@ -220,7 +220,7 @@ export class HlsNativePlayer {
       muted: false,
       volume: Math.min(100, Math.max(0, Math.round(this.getStoredVolume()))),
       behindLive: false,
-      quality: "best",
+      quality: "720p",
       hlsSource: undefined,
       error: undefined,
       transition: undefined,

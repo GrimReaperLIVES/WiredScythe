@@ -828,7 +828,7 @@ export function App() {
     volume: 100,
     compressorEnabled: false,
     behindLive: false,
-    quality: "best",
+    quality: "720p",
   });
   const [multiStreamActive, setMultiStreamActive] = useState(false);
   const [multiTheater, setMultiTheater] = useState(false);
