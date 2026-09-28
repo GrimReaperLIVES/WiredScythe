@@ -25,8 +25,8 @@ type TileRemovedListener = (id: number) => void;
 
 /**
  * Runs up to {@link MAX_MULTISTREAM_TILES} Native players at once, one per
- * grid tile. Every tile uses Chromium HLS playback. Only the active tile plays
- * audio; the rest are muted.
+ * grid tile. Every tile uses Chromium HLS playback. Audio is controlled per
+ * tile; changing the selected chat tile never mutes the other streams.
  */
 export class MultiStreamManager {
   private readonly tiles = new Map<number, Tile>();
@@ -68,7 +68,8 @@ export class MultiStreamManager {
       if (login && !unique.includes(login)) unique.push(login);
       if (unique.length >= MAX_MULTISTREAM_TILES) break;
     }
-    // The first tile owns audio focus initially.
+    // The first tile is selected for chat initially. Selection is independent
+    // from audio so viewers can mute or unmute each stream themselves.
     this.activeId = unique.length > 0 ? 0 : null;
     await Promise.all(unique.map((channel, index) => this.createTile(index, channel)));
     return this.getTiles();
@@ -95,17 +96,15 @@ export class MultiStreamManager {
     this.tiles.delete(id);
     this.onTileRemoved(id);
     if (this.activeId === id) {
-      // Hand audio focus to the lowest remaining tile, if any.
+      // Select the lowest remaining tile for chat, without changing audio.
       const next = [...this.tiles.keys()].sort((left, right) => left - right)[0];
       this.activeId = next ?? null;
-      this.applyAudioFocus();
     }
   }
 
   setActive(id: number): void {
     if (!this.tiles.has(id) || this.activeId === id) return;
     this.activeId = id;
-    this.applyAudioFocus();
     // Reflect the new active flags for every tile, including any not yet
     // playing (those get no state event from applyAudioFocus).
     for (const tile of this.tiles.values()) this.onTileState(this.toTileState(tile));
@@ -156,31 +155,17 @@ export class MultiStreamManager {
     const tile: Tile = { id, channel, player, resolver, state: player.getState() };
     this.tiles.set(id, tile);
     this.onTileState(this.toTileState(tile));
-    await player.start(channel, "best", {
+    await player.start(channel, "720p", {
       kind: "channel",
       detail: channel,
     });
-    if (this.tiles.get(id) === tile) {
-      tile.player.setMuted(this.activeId !== id);
-    }
   }
 
   private handleTileState(id: number, state: NativePlayerState): void {
     const tile = this.tiles.get(id);
     if (!tile) return;
-    const wasPlaying = tile.state.status === "playing";
     tile.state = state;
-    // Enforce audio focus once a tile actually starts playing.
-    if (!wasPlaying && state.status === "playing") {
-      tile.player.setMuted(this.activeId !== id);
-    }
     this.onTileState(this.toTileState(tile));
-  }
-
-  private applyAudioFocus(): void {
-    for (const tile of this.tiles.values()) {
-      tile.player.setMuted(this.activeId !== tile.id);
-    }
   }
 
   private nextFreeId(): number | null {
