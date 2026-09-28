@@ -227,7 +227,7 @@ const FollowedChannelRow = memo(function FollowedChannelRow({
         {favorite && <Star aria-hidden="true" className="channel-favorite-star" size={10} />}
       </span>
       <span className="followed-copy">
-        <strong>{channel.displayName}</strong>
+        <strong>{channel.displayName || parseChannelKey(channel.login).login}</strong>
         <small>{channel.category}</small>
       </span>
       {channel.isLive && (
@@ -2460,7 +2460,7 @@ export function App() {
     if (!activeChannel) return null;
     const target = parseChannelKey(activeChannel);
     if (target.platform === "kick") {
-      if (kickFollowedChannels.some((channel) => channel.slug === target.login)) return true;
+      if (kickFollowedChannels.some((channel) => channel.slug.toLowerCase() === target.login.toLowerCase())) return true;
     } else if (followedChannels.some((channel) => channel.login === target.login)) {
       return true;
     }

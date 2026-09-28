@@ -1171,6 +1171,7 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 /* Manual collapse to an icon rail: mirrors the responsive narrow layout below,
    toggled by preference instead of window width. */
 .app-shell.sidebar-collapsed { --sidebar-width: 68px; }
+.app-shell.sidebar-collapsed:has(.sidebar:hover) { --sidebar-width: 244px; }
 .sidebar-collapsed .brand { justify-content: center; padding-inline: 0; }
 .sidebar-collapsed .brand > span:last-child, .sidebar-collapsed .rail-heading span, .sidebar-collapsed .followed-copy, .sidebar-collapsed .viewer-count, .sidebar-collapsed .followed-group-label, .sidebar-collapsed .followed-empty strong, .sidebar-collapsed .followed-empty > span, .sidebar-collapsed .settings-link span, .sidebar-collapsed .account-copy { display: none; }
 .sidebar-collapsed .rail-heading { justify-content: center; padding-inline: 0; }
@@ -1182,6 +1183,21 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
    between the two groups by showing the offline label as a divider. */
 .sidebar-collapsed .followed-group-label.offline { display: block; width: 60%; height: 0; margin: 8px auto; padding: 0; overflow: hidden; border-top: 1px solid #242429; font-size: 0; }
 .sidebar-collapsed .channel-live-dot { display: block; }
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .brand { justify-content: flex-start; padding-inline: 9px; }
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .brand > span:last-child,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .rail-heading span,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .followed-copy,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .viewer-count,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .followed-group-label,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .followed-empty strong,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .followed-empty > span,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .settings-link span,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .account-copy { display: initial; }
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .rail-heading { justify-content: space-between; padding-inline: 8px; }
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .followed-channel,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .settings-link,
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .account-status { justify-content: flex-start; padding-inline: 9px; }
+.app-shell.sidebar-collapsed:has(.sidebar:hover) .followed-empty { margin-inline: 0; padding: 12px; border: 1px solid #242429; background: #17171b; }
 
 /* Fully hide the followed-channels rail when the viewer needs every pixel for
    video. A small reveal tab remains attached to the left edge so the sidebar
