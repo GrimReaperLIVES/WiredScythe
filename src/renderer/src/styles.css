@@ -1204,7 +1204,7 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
    is always recoverable without opening Settings. */
 .app-shell.sidebar-hidden { --sidebar-width: 0px; }
 .sidebar-hidden .sidebar, .sidebar-hidden .brand { display: none; }
-.sidebar-reveal-toggle { position: fixed; z-index: 60; top: 50%; left: 0; display: grid; width: 22px; height: 46px; padding: 0; place-items: center; border: 1px solid #4a171b; border-left: 0; border-radius: 0 8px 8px 0; color: #fca5a5; background: #26090a; box-shadow: 0 0 14px #dc262644; cursor: pointer; transform: translateY(-50%); }
+.sidebar-reveal-toggle { position: fixed; z-index: 10000; top: 50%; left: 0; display: grid; width: 36px; height: 58px; padding: 0; place-items: center; border: 1px solid #7f1d1d; border-left: 0; border-radius: 0 10px 10px 0; color: #fecaca; background: #26090a; box-shadow: 0 0 18px #dc262666; cursor: pointer; pointer-events: auto; transform: translateY(-50%); }
 .sidebar-reveal-toggle:hover { color: white; background: #b91c1c; }
 
 @media (max-width: 1400px) {

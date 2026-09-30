@@ -1997,6 +1997,22 @@ export function App() {
     };
   }, [authState.status]);
 
+  // Keep the hidden sidebar recoverable even if its edge tab is obscured by a
+  // player surface: Ctrl+Shift+B toggles the followed-channel rail.
+  useEffect(() => {
+    const handleSidebarShortcut = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || !event.shiftKey || event.key.toLowerCase() !== "b") return;
+      event.preventDefault();
+      setSidebarHidden((current) => {
+        const next = !current;
+        window.localStorage.setItem("wiredscythe.sidebar.hidden", String(next));
+        return next;
+      });
+    };
+    window.addEventListener("keydown", handleSidebarShortcut);
+    return () => window.removeEventListener("keydown", handleSidebarShortcut);
+  }, []);
+
   useEffect(() => {
     const query = channelInput.trim();
     if (searchPlatformFilter === "twitch" || query.length < 2 || !searchActive) {
