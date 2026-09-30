@@ -36,7 +36,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for attempt in {1..30}; do
+          # Windows packaging can take several minutes on a cold runner. Keep
+          # the macOS build alive long enough to join the same tagged release.
+          for attempt in {1..90}; do
             if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
               exit 0
             fi
