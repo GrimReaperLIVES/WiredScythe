@@ -32,6 +32,16 @@
 - Sign in only when you want followed channels or account-aware features
 - Receive future releases through automatic updates
 
+## Latest updates
+
+### v0.3.4-alpha.37
+
+- Kick channel names and login matching now work correctly for guest viewers.
+- The collapsed followed-channel rail expands on hover so channel names and navigation stay readable.
+- Multistream audio is independent per stream: select, mute, or unmute each tile without changing the others.
+- New playback defaults to 720p to reduce CPU and VRAM use, while every stream keeps its own quality selector.
+- Channel actions use clearer WiredScythe icons and red-and-black styling.
+
 ## Install
 
 Click the large **DOWNLOAD** button above and run `WiredScythe-Setup-x64.exe`.
