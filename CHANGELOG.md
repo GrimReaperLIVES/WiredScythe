@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.37] - 2026-09-29
+
+### Fixes
+
+- Published the merged Kick guest identity and hover-expand sidebar updates.
+- Published independent multistream audio controls and the 720p default quality.
+
 ## [0.3.4-alpha.36] - 2026-09-24
 
 ### Improvements
