@@ -116,7 +116,15 @@ export class StreamPlaybackResolver {
     const key = `${channel.toLowerCase()}:${quality}`;
     const cached = this.resolveCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.url;
-    const url = this.resolveStreamUrl(channel, quality, true);
+    // A channel may be live without publishing the exact requested ladder
+    // (for example, no 720p rendition). Fall back to the best available URL
+    // instead of incorrectly reporting that the channel is offline.
+    const url = this.resolveStreamUrl(channel, quality, true).catch((error) => {
+      if (quality === "best" || quality === "worst" || quality === "audio_only") {
+        throw error;
+      }
+      return this.resolveStreamUrl(channel, "best", true);
+    });
     this.storeResolvedUrl(key, url);
     return url;
   }
