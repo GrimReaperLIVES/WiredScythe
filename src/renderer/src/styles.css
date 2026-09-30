@@ -1206,6 +1206,11 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 .sidebar-hidden .sidebar, .sidebar-hidden .brand { display: none; }
 .sidebar-reveal-toggle { position: fixed; z-index: 10000; top: 50%; left: 0; display: grid; width: 36px; height: 58px; padding: 0; place-items: center; border: 1px solid #7f1d1d; border-left: 0; border-radius: 0 10px 10px 0; color: #fecaca; background: #26090a; box-shadow: 0 0 18px #dc262666; cursor: pointer; pointer-events: auto; transform: translateY(-50%); }
 .sidebar-reveal-toggle:hover { color: white; background: #b91c1c; }
+.clean-view-unlock { position: fixed; z-index: 10001; top: 14px; left: 50%; display: grid; width: 34px; height: 30px; place-items: center; border: 1px solid #7f1d1d; border-radius: 7px; color: #fecaca; background: #26090a; cursor: pointer; transform: translateX(-50%); }
+.clean-view-unlock:hover { color: white; background: #b91c1c; }
+.clean-view .sidebar, .clean-view .brand, .clean-view .topbar, .clean-view .player-toolbar, .clean-view .multi-stream-bar, .clean-view .multi-chat { display: none; }
+.app-shell.clean-view { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.clean-view > main { grid-column: 1; grid-row: 1; }
 
 @media (max-width: 1400px) {
   /* At compact widths the screen-centered absolute search can collide with

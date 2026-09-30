@@ -637,6 +637,7 @@ export function App() {
   const [chatPresentation, setChatPresentation] = useState<ChatPresentation>("side");
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [cleanView, setCleanView] = useState(false);
   const [nativeControlsVisible, setNativeControlsVisible] = useState(true);
   const [controlsHideDelay, setControlsHideDelay] = useState(NATIVE_CONTROLS_HIDE_DELAY);
   const [notice, setNotice] = useState<string | null>(null);
@@ -3488,6 +3489,7 @@ export function App() {
         fullscreen ? "fullscreen-mode" : "",
         multiStreamActive && fullscreen ? "multi-fullscreen" : "",
         fullscreen && !nativeControlsVisible ? "controls-hidden" : "",
+        cleanView ? "clean-view" : "",
       ].join(" ")}
       style={{
         "--chat-font-size": `${chatFontSize}px`,
@@ -3719,6 +3721,17 @@ export function App() {
           type="button"
         >
           <ChevronRight size={16} />
+        </button>
+      )}
+      {cleanView && (
+        <button
+          aria-label="Unlock Clean View"
+          className="clean-view-unlock"
+          onClick={() => setCleanView(false)}
+          title="Unlock Clean View"
+          type="button"
+        >
+          <Pin size={15} />
         </button>
       )}
 
@@ -4692,6 +4705,15 @@ export function App() {
                     >
                       {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
                       <span>{fullscreen ? "Exit full" : "Fullscreen"}</span>
+                    </button>
+                    <button
+                      aria-pressed={cleanView}
+                      className={cleanView ? "toolbar-action active" : "toolbar-action"}
+                      onClick={() => setCleanView((current) => !current)}
+                      title="Hide all app chrome (Clean View)"
+                      type="button"
+                    >
+                      <Pin size={16} /> <span>{cleanView ? "Unlock" : "Clean View"}</span>
                     </button>
                   </>
                 )}
