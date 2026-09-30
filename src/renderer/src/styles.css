@@ -1170,8 +1170,10 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 
 /* Manual collapse to an icon rail: mirrors the responsive narrow layout below,
    toggled by preference instead of window width. */
-.app-shell.sidebar-collapsed { --sidebar-width: 68px; }
+.app-shell.sidebar-collapsed { --sidebar-width: 8px; }
 .app-shell.sidebar-collapsed:has(.sidebar:hover) { --sidebar-width: 244px; }
+.app-shell.sidebar-collapsed:not(:has(.sidebar:hover)) .sidebar { padding-inline: 0; overflow: hidden; opacity: .18; }
+.app-shell.sidebar-collapsed:not(:has(.sidebar:hover)) .sidebar > * { visibility: hidden; }
 .sidebar-collapsed .brand { justify-content: center; padding-inline: 0; }
 .sidebar-collapsed .brand > span:last-child, .sidebar-collapsed .rail-heading span, .sidebar-collapsed .followed-copy, .sidebar-collapsed .viewer-count, .sidebar-collapsed .followed-group-label, .sidebar-collapsed .followed-empty strong, .sidebar-collapsed .followed-empty > span, .sidebar-collapsed .settings-link span, .sidebar-collapsed .account-copy { display: none; }
 .sidebar-collapsed .rail-heading { justify-content: center; padding-inline: 0; }
