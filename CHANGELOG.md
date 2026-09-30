@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.4-alpha.39] - 2026-09-30
+
+### Additions
+
+- Added lockable Clean View mode and a hover-expanding sidebar rail.
+
 All notable WiredScythe changes are documented here.
 
 ## [0.3.4-alpha.38] - 2026-09-30
