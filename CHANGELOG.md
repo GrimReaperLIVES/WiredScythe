@@ -2,6 +2,13 @@
 
 All notable WiredScythe changes are documented here.
 
+## [0.3.4-alpha.38] - 2026-09-30
+
+### Fixes
+
+- Fixed Native playback falsely reporting live channels as offline when the requested quality is unavailable.
+- Native playback now falls back to the best available rendition automatically.
+
 ## [0.3.4-alpha.37] - 2026-09-29
 
 ### Fixes
