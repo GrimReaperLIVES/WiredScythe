@@ -1984,7 +1984,7 @@ export function App() {
     const timer = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
       void loadFollowedChannels({ silent: true });
-    }, 60_000);
+    }, 30_000);
     const refreshOnReturn = () => {
       if (document.visibilityState === "visible") {
         void loadFollowedChannels({ silent: true });
@@ -2197,7 +2197,7 @@ export function App() {
     };
     load();
     // Matches the Twitch followed-list cadence so live states stay in step.
-    const refresh = window.setInterval(load, 60_000);
+    const refresh = window.setInterval(load, 30_000);
     return () => {
       cancelled = true;
       window.clearInterval(refresh);
