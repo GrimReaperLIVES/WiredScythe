@@ -5,8 +5,8 @@ const windowsPublisherName = process.env.WINDOWS_PUBLISHER_NAME?.trim();
 
 module.exports = {
   appId: "app.wiredscythe.viewer",
-  productName: "WiredScythe",
-  artifactName: "WiredScythe-Setup-x64.${ext}",
+  productName: "CyberWired",
+  artifactName: "CyberWired-Setup-x64.${ext}",
   asar: true,
   compression: "normal",
   electronUpdaterCompatibility: ">=2.16",
@@ -33,7 +33,7 @@ module.exports = {
     // container; using the source PNG here can fall back to a blank document
     // icon on some Windows shells.
     icon: "build/icon.ico",
-    executableName: "WiredScythe",
+    executableName: "CyberWired",
     verifyUpdateCodeSignature: true,
     ...(windowsPublisherName ? { publisherName: windowsPublisherName } : {}),
     target: [{ target: "nsis", arch: ["x64"] }],
@@ -70,7 +70,7 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: "WiredScythe",
-    uninstallDisplayName: "WiredScythe",
+    shortcutName: "CyberWired",
+    uninstallDisplayName: "CyberWired",
   },
 };

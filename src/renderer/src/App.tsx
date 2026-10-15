@@ -3558,7 +3558,7 @@ export function App() {
 
       <div className="brand">
         <span className="brand-mark"><img alt="" src={wiredScytheIcon} /></span>
-        <span>WiredScythe</span>
+        <span>CyberWired</span>
       </div>
 
       <aside className="sidebar">
