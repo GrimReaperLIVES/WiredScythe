@@ -1,4 +1,4 @@
-name: Release WiredScythe
+name: Release CyberWired
 
 on:
   push:
@@ -64,8 +64,8 @@ jobs:
           if-no-files-found: error
           retention-days: 2
           path: |
-            release/WiredScythe-Setup-x64.exe
-            release/WiredScythe-Setup-x64.exe.blockmap
+            release/CyberWired-Setup-x64.exe
+            release/CyberWired-Setup-x64.exe.blockmap
             release/latest.yml
             release/release-notes.md
 
@@ -78,7 +78,7 @@ jobs:
       - name: Download release payload
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: wiredscythe-windows-release
+          name: cyberwired-windows-release
           path: release
 
       - name: Publish GitHub Release
@@ -87,15 +87,15 @@ jobs:
         run: |
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" \
-              release/WiredScythe-Setup-x64.exe \
-              release/WiredScythe-Setup-x64.exe.blockmap \
+              release/CyberWired-Setup-x64.exe \
+              release/CyberWired-Setup-x64.exe.blockmap \
               release/latest.yml \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
           else
             gh release create "$GITHUB_REF_NAME" \
-              release/WiredScythe-Setup-x64.exe \
-              release/WiredScythe-Setup-x64.exe.blockmap \
+              release/CyberWired-Setup-x64.exe \
+              release/CyberWired-Setup-x64.exe.blockmap \
               release/latest.yml \
               --repo "$GITHUB_REPOSITORY" \
               --title "WiredScythe $GITHUB_REF_NAME" \

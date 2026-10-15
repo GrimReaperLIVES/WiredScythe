@@ -55,7 +55,7 @@ export function useStreamWindows(): StreamWindows {
       "width=960,height=540",
     );
     if (!opened) return;
-    opened.document.title = `WiredScythe — ${name}`;
+    opened.document.title = `CyberWired — ${name}`;
     opened.document.documentElement.className = "stream-window-root";
     opened.document.body.className = "stream-window-body";
     adoptStyles(opened);

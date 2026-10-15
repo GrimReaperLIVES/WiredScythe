@@ -375,7 +375,7 @@ function lockLocalRendererNavigation(
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
-          title: streamWindow ? "WiredScythe Stream" : "WiredScythe Chat",
+          title: streamWindow ? "CyberWired Stream" : "CyberWired Chat",
           icon: applicationIcon,
           backgroundColor: streamWindow ? "#000000" : "#0e0e10",
           minWidth: streamWindow ? 480 : 300,
@@ -901,7 +901,7 @@ async function createWindow(): Promise<void> {
     minWidth: 1180,
     minHeight: 640,
     backgroundColor: "#09090b",
-    title: "WiredScythe",
+    title: "CyberWired",
     icon: applicationIcon,
     autoHideMenuBar: true,
     // Hide the system title bar but keep the real caption buttons, so the top
