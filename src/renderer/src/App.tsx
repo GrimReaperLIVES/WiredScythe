@@ -3502,7 +3502,10 @@ export function App() {
     <div
       onMouseMove={(event) => {
         if (cleanView && !cleanViewLocked && event.clientY < 45) setCleanViewRevealed(true);
-        else if (cleanViewRevealed && event.clientY > 260 && event.clientX > 260) setCleanViewRevealed(false);
+        else if (
+          cleanViewRevealed && event.clientY > 260 && event.clientX > 260 &&
+          !(event.target instanceof Element && event.target.closest(".sidebar, .topbar, .chat-panel, .multi-chat, .clean-view-edge, .controls-bar, .multi-tile-controls"))
+        ) setCleanViewRevealed(false);
       }}
       className={[
         "app-shell",

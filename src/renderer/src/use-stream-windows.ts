@@ -59,6 +59,17 @@ export function useStreamWindows(): StreamWindows {
     opened.document.documentElement.className = "stream-window-root";
     opened.document.body.className = "stream-window-body";
     adoptStyles(opened);
+    // Dock immediately when the native close button is used, rather than
+    // leaving React pointed at a closed document until the polling fallback.
+    opened.addEventListener("pagehide", () => {
+      setTargets((previous) => {
+        if (previous.get(id) !== opened) return previous;
+        const next = new Map(previous);
+        next.delete(id);
+        targetsRef.current = next;
+        return next;
+      });
+    }, { once: true });
     setTargets((previous) => new Map(previous).set(id, opened));
   }, []);
 
