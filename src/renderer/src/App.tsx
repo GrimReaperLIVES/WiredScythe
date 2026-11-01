@@ -4047,6 +4047,7 @@ export function App() {
             )}
           </form>
           <div className="top-actions">
+          <button className="top-multistream" type="button" aria-pressed={cleanView} onClick={() => { setCleanView(true); setCleanViewLocked(false); setCleanViewRevealed(false); }} title="Hide interface; hover top edge to reveal. Escape exits."><Pin size={16} /><span>Clean View</span></button>
           <div className="mode-switch top-mode-switch" aria-label="Playback engine">
             <button
               aria-pressed={(activeChannel ? activeMode : preferredMode) === "native"}
