@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { BLOCKED_CHATTER_LIMIT } from "./blocked-chatters";
 import { chatHistoryLimitSchema } from "./chat";
-import { playerModeSchema } from "./player";
+import { playerModeSchema, nativeQualitySchema } from "./player";
 
 export const mentionSoundIdSchema = z.enum(["ping", "chime", "pop", "knock"]);
 export type MentionSoundId = z.infer<typeof mentionSoundIdSchema>;
@@ -10,6 +10,7 @@ export type PlaybackLatencyMode = z.infer<typeof playbackLatencyModeSchema>;
 
 export const appPreferencesSchema = z.object({
   preferredPlayerMode: playerModeSchema,
+  channelQualityOverrides: z.record(z.string().min(1).max(50), nativeQualitySchema).optional(),
   playbackLatencyMode: playbackLatencyModeSchema,
   chatTimestamps: z.boolean(),
   chatHistoryLimit: chatHistoryLimitSchema,

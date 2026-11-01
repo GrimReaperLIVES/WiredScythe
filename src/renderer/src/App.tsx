@@ -3502,7 +3502,10 @@ export function App() {
     <div
       onMouseMove={(event) => {
         if (cleanView && !cleanViewLocked && event.clientY < 45) setCleanViewRevealed(true);
-        else if (cleanViewRevealed && event.clientY > 260 && event.clientX > 260) setCleanViewRevealed(false);
+        else if (
+          cleanViewRevealed && event.clientY > 260 && event.clientX > 260 &&
+          !(event.target instanceof Element && event.target.closest(".sidebar, .topbar, .chat-panel, .multi-chat, .clean-view-edge, .controls-bar, .multi-tile-controls"))
+        ) setCleanViewRevealed(false);
       }}
       className={[
         "app-shell",
@@ -4162,6 +4165,7 @@ export function App() {
               onToggleMute={(id) =>
                 window.desktop.player.multiControl(id, { command: "toggle-mute" })
               }
+              onSetMuted={(id, muted) => window.desktop.player.multiControl(id, { command: "set-muted", muted })}
               onSetVolume={(id, volume) =>
                 window.desktop.player.multiControl(id, { command: "set-volume", value: volume })
               }
@@ -4169,7 +4173,7 @@ export function App() {
                 window.desktop.player.multiControl(id, { command: "set-compressor", enabled })
               }
               onSetQuality={(id, quality) =>
-                void window.desktop.player.multiSetQuality(id, quality)
+                void window.desktop.player.multiSetQuality(id, quality).catch((reason: unknown) => setNotice(reason instanceof Error ? reason.message : "Unable to change stream quality."))
               }
               chatVisible={multiChatVisible}
               onToggleChat={() => setMultiChatVisible((current) => !current)}

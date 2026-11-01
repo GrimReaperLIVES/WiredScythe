@@ -10,6 +10,8 @@ import {
   Minimize2,
   MessageSquare,
   PictureInPicture2,
+  Pause,
+  Play,
   Plus,
   RotateCcw,
   Search,
@@ -45,6 +47,7 @@ interface MultiStreamViewProps {
   onRemove: (id: number) => void;
   onActivate: (id: number) => void;
   onToggleMute: (id: number) => void;
+  onSetMuted: (id: number, muted: boolean) => void;
   onSetVolume: (id: number, volume: number) => void;
   onToggleCompressor: (id: number, enabled: boolean) => void;
   onSetQuality: (id: number, quality: NativeQualityValue) => void;
@@ -70,6 +73,7 @@ export function MultiStreamView({
   onRemove,
   onActivate,
   onToggleMute,
+  onSetMuted,
   onSetVolume,
   onToggleCompressor,
   onSetQuality,
@@ -134,6 +138,12 @@ export function MultiStreamView({
           </span>
         </div>
         <div className="multi-stream-bar-actions">
+          <button className="multi-bar-btn" type="button" disabled={tiles.length === 0} onClick={() => {
+            for (const tile of tiles) onSetMuted(tile.id, true);
+          }} title="Mute every stream, including pop-outs"><VolumeX size={16} /> Mute all</button>
+          <button className="multi-bar-btn" type="button" disabled={!tiles.some((tile) => tile.active)} onClick={() => {
+            for (const tile of tiles) onSetMuted(tile.id, !tile.active);
+          }} title="Hear only the selected stream"><Volume2 size={16} /> Listen to selected</button>
           {canAdd && (
             <button
               className={pickerOpen ? "multi-bar-btn multi-add-toggle active" : "multi-bar-btn multi-add-toggle"}
@@ -401,6 +411,9 @@ const MultiTile = memo(function MultiTile({
         <span className="multi-tile-name" title={tooltip}>{name}</span>
       </div>
       <div className="multi-tile-controls" onClick={(event) => event.stopPropagation()}>
+        <button className="multi-tile-btn" type="button" aria-label={tile.state.paused ? "Resume stream" : "Pause stream"} title={tile.state.paused ? "Resume stream" : "Pause stream"} onClick={() => window.desktop.player.multiControl(tile.id, { command: "toggle-pause" })}>
+          {tile.state.paused ? <Play size={14} /> : <Pause size={14} />}
+        </button>
         <button
           aria-label={tile.state.muted ? "Unmute" : "Mute"}
           className="multi-tile-btn"

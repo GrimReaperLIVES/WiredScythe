@@ -1216,6 +1216,7 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 .app-shell.clean-view { grid-template-columns: 1fr; grid-template-rows: 1fr; }
 .clean-view > main { grid-column: 1; grid-row: 1; }
 .clean-view-edge { position: fixed; inset: 0 0 auto; height: 8px; z-index: 10002; }
+.clean-view-edge:hover, .clean-view-edge:focus-within { height: 48px; }
 .clean-view-exit { position: fixed; top: 14px; left: calc(50% + 24px); border: 1px solid #7f1d1d; border-radius: 7px; background: #26090a; color: #fecaca; padding: 6px; cursor: pointer; }
 .clean-view-edge:not(:hover) button { opacity: 0; }
 .clean-view-edge:focus-within button { opacity: 1; }

@@ -42,6 +42,7 @@ export class MultiStreamManager {
     private readonly onTileState: TileStateListener,
     private readonly onTileRemoved: TileRemovedListener,
     private readonly mediaTransport?: HlsMediaTransport,
+    private readonly getChannelQuality: (channel: string) => NativeQualityValue = () => "720p",
   ) {}
 
   isActive(): boolean {
@@ -99,6 +100,7 @@ export class MultiStreamManager {
       // Select the lowest remaining tile for chat, without changing audio.
       const next = [...this.tiles.keys()].sort((left, right) => left - right)[0];
       this.activeId = next ?? null;
+      for (const remaining of this.tiles.values()) this.onTileState(this.toTileState(remaining));
     }
   }
 
@@ -117,7 +119,8 @@ export class MultiStreamManager {
   async setQuality(id: number, quality: NativeQualityValue): Promise<void> {
     const tile = this.tiles.get(id);
     if (!tile) return;
-    await tile.player.start(tile.channel, quality, { kind: "quality", detail: quality });
+    const result = await tile.player.start(tile.channel, quality, { kind: "quality", detail: quality });
+    if (!result.ok) throw new Error(result.reason);
   }
 
   stop(): void {
@@ -155,7 +158,7 @@ export class MultiStreamManager {
     const tile: Tile = { id, channel, player, resolver, state: player.getState() };
     this.tiles.set(id, tile);
     this.onTileState(this.toTileState(tile));
-    await player.start(channel, "720p", {
+    await player.start(channel, this.getChannelQuality(channel), {
       kind: "channel",
       detail: channel,
     });
