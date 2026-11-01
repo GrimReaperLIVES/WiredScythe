@@ -68,7 +68,6 @@ import { ChatBadge } from "./ChatBadge";
 import { ReplyThread } from "./ReplyThread";
 import { ChatUserCard } from "./ChatUserCard";
 import { ChatEmote } from "./ChatEmote";
-import { emoteImageUrl } from "./emote-image-url";
 import {
   ChatToggleSetting,
   MentionSoundControls,

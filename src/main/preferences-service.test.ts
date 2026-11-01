@@ -75,7 +75,7 @@ describe("PreferencesService", () => {
 
     expect(await second.getOrMigrate()).toEqual({
       preferredPlayerMode: "native",
-      playbackLatencyMode: "ultra-low",
+      playbackLatencyMode: "balanced",
       chatTimestamps: false,
       chatHistoryLimit: 100,
       chatFontSize: 21,

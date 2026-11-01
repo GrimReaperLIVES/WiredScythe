@@ -109,7 +109,6 @@ import { ChatSendStatus } from "./ChatSendStatus";
 import { useChatSendQueue } from "./use-chat-send-queue";
 import { EmotePicker } from "./EmotePicker";
 import { forgetWarmedEmoteImages, warmEmoteImages } from "./emote-preload";
-import { emoteImageUrl } from "./emote-image-url";
 import { setChatEmoteHeight } from "./emote-scale";
 import { preloadUnicodeEmoji } from "./unicode-emoji";
 import { MultiStreamView } from "./MultiStreamView";
@@ -638,6 +637,25 @@ export function App() {
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [cleanView, setCleanView] = useState(false);
+  const [cleanViewLocked, setCleanViewLocked] = useState(false);
+  const [cleanViewRevealed, setCleanViewRevealed] = useState(false);
+  const [cleanViewOnWatch, setCleanViewOnWatch] = useState(() => localStorage.getItem("cyberwire.cleanViewOnWatch") === "true");
+  useEffect(() => {
+    if (!activeChannel || !cleanViewOnWatch) return;
+    const frame = requestAnimationFrame(() => setCleanView(true));
+    return () => cancelAnimationFrame(frame);
+  }, [activeChannel, cleanViewOnWatch]);
+  useEffect(() => {
+    const exitCleanView = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setCleanView(false);
+        setCleanViewRevealed(false);
+        setCleanViewLocked(false);
+      }
+    };
+    window.addEventListener("keydown", exitCleanView);
+    return () => window.removeEventListener("keydown", exitCleanView);
+  }, []);
   const [nativeControlsVisible, setNativeControlsVisible] = useState(true);
   const [controlsHideDelay, setControlsHideDelay] = useState(NATIVE_CONTROLS_HIDE_DELAY);
   const [notice, setNotice] = useState<string | null>(null);
@@ -1790,6 +1808,10 @@ export function App() {
     miniPlayerPosition,
     miniPlayerWidth,
     theaterMode,
+    cleanView,
+    cleanViewRevealed,
+    sidebarHidden,
+    sidebarCollapsed,
   ]);
 
   // Hover-intent stream pre-resolution: after 150ms on a channel card, ask
@@ -3478,6 +3500,10 @@ export function App() {
 
   return (
     <div
+      onMouseMove={(event) => {
+        if (cleanView && !cleanViewLocked && event.clientY < 45) setCleanViewRevealed(true);
+        else if (cleanViewRevealed && event.clientY > 260 && event.clientX > 260) setCleanViewRevealed(false);
+      }}
       className={[
         "app-shell",
         oledMode ? "oled-mode" : "",
@@ -3490,6 +3516,7 @@ export function App() {
         multiStreamActive && fullscreen ? "multi-fullscreen" : "",
         fullscreen && !nativeControlsVisible ? "controls-hidden" : "",
         cleanView ? "clean-view" : "",
+        cleanView && cleanViewRevealed && !cleanViewLocked ? "clean-view-revealed" : "",
       ].join(" ")}
       style={{
         "--chat-font-size": `${chatFontSize}px`,
@@ -3628,7 +3655,7 @@ export function App() {
                   const label = parsed.login;
                   return (
                     <button
-                      className="followed-channel offline"
+                      className="followed-channel"
                       key={channel}
                       onClick={() => void watchChannel(channel)}
                       onContextMenu={(event) => {
@@ -3644,7 +3671,7 @@ export function App() {
                       </span>
                       <span className="followed-copy">
                         <strong>{label}</strong>
-                        <small>{parsed.platform === "kick" ? "Kick" : "Twitch"} · Local favorite</small>
+                        <small>{parsed.platform === "kick" ? "Kick" : "Twitch"} · Status unknown</small>
                       </span>
                     </button>
                   );
@@ -3724,15 +3751,18 @@ export function App() {
         </button>
       )}
       {cleanView && (
+        <div className="clean-view-edge" onMouseEnter={() => { if (!cleanViewLocked) setCleanViewRevealed(true); }}>
         <button
-          aria-label="Unlock Clean View"
+          aria-label={cleanViewLocked ? "Unlock hover reveal" : "Lock interface hidden"}
           className="clean-view-unlock"
-          onClick={() => setCleanView(false)}
-          title="Unlock Clean View"
+          onClick={() => { setCleanViewLocked(!cleanViewLocked); setCleanViewRevealed(false); }}
+          title={cleanViewLocked ? "Unlock hover reveal" : "Lock interface hidden"}
           type="button"
         >
           <Pin size={15} />
         </button>
+        <button className="clean-view-exit" onClick={() => { setCleanView(false); setCleanViewRevealed(false); }} type="button">Exit Clean View</button>
+        </div>
       )}
 
       <main>
@@ -4017,6 +4047,7 @@ export function App() {
             )}
           </form>
           <div className="top-actions">
+          <button className="top-multistream" type="button" aria-pressed={cleanView} onClick={() => { setCleanView(true); setCleanViewLocked(false); setCleanViewRevealed(false); }} title="Hide interface; hover top edge to reveal. Escape exits."><Pin size={16} /><span>Clean View</span></button>
           <div className="mode-switch top-mode-switch" aria-label="Playback engine">
             <button
               aria-pressed={(activeChannel ? activeMode : preferredMode) === "native"}
@@ -6913,6 +6944,10 @@ export function App() {
                       <h3>Interface</h3>
                       <p>Adjust Cyber Wire&apos;s window and visual presentation.</p>
                     </header>
+                  <div className="settings-card">
+                    <div><strong>Clean View when watching</strong><span>Hide the interface during playback. Hover the top edge to reveal it; pin to lock it hidden.</span></div>
+                    <button className={cleanViewOnWatch ? "settings-switch active" : "settings-switch"} aria-pressed={cleanViewOnWatch} onClick={() => { const next = !cleanViewOnWatch; setCleanViewOnWatch(next); localStorage.setItem("cyberwire.cleanViewOnWatch", String(next)); }} type="button"><span /></button>
+                  </div>
                   <div className="settings-card">
                     <div>
                       <strong>OLED mode</strong>

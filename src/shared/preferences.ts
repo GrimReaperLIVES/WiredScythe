@@ -97,7 +97,7 @@ export type AppPreferencesPatch = z.infer<typeof appPreferencesPatchSchema>;
 
 export const defaultAppPreferences: AppPreferences = {
   preferredPlayerMode: "native",
-  playbackLatencyMode: "ultra-low",
+  playbackLatencyMode: "balanced",
   chatTimestamps: true,
   chatHistoryLimit: 20,
   chatFontSize: 14,

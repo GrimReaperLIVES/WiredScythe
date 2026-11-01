@@ -34,6 +34,16 @@
 
 ## Latest updates
 
+### v0.3.4-alpha.40
+
+- Cyber Wire installers retain existing settings and account sessions.
+- Clean View reclaims hidden panel space, reveals navigation at the top edge, and offers a pin lock plus Escape to exit.
+- Appearance settings can enable Clean View automatically when watching.
+- Docked video now resynchronizes after sidebar and Clean View changes and uses an isolated rendering surface.
+- Local favorites without live data are labeled status unknown.
+- Balanced playback is the new-install default. Quality remains independently selectable per stream, including resolutions above 720p when offered by the channel.
+- Windows and macOS release package paths are aligned. Director integration is excluded.
+
 ### v0.3.4-alpha.37
 
 - Kick channel names and login matching now work correctly for guest viewers.
