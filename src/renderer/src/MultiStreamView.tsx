@@ -624,7 +624,7 @@ function AddStreamPicker({ followedLive, initialSearch, initialPlatform, twitchD
           <button className="multi-add-direct" onClick={() => onAdd(typedKey)} type="button">
             <img className="wiredscythe-add-icon" src={wiredScytheIcon} alt="" />
             <span className="multi-add-name">Add <strong>{typedName}</strong></span>
-            <span className="multi-add-game">to WiredScythe · {scope === "kick" ? "Kick" : "Twitch"}</span>
+            <span className="multi-add-game">to Cyber Wire · {scope === "kick" ? "Kick" : "Twitch"}</span>
           </button>
         )}
         {choices.map((channel) => (
