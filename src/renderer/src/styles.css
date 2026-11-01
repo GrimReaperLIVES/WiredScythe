@@ -1206,6 +1206,8 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
    is always recoverable without opening Settings. */
 .app-shell.sidebar-hidden { --sidebar-width: 0px; }
 .sidebar-hidden .sidebar, .sidebar-hidden .brand { display: none; }
+.sidebar-hidden:not(.chat-left):not(.clean-view):not(.theater-mode):not(.fullscreen-mode):not(.multi-theater) > main { grid-column: 2; grid-row: 2; }
+.sidebar-hidden.chat-left { grid-template-columns: minmax(0, 1fr) 0px; }
 .sidebar-reveal-toggle { position: fixed; z-index: 10000; top: 50%; left: 0; display: grid; width: 36px; height: 58px; padding: 0; place-items: center; border: 1px solid #7f1d1d; border-left: 0; border-radius: 0 10px 10px 0; color: #fecaca; background: #26090a; box-shadow: 0 0 18px #dc262666; cursor: pointer; pointer-events: auto; transform: translateY(-50%); }
 .sidebar-reveal-toggle:hover { color: white; background: #b91c1c; }
 .clean-view-unlock { position: fixed; z-index: 10001; top: 14px; left: 50%; display: grid; width: 34px; height: 30px; place-items: center; border: 1px solid #7f1d1d; border-radius: 7px; color: #fecaca; background: #26090a; cursor: pointer; transform: translateX(-50%); }
@@ -1221,6 +1223,10 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 .clean-view .viewer-layout, .clean-view .multi-stream-layout { grid-template-columns: minmax(0, 1fr) !important; }
 .clean-view .chat-panel, .clean-view .native-video-chat, .clean-view .chat-resize-handle, .clean-view .sidebar-reveal-toggle { display: none; }
 .clean-view .video-column { padding-top: 0; }
+.clean-view .titlebar, .clean-view .controls-bar, .clean-view .controls-gradient, .clean-view .multi-tile-controls, .clean-view .multi-tile-name-box { display: none; }
+.clean-view.clean-view-revealed .controls-bar, .clean-view.clean-view-revealed .multi-tile-controls { display: flex; }
+.clean-view.clean-view-revealed .multi-tile-name-box { display: flex; }
+.clean-view.clean-view-revealed .chat-panel, .clean-view.clean-view-revealed .multi-chat { display: flex; position: absolute; right: 0; top: 68px; bottom: 0; width: 384px; z-index: 90; background: #09090b; }
 .clean-view.clean-view-revealed .topbar { display: grid; position: absolute; top: 0; left: 0; right: 0; }
 .clean-view.clean-view-revealed .sidebar { display: flex; position: fixed; top: 68px; bottom: 0; left: 0; width: 244px; z-index: 100; opacity: 1; }
 .clean-view.clean-view-revealed .sidebar > * { visibility: visible; }
