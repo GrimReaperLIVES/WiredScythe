@@ -5,6 +5,7 @@ import type {
   NativeQualityValue,
 } from "../shared/player";
 import { parseStreamlinkQualityOutput } from "../shared/player";
+import { streamQualitySelector } from "../shared/playback-quality";
 import {
   channelUrl,
   parseChannelKey,
@@ -173,7 +174,7 @@ export class StreamPlaybackResolver {
           ...streamlinkPlatformArguments(platform),
           ...(kickCookie === null ? [] : ["--http-cookie", kickCookie]),
           channelUrl(platform, login),
-          quality,
+          streamQualitySelector(quality),
         ],
         playbackToken,
         {

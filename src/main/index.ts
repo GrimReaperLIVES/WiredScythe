@@ -456,6 +456,7 @@ const multiStreamManager = new MultiStreamManager(
   (tile) => sendToWindow(mainWindow, "native-multi:tile-state", tile),
   (id) => sendToWindow(mainWindow, "native-multi:tile-removed", id),
   hlsMediaProtocol,
+  (channel) => preferencesService.get().channelQualityOverrides?.[channel.toLowerCase()] ?? "720p",
 );
 const multiChatService = new MultiChatService(
   (channel, message) =>
@@ -1057,7 +1058,9 @@ handleTrusted(
   // session. Native is the dependable guest-capable route for both services.
   const effectiveMode: PlayerMode = "native";
   const requestedQuality =
-    requestedQualityInput === undefined ? "720p" : nativeQualitySchema.parse(requestedQualityInput);
+    requestedQualityInput === undefined
+      ? preferencesService.get().channelQualityOverrides?.[channel.toLowerCase()] ?? "720p"
+      : nativeQualitySchema.parse(requestedQualityInput);
   // Opening a single stream leaves multistream mode; free those tiles first.
   if (multiStreamManager.isActive()) multiStreamManager.stop();
   const openGeneration = ++playerOpenGeneration;
@@ -1124,6 +1127,10 @@ handleTrusted(
       detail: quality,
     });
     if (!result.ok) throw new Error(result.reason);
+    await preferencesService.update({ channelQualityOverrides: {
+      ...preferencesService.get().channelQualityOverrides,
+      [channel.toLowerCase()]: quality,
+    } });
   },
 );
 
@@ -1220,6 +1227,11 @@ handleTrusted("native-multi:set-quality", async (_event, idInput: unknown, quali
   if (!isMultiTileId(idInput)) return;
   const quality = nativeQualitySchema.parse(qualityInput);
   await multiStreamManager.setQuality(idInput, quality);
+  const tile = multiStreamManager.getTiles().find((entry) => entry.id === idInput);
+  if (tile) await preferencesService.update({ channelQualityOverrides: {
+    ...preferencesService.get().channelQualityOverrides,
+    [tile.channel.toLowerCase()]: quality,
+  } });
 });
 
 onTrusted("player:preresolve", (_event, input: unknown) => {

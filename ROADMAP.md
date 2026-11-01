@@ -19,13 +19,13 @@ Director integration is excluded. Checked items require evidence; source changes
 
 - [ ] 11. Show actual quality while keeping the 720p default.
 - [ ] 12. Verify independently selected higher qualities.
-- [ ] 13. Prefer compatible 720p renditions before higher-quality fallback.
-- [ ] 14. Remember channel quality choices.
+- [x] 13. Prefer compatible 720p renditions before higher-quality fallback (selector regression tests).
+- [ ] 14. Remember channel quality choices (main-process persistence and restore implemented; restart smoke test pending).
 - [ ] 15. Optional quality reduction after sustained buffering.
 - [ ] 16. Optional resource-saving mode.
-- [ ] 17. Pause tiles independently.
+- [ ] 17. Pause tiles independently (per-tile pause/resume controls implemented; playback smoke test pending).
 - [ ] 18. Verify independent audio across all surfaces.
-- [ ] 19. Mute-all and selected-audio controls.
+- [ ] 19. Mute-all and selected-audio controls (idempotent per-tile commands implemented; audible smoke test pending).
 - [ ] 20. Verify live status against real service responses.
 
 ## Layouts and pop-outs

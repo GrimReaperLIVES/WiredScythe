@@ -13,6 +13,14 @@ beforeEach(async () => {
 });
 
 describe("PreferencesService", () => {
+  it("restores independent platform quality choices after restarting the service", async () => {
+    const first = new PreferencesService(preferencesPath);
+    await first.initialize();
+    await first.update({ channelQualityOverrides: { xqc: "1080p60", "kick:xqc": "480p" } });
+    const restarted = new PreferencesService(preferencesPath);
+    await restarted.initialize();
+    expect(restarted.get().channelQualityOverrides).toEqual({ xqc: "1080p60", "kick:xqc": "480p" });
+  });
   it("uses defaults before any preferences have been saved", async () => {
     const service = new PreferencesService(preferencesPath);
 
