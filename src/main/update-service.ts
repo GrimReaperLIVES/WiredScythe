@@ -65,7 +65,7 @@ export class UpdateService {
       this.setStatus({
         state: "available",
         availableVersion: info.version,
-        message: `WiredScythe ${info.version} is available.`,
+        message: `Cyber Wire ${info.version} is available.`,
       });
     });
     this.updater.on("download-progress", (progress: ProgressInfo) => {
@@ -78,7 +78,7 @@ export class UpdateService {
     this.updater.on("update-not-available", () => {
       this.setStatus({
         state: "not-available",
-        message: "WiredScythe is up to date.",
+        message: "Cyber Wire is up to date.",
       });
     });
     this.updater.on("update-downloaded", (info: UpdateInfo) => {
@@ -88,7 +88,7 @@ export class UpdateService {
         state: "downloaded",
         availableVersion: info.version,
         progress: 100,
-        message: "Update ready. Restart to install it; WiredScythe reopens on its own.",
+        message: "Update ready. Restart to install it; Cyber Wire reopens on its own.",
       });
       if (shouldOfferRestart) void this.offerRestart(info.version);
     });
@@ -146,7 +146,7 @@ export class UpdateService {
   install(): void {
     // The first argument is `isSilent`, which is what makes electron-updater
     // pass NSIS `/S`. Without it the full installer wizard opens and the user
-    // has to click through it again. The second relaunches WiredScythe once the
+    // has to click through it again. The second relaunches Cyber Wire once the
     // install finishes. Installing on quit is already silent.
     if (this.downloaded) this.updater.quitAndInstall(true, true);
   }
@@ -162,10 +162,10 @@ export class UpdateService {
   private async offerRestart(version: string): Promise<void> {
     const options: MessageBoxOptions = {
       type: "info",
-      title: "WiredScythe update ready",
-      message: `WiredScythe ${version} has been downloaded.`,
+      title: "Cyber Wire update ready",
+      message: `Cyber Wire ${version} has been downloaded.`,
       detail:
-        "Restarting installs it in a few seconds and reopens WiredScythe. Choose Later to install it the next time you close WiredScythe.",
+        "Restarting installs it in a few seconds and reopens Cyber Wire. Choose Later to install it the next time you close Cyber Wire.",
       buttons: ["Restart now", "Later"],
       defaultId: 0,
       cancelId: 1,

@@ -1,4 +1,4 @@
-name: Release CyberWired for macOS
+name: Release Cyber Wire for macOS
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "$GITHUB_REF_NAME" \
-            release/CyberWired-*.dmg \
-            release/CyberWired-*.zip \
+            release/Cyber Wire-*.dmg \
+            release/Cyber Wire-*.zip \
             --repo "$GITHUB_REPOSITORY" \
             --clobber

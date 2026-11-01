@@ -81,7 +81,7 @@ for (const stream of [process.stdout, process.stderr]) {
 }
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-// WiredScythe keeps its own isolated application data, credentials, and
+// Cyber Wire keeps its own isolated application data, credentials, and
 // website sessions rather than inheriting another application's profile.
 app.setPath("userData", path.join(app.getPath("appData"), "WiredScythe"));
 // Twitch's official embedded player is created inside a dedicated local page.
@@ -375,7 +375,7 @@ function lockLocalRendererNavigation(
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
-          title: streamWindow ? "CyberWired Stream" : "CyberWired Chat",
+          title: streamWindow ? "Cyber Wire Stream" : "Cyber Wire Chat",
           icon: applicationIcon,
           backgroundColor: streamWindow ? "#000000" : "#0e0e10",
           minWidth: streamWindow ? 480 : 300,
@@ -901,7 +901,7 @@ async function createWindow(): Promise<void> {
     minWidth: 1180,
     minHeight: 640,
     backgroundColor: "#09090b",
-    title: "CyberWired",
+    title: "Cyber Wire",
     icon: applicationIcon,
     autoHideMenuBar: true,
     // Hide the system title bar but keep the real caption buttons, so the top
@@ -1098,7 +1098,7 @@ handleTrusted(
     fallbackReason:
       fallbackReason ??
       (requestedMode === "official"
-        ? "Standard playback fell back to WiredScythe Native so the public stream can play."
+        ? "Standard playback fell back to Cyber Wire Native so the public stream can play."
         : undefined),
   };
   },
@@ -1547,7 +1547,7 @@ handleTrusted("preferences:update", async (_event, patch: unknown) => {
 
 app.whenReady().then(async () => {
   app.setAppUserModelId("app.wiredscythe.viewer");
-  // WiredScythe provides its own application UI. Removing Electron's default
+  // Cyber Wire provides its own application UI. Removing Electron's default
   // menu also prevents Windows from revealing File/Edit/View when Alt is used
   // for emote-picker shortcuts.
   Menu.setApplicationMenu(null);

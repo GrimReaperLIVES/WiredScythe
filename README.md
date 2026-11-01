@@ -1,24 +1,24 @@
 <p align="center">
-  <img src="build/wiredscythe-icon.png" alt="WiredScythe" width="160">
+  <img src="build/wiredscythe-icon.png" alt="Cyber Wire" width="160">
 </p>
 
-<h1 align="center">WiredScythe</h1>
+<h1 align="center">Cyber Wire</h1>
 
 <p align="center">
   A red-and-black Twitch and Kick viewer for Windows and macOS with guest playback and multistream.
 </p>
 
 <p align="center">
-  <a href="https://github.com/GrimReaperLIVES/WiredScythe/releases/latest/download/WiredScythe-Setup-x64.exe">
-    <img alt="Download WiredScythe for Windows" src="https://img.shields.io/badge/DOWNLOAD-WIREDScythe_for_Windows-e11d2e?style=for-the-badge&logo=windows&logoColor=white">
+  <a href="https://github.com/GrimReaperLIVES/WiredScythe/releases/latest/download/CyberWire-Setup-x64.exe">
+    <img alt="Download Cyber Wire for Windows" src="https://img.shields.io/badge/DOWNLOAD-WIREDScythe_for_Windows-e11d2e?style=for-the-badge&logo=windows&logoColor=white">
   </a>
   <a href="https://github.com/GrimReaperLIVES/WiredScythe/releases/latest">
-    <img alt="Download WiredScythe for macOS" src="https://img.shields.io/badge/DOWNLOAD-WIREDScythe_for_macOS-b91c1c?style=for-the-badge&logo=apple&logoColor=white">
+    <img alt="Download Cyber Wire for macOS" src="https://img.shields.io/badge/DOWNLOAD-WIREDScythe_for_macOS-b91c1c?style=for-the-badge&logo=apple&logoColor=white">
   </a>
 </p>
 
 <p align="center">
-  <strong>One installer. No WiredScythe account required.</strong>
+  <strong>One installer. No Cyber Wire account required.</strong>
 </p>
 
 ## Watch your way
@@ -40,11 +40,11 @@
 - The collapsed followed-channel rail expands on hover so channel names and navigation stay readable.
 - Multistream audio is independent per stream: select, mute, or unmute each tile without changing the others.
 - New playback defaults to 720p to reduce CPU and VRAM use, while every stream keeps its own quality selector.
-- Channel actions use clearer WiredScythe icons and red-and-black styling.
+- Channel actions use clearer Cyber Wire icons and red-and-black styling.
 
 ## Install
 
-Click the large **DOWNLOAD** button above and run `WiredScythe-Setup-x64.exe`.
+Click the large **DOWNLOAD** button above and run `CyberWire-Setup-x64.exe`.
 
 Mac users can use the separate macOS button above, then choose the `.dmg` or `.zip` package for their Mac from the release page.
 
@@ -77,13 +77,13 @@ Optional Windows signing secrets are `WINDOWS_CSC_LINK`, `WINDOWS_CSC_KEY_PASSWO
 
 ## Privacy
 
-Guest viewing does not require a WiredScythe account. Twitch or Kick sign-in is optional and handled through those services.
+Guest viewing does not require a Cyber Wire account. Twitch or Kick sign-in is optional and handled through those services.
 
 ## License
 
 Copyright (c) 2026 Grim. All rights reserved.
 
-WiredScythe is proprietary software. The public source is provided for
+Cyber Wire is proprietary software. The public source is provided for
 visibility only and may not be copied, modified, redistributed, repackaged,
 or used in another product without Grim's prior written permission. Official,
 unmodified installers may be downloaded and run for personal use. See

@@ -388,7 +388,7 @@ const settingsSearchEntries: {
   {
     section: "playback",
     title: "Default playback engine",
-    description: "Choose WiredScythe Native or Twitch Standard playback. Kick always uses Native.",
+    description: "Choose Cyber Wire Native or Twitch Standard playback. Kick always uses Native.",
     keywords: "player native standard official",
   },
   {
@@ -472,13 +472,13 @@ const settingsSearchEntries: {
   {
     section: "appearance",
     title: "OLED mode",
-    description: "Use true-black backgrounds throughout WiredScythe.",
+    description: "Use true-black backgrounds throughout Cyber Wire.",
     keywords: "theme black dark appearance",
   },
   {
     section: "about",
     title: "Updates and version history",
-    description: "Check for updates or read the WiredScythe changelog.",
+    description: "Check for updates or read the Cyber Wire changelog.",
     keywords: "release version latest install",
   },
   {
@@ -1106,7 +1106,7 @@ export function App() {
   ]);
 
   useEffect(() => {
-    document.title = `${locationLabel} - WiredScythe`;
+    document.title = `${locationLabel} - Cyber Wire`;
   }, [locationLabel]);
 
   useEffect(() => {
@@ -1400,7 +1400,7 @@ export function App() {
     void window.desktop.preferences
       .getOrMigrate(legacyPreferences.current)
       .then(applyPreferences)
-      .catch(() => setNotice("WiredScythe could not load your saved settings."));
+      .catch(() => setNotice("Cyber Wire could not load your saved settings."));
     return () => {
       disposed = true;
       removeListener();
@@ -2526,7 +2526,7 @@ export function App() {
       await window.desktop.preferences.update({ preferredPlayerMode: mode });
       return true;
     } catch {
-      setNotice("WiredScythe could not save the playback engine setting.");
+      setNotice("Cyber Wire could not save the playback engine setting.");
       return false;
     }
   }
@@ -2540,7 +2540,7 @@ export function App() {
     } else {
       setNotice(
         mode === "native"
-          ? "WiredScythe Native will be used when you open the next stream."
+          ? "Cyber Wire Native will be used when you open the next stream."
           : "Standard Twitch playback will be used when you open the next stream.",
       );
     }
@@ -3558,7 +3558,7 @@ export function App() {
 
       <div className="brand">
         <span className="brand-mark"><img alt="" src={wiredScytheIcon} /></span>
-        <span>CyberWired</span>
+        <span>Cyber Wire</span>
       </div>
 
       <aside className="sidebar">
@@ -3867,7 +3867,7 @@ export function App() {
                         type="button"
                       >
                         <img className="wiredscythe-search-icon" src={wiredScytheIcon} alt="" />
-                        Watch <strong>{channelInput.trim()}</strong> in WiredScythe
+                        Watch <strong>{channelInput.trim()}</strong> in Cyber Wire
                       </button>
                     )}
                     {searchPlatformFilter !== "twitch" && (
@@ -3881,7 +3881,7 @@ export function App() {
                         type="button"
                       >
                         <img className="wiredscythe-search-icon" src={wiredScytheIcon} alt="" />
-                        Watch <strong>{channelInput.trim()}</strong> in WiredScythe
+                        Watch <strong>{channelInput.trim()}</strong> in Cyber Wire
                       </button>
                     )}
                     {topSearchResults.categories.length > 0 && (
@@ -4679,7 +4679,7 @@ export function App() {
                       }}
                       title={
                         singleStreamWindowTarget
-                          ? "Dock stream back in WiredScythe"
+                          ? "Dock stream back in Cyber Wire"
                           : "Open a resizable picture-in-picture window"
                       }
                       type="button"
@@ -4811,7 +4811,7 @@ export function App() {
                               aria-label="Dock stream"
                               className="single-stream-popout-dock"
                               onClick={() => closeSingleStreamWindow("single-player")}
-                              title="Dock stream back in WiredScythe"
+                              title="Dock stream back in Cyber Wire"
                               type="button"
                             >
                               Dock stream
@@ -5707,7 +5707,7 @@ export function App() {
               <img alt="" src={wiredScytheIcon} />
             </div>
             <p className="section-kicker">SETTINGS</p>
-            <h2>Make WiredScythe yours</h2>
+            <h2>Make Cyber Wire yours</h2>
             <p>Connect Twitch securely, choose playback, and control optional chat providers.</p>
             <div className="settings-stack">
               <div className="settings-card">
@@ -5753,7 +5753,7 @@ export function App() {
                   <span>
                     {playbackSession.linked
                       ? `Linked${playbackSession.login ? ` as ${playbackSession.login}` : ""}. Used for higher Twitch playback qualities when available (such as Source or 1440p); Streamlink receives its token only for Twitch playback requests.`
-                      : "Optional. Link a Twitch website session for higher playback qualities when available (such as Source or 1440p). This remains separate from WiredScythe's official API sign-in."}
+                      : "Optional. Link a Twitch website session for higher playback qualities when available (such as Source or 1440p). This remains separate from Cyber Wire's official API sign-in."}
                   </span>
                 </div>
                 {playbackSession.linked ? (
@@ -5820,7 +5820,7 @@ export function App() {
               <div className="settings-card">
                 <div>
                   <strong>OLED mode</strong>
-                  <span>Use true black backgrounds throughout WiredScythe and its Native overlays.</span>
+                  <span>Use true black backgrounds throughout Cyber Wire and its Native overlays.</span>
                 </div>
                 <button
                   aria-pressed={oledMode}
@@ -5834,7 +5834,7 @@ export function App() {
               </div>
               <div className="settings-card">
                 <div>
-                  <strong>WiredScythe updates</strong>
+                  <strong>Cyber Wire updates</strong>
                   <span>
                     {updateStatus.currentVersion
                       ? `Version ${updateStatus.currentVersion} · `
@@ -5896,7 +5896,7 @@ export function App() {
                 <small>
                   {preferredMode === "native"
                     ? nativeAvailability?.available
-              ? "WiredScythe Native is ready"
+              ? "Cyber Wire Native is ready"
                       : nativeAvailability?.reason ?? "Checking Native availability…"
                     : "Twitch’s official player and controls"}
                 </small>
@@ -6331,8 +6331,8 @@ export function App() {
                     <button
                       aria-label={
                         updateStatus.state === "downloaded"
-                          ? "Restart to update WiredScythe"
-                          : "Check for WiredScythe updates"
+                          ? "Restart to update Cyber Wire"
+                          : "Check for Cyber Wire updates"
                       }
                       className="settings-nav-update-icon"
                       disabled={
@@ -6341,7 +6341,7 @@ export function App() {
                         updateStatus.state === "downloading"
                       }
                       onClick={runUpdateAction}
-                      title={updateStatus.message ?? "Check GitHub Releases for a WiredScythe update"}
+                      title={updateStatus.message ?? "Check GitHub Releases for a Cyber Wire update"}
                       type="button"
                     >
                       <RefreshCw
@@ -6405,7 +6405,7 @@ export function App() {
                     <header className="settings-section-heading">
                       <span>ACCOUNT</span>
                       <h3>Connections</h3>
-                      <p>Manage the accounts and website session WiredScythe uses.</p>
+                      <p>Manage the accounts and website session Cyber Wire uses.</p>
                     </header>
                   <div className="settings-card">
                     <div>
@@ -6509,7 +6509,7 @@ export function App() {
                       <small>
                         {preferredMode === "native"
                           ? nativeAvailability?.available
-                            ? "WiredScythe Native is ready"
+                            ? "Cyber Wire Native is ready"
                             : nativeAvailability?.reason ?? "Checking Native availability…"
                           : "Twitch’s official player and controls"}
                       </small>
@@ -6696,7 +6696,7 @@ export function App() {
                           <ShieldAlert size={17} />
                           <span>
                             Generic previews contact the linked website directly from your
-                            computer. The website can see your IP address. WiredScythe limits
+                            computer. The website can see your IP address. Cyber Wire limits
                             downloads and never executes the page&apos;s scripts, but only
                             preview links you trust.
                           </span>
@@ -6836,7 +6836,7 @@ export function App() {
                           <strong>Blocked chatters</strong>
                           <span>
                             Their messages are hidden everywhere chat appears.
-                            This list is WiredScythe's own — it changes nothing on
+                            This list is Cyber Wire's own — it changes nothing on
                             your Twitch or Kick account.
                           </span>
                         </div>
@@ -6911,12 +6911,12 @@ export function App() {
                     <header className="settings-section-heading">
                       <span>APPEARANCE</span>
                       <h3>Interface</h3>
-                      <p>Adjust WiredScythe&apos;s window and visual presentation.</p>
+                      <p>Adjust Cyber Wire&apos;s window and visual presentation.</p>
                     </header>
                   <div className="settings-card">
                     <div>
                       <strong>OLED mode</strong>
-                      <span>Use true black backgrounds throughout WiredScythe.</span>
+                      <span>Use true black backgrounds throughout Cyber Wire.</span>
                     </div>
                     <button
                       aria-pressed={oledMode}
@@ -6933,13 +6933,13 @@ export function App() {
                   <section className="settings-section-panel settings-about">
                     <header className="settings-section-heading">
                       <span>ABOUT</span>
-                      <h3>WiredScythe</h3>
+                      <h3>Cyber Wire</h3>
                       <p>Project details, support links, credits, and version history.</p>
                     </header>
                     <div className="settings-about-hero">
                       <img alt="" src={wiredScytheIcon} />
                       <div className="settings-about-copy">
-                        <strong>WiredScythe</strong>
+                        <strong>Cyber Wire</strong>
                         <span>Local Windows streaming companion</span>
                         <small>
                           {updateStatus.currentVersion
@@ -6988,13 +6988,13 @@ export function App() {
                       </div>
                     </div>
                     <div className="settings-card settings-card-stack">
-                      <strong>WiredScythe</strong>
+                      <strong>Cyber Wire</strong>
                       <span>Your local streaming workspace.</span>
                     </div>
                     <div className="settings-card settings-card-stack settings-dependencies">
                       <header>
                         <strong>Core dependencies</strong>
-                        <span>Software and services that make WiredScythe possible.</span>
+                        <span>Software and services that make Cyber Wire possible.</span>
                       </header>
                       <dl>
                         <div>
@@ -7040,11 +7040,11 @@ export function App() {
               <header className="settings-modal-header">
                 <div>
                   <span>WHAT&apos;S NEW</span>
-                  <h2 id="changelog-modal-title">WiredScythe changelog</h2>
+                  <h2 id="changelog-modal-title">Cyber Wire changelog</h2>
                   <p>
                     {updateStatus.currentVersion
                       ? `You are running version ${updateStatus.currentVersion}.`
-                      : "Additions, improvements, and fixes included with WiredScythe."}
+                      : "Additions, improvements, and fixes included with Cyber Wire."}
                   </p>
                 </div>
                 <button
