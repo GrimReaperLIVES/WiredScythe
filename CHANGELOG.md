@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.4-alpha.40] - 2026-11-01
+
+### Improvements
+
+- Renamed the application to Cyber Wire and repaired Windows and macOS release asset paths.
+- Added Clean View hover reveal, pin lock, exit control, and automatic Clean View option under Appearance.
+- Reclaimed hidden chat and toolbar space and resynchronized docked video after layout changes.
+- Isolated the embedded video surface from surrounding layout and paint work.
+- Local favorites without live metadata show status unknown rather than an offline appearance.
+- New installations default to Balanced playback; per-stream quality remains selectable above 720p when available.
+- Unfinished Director integration remains excluded.
+
 ## [0.3.4-alpha.39] - 2026-09-30
 
 ### Additions
