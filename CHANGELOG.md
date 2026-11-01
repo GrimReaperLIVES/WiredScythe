@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4-alpha.41] - 2026-11-01
+
+### Fixes
+
+- Fixed hidden-sidebar grid placement that could put the main player into a zero-width column.
+- Includes all Cyber Wire alpha.40 interface, status and packaging improvements.
+
 ## [0.3.4-alpha.40] - 2026-11-01
 
 ### Improvements
