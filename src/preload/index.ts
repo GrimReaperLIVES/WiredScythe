@@ -34,6 +34,20 @@ import type {
 } from "../shared/preferences";
 
 const api: DesktopApi = {
+  obs: {
+    status: () => ipcRenderer.invoke("obs:status"),
+    onError: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, message: string) => listener(message);
+      ipcRenderer.on("obs:error", handler);
+      return () => { ipcRenderer.removeListener("obs:error", handler); };
+    },
+    connect: (config) => ipcRenderer.invoke("obs:connect", config),
+    disconnect: () => ipcRenderer.invoke("obs:disconnect"),
+    toggle: (scene) => ipcRenderer.invoke("obs:toggle", scene),
+    arm: (scene) => ipcRenderer.invoke("obs:arm", scene),
+    sources: () => ipcRenderer.invoke("obs:sources"),
+    layout: (config) => ipcRenderer.invoke("obs:layout", config),
+  },
   system: {
     openExternal: (url: string) => ipcRenderer.invoke("system:open-external", url),
     getLinkPreview: (url: string, allowGeneric = false) =>

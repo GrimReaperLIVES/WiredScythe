@@ -54,5 +54,7 @@ jobs:
           gh release upload "$GITHUB_REF_NAME" \
             release/CyberWire-*.dmg \
             release/CyberWire-*.zip \
+            release/CyberWire-*.blockmap \
+            release/latest-mac.yml \
             --repo "$GITHUB_REPOSITORY" \
             --clobber

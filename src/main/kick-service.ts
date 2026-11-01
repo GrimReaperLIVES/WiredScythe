@@ -1123,7 +1123,7 @@ export class KickService {
           ? "/api/v2/channels/followed"
           : `/api/v2/channels/followed?cursor=${encodeURIComponent(cursor)}`;
       const payload: unknown = await this.requestJson(path);
-      if (payload === null) break;
+      if (payload === null) throw new Error("Kick live status is temporarily unavailable. Keeping the previous channel list.");
 
       const parsed = kickFollowedSchema.safeParse(
         Array.isArray(payload) ? { channels: payload } : payload,
@@ -1132,7 +1132,7 @@ export class KickService {
         this.log(
           `followed list had an unexpected shape: ${this.describeShape(payload)}`,
         );
-        break;
+        throw new Error("Kick returned an unreadable channel list. Keeping the previous channel list.");
       }
 
       const entries = parsed.data.channels ?? [];

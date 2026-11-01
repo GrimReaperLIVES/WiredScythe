@@ -11,6 +11,7 @@ export type PlaybackLatencyMode = z.infer<typeof playbackLatencyModeSchema>;
 export const appPreferencesSchema = z.object({
   preferredPlayerMode: playerModeSchema,
   channelQualityOverrides: z.record(z.string().min(1).max(50), nativeQualitySchema).optional(),
+  streamWindowBounds: z.record(z.string().max(100), z.object({ x: z.number().int(), y: z.number().int(), width: z.number().int().min(240).max(10000), height: z.number().int().min(135).max(10000) })).optional(),
   playbackLatencyMode: playbackLatencyModeSchema,
   chatTimestamps: z.boolean(),
   chatHistoryLimit: chatHistoryLimitSchema,

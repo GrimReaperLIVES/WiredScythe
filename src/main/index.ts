@@ -1,5 +1,6 @@
 import {
   app,
+  globalShortcut,
   BrowserWindow,
   ipcMain,
   Menu,
@@ -14,6 +15,7 @@ import {
   type Rectangle,
 } from "electron";
 import path from "node:path";
+import { ObsService } from "./obs-service";
 import { fileURLToPath } from "node:url";
 import {
   channelActionSchema,
@@ -83,7 +85,7 @@ for (const stream of [process.stdout, process.stderr]) {
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 // Cyber Wire keeps its own isolated application data, credentials, and
 // website sessions rather than inheriting another application's profile.
-app.setPath("userData", path.join(app.getPath("appData"), "WiredScythe"));
+app.setPath("userData", process.env.CYBERWIRE_TEST_USER_DATA ?? path.join(app.getPath("appData"), "WiredScythe"));
 // Twitch's official embedded player is created inside a dedicated local page.
 // Allow that trusted player to honor its autoplay option when a channel opens.
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
@@ -399,6 +401,23 @@ function lockLocalRendererNavigation(
     if (frameName.startsWith(STREAM_WINDOW_PREFIX)) {
       enableDevToolsShortcut(created);
       created.setAspectRatio(16 / 9);
+      const saved = preferencesService.get().streamWindowBounds?.[frameName];
+      if (saved) {
+        const area = screen.getDisplayMatching(saved).workArea;
+        const width = Math.min(saved.width, area.width);
+        const height = Math.min(saved.height, area.height);
+        created.setBounds({ width, height, x: Math.max(area.x, Math.min(saved.x, area.x + area.width - width)), y: Math.max(area.y, Math.min(saved.y, area.y + area.height - height)) });
+      }
+      let saveTimer: ReturnType<typeof setTimeout> | undefined;
+      const save = () => {
+        if (created.isDestroyed()) return;
+        void preferencesService.update({ streamWindowBounds: { ...preferencesService.get().streamWindowBounds, [frameName]: created.getBounds() } }).catch(() => undefined);
+      };
+      const scheduleSave = () => { clearTimeout(saveTimer); saveTimer = setTimeout(save, 300); };
+      created.on("move", scheduleSave);
+      created.on("resize", scheduleSave);
+      created.on("close", save);
+      created.on("closed", () => clearTimeout(saveTimer));
       return;
     }
     if (frameName !== CHAT_WINDOW_NAME) return;
@@ -1146,9 +1165,17 @@ function persistPlayerVolume(volume: number): void {
   }, 400);
 }
 
-handleTrusted("native-player:stats", () =>
-  activePlayerMode === "native" ? hlsNativePlayer.getStats() : null,
-);
+handleTrusted("native-player:stats", () => {
+  if (activePlayerMode !== "native") return null;
+  const stats = hlsNativePlayer.getStats();
+  if (!stats) return null;
+  const metrics = app.getAppMetrics();
+  return { ...stats,
+    "App CPU": `${metrics.reduce((total, process) => total + process.cpu.percentCPUUsage, 0).toFixed(1)}%`,
+    "App memory": `${Math.round(metrics.reduce((total, process) => total + process.memory.workingSetSize, 0) / 1024)} MB`,
+    "GPU video decode support": String(app.getGPUFeatureStatus().video_decode ?? "unknown"),
+  };
+});
 onTrusted("native-player:control", (_event, input: unknown) => {
   const result = nativePlayerCommandSchema.safeParse(input);
   if (!result.success || activePlayerMode !== "native") return;
@@ -1521,6 +1548,26 @@ onTrusted("chat:set-history-limit", (_event, rawLimit: unknown) => {
     multiChatService.setHistoryLimit(result.data);
   }
 });
+const obsService = new ObsService();
+let obsHotkey = "";
+let obsScene = "";
+handleTrusted("obs:status", async () => ({ connected: obsService.isConnected(), scenes: await obsService.sceneNames(), scene: obsScene, hotkey: obsHotkey }));
+handleTrusted("obs:connect", async (_event, input: unknown) => {
+  const config = z.object({ port: z.number().int().min(1024).max(65535), password: z.string().max(1024), hotkey: z.string().max(100).regex(/^(?:(?:Control|Ctrl|Alt|Shift|Super|CommandOrControl|Command)\+)+(?:F(?:[1-9]|1[0-9]|2[0-4])|[A-Z0-9])$/i, "Use a shortcut such as Control+Shift+F9.") }).parse(input);
+  const scenes = await obsService.connect(config.port, config.password);
+  if (obsHotkey) globalShortcut.unregister(obsHotkey);
+  obsHotkey = "";
+  if (!globalShortcut.register(config.hotkey, () => {
+    if (obsScene) void obsService.toggle(obsScene).catch(() => sendToWindow(mainWindow, "obs:error", "Unable to switch OBS scene. Reconnect in OBS settings."));
+  })) { obsService.disconnect(); throw new Error("That hotkey is unavailable. Choose another shortcut."); }
+  obsHotkey = config.hotkey;
+  return scenes;
+});
+handleTrusted("obs:arm", (_event, input: unknown) => { obsScene = z.string().min(1).max(200).parse(input); });
+handleTrusted("obs:sources", () => obsService.sources());
+handleTrusted("obs:layout", (_event, input: unknown) => obsService.layout(z.object({ scene: z.string().min(1).max(200), preset: z.enum(["two", "four", "main"]), sources: z.array(z.string().min(1).max(200)).min(1).max(9).refine((entries) => new Set(entries).size === entries.length), audible: z.string().max(200).nullable() }).parse(input)));
+handleTrusted("obs:toggle", (_event, input: unknown) => obsService.toggle(z.string().min(1).max(200).parse(input)));
+handleTrusted("obs:disconnect", () => { obsService.disconnect(); if (obsHotkey) globalShortcut.unregister(obsHotkey); obsHotkey = ""; obsScene = ""; });
 handleTrusted("updates:get-status", () => updateService.getStatus());
 handleTrusted("updates:get-release-notes", (_event, forceRefresh: unknown) => {
   if (forceRefresh !== undefined && typeof forceRefresh !== "boolean") {
@@ -1591,5 +1638,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", () => {
+  obsService.disconnect();
+  if (obsHotkey) globalShortcut.unregister(obsHotkey);
   void hlsMediaProtocol.close();
 });

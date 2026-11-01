@@ -19,6 +19,10 @@ vi.mock("electron", () => ({
 import { getKickLoginUrl, KickService } from "./kick-service";
 
 describe("KickService authentication", () => {
+  it("does not replace the channel list with empty results after a transient failure", async () => {
+    electronState.fetch.mockRejectedValue(new Error("network interrupted"));
+    await expect(new KickService().getFollowedChannels()).rejects.toThrow("temporarily unavailable");
+  });
   beforeEach(() => {
     electronState.clearStorageData.mockReset().mockResolvedValue(undefined);
     electronState.clearCache.mockReset().mockResolvedValue(undefined);
