@@ -5,12 +5,12 @@ Director integration is excluded. Checked items require evidence; source changes
 ## Stability and playback
 
 - [ ] 1. Reproduce Clean View failures in a running current build.
-- [ ] 2. Verify reliable hide and restore (hover hit-area fix implemented).
-- [ ] 3. Reveal overlays without video resize/restart.
-- [ ] 4. Verify pin/unpin behavior.
+- [x] 2. Verify hide/restore in the Electron renderer smoke test; live-video layouts still need comparison.
+- [x] 3. Hover reveal preserves main layout dimensions (Electron smoke test); live decoder continuity remains under item 8.
+- [x] 4. Pinning prevents hover reveal (Electron smoke test).
 - [ ] 5. Verify Escape recovery from every layout.
 - [ ] 6. Measure and fix docked versus pop-out lag.
-- [ ] 7. Collect GPU decoding and dropped-frame diagnostics.
+- [x] 7. Native statistics expose dropped frames, CPU, memory and GPU decode support (support is not proof of active hardware decoding).
 - [ ] 8. Preserve playback across layout changes.
 - [ ] 9. Test fullscreen and Theater across playback layouts.
 - [ ] 10. Distinguish resolver, network, rendition and offline failures.
@@ -37,7 +37,7 @@ Director integration is excluded. Checked items require evidence; source changes
 - [ ] 25. Save custom layouts.
 - [ ] 26. Draggable/resizable tiles.
 - [ ] 27. Main-camera and smaller-camera presets.
-- [ ] 28. Save pop-out geometry.
+- [ ] 28. Saved pop-out geometry implemented; real multi-monitor verification pending.
 - [ ] 29. Verify immediate docking on pop-out close (event handler implemented).
 - [ ] 30. Recover safely from monitor disconnection.
 
@@ -56,16 +56,16 @@ Director integration is excluded. Checked items require evidence; source changes
 
 ## OBS spectator workflow
 
-- [ ] 41. OBS connection settings, status and test action.
-- [ ] 42. Configurable Spectator Mode hotkey.
-- [ ] 43. Switch from gameplay to a saved spectator scene.
-- [ ] 44. One independently arranged capture source per stream.
-- [ ] 45. Two, four and main-plus-small camera presets.
-- [ ] 46. Persist selected streamers, geometry and audio choices.
-- [ ] 47. Restore the previous OBS scene with the same action.
+- [ ] 41. OBS connection/status/test UI implemented; local protocol tests pass; real OBS connection pending.
+- [ ] 42. Configurable global hotkey implemented; gaming/OBS verification pending.
+- [ ] 43. Spectator switching implemented and protocol-tested; real OBS verification pending.
+- [ ] 44. Existing OBS Window Capture inputs can be arranged independently; capture binding is configured in OBS.
+- [x] 45. Two/grid/main-plus-small presets implemented; geometry and source-arrangement tests pass.
+- [ ] 46. Source order, preset and audio selection are saved; scene transforms persist in OBS. User-session verification pending.
+- [ ] 47. Previous scene restoration implemented and protocol-tested; real OBS verification pending.
 
 ## Distribution
 
 - [ ] 48. Configure trusted Windows signing (publisher credentials required).
-- [ ] 49. Apple signing/notarization and architecture-specific packages.
-- [ ] 50. Automated checks plus installed-app and updater smoke tests before releases.
+- [ ] 49. Intel/Apple Silicon packages and Mac updater assets configured; signing/notarization require credentials. macOS Native playback needs separately installed Streamlink.
+- [ ] 50. Automated checks and isolated Electron smoke test now gate Windows releases; installed-updater/live-playback validation pending.

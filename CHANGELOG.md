@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.4-alpha.42] - 2026-11-01
+
+### Additions
+
+- Added OBS WebSocket connection, configurable global Spectator hotkey, and return-to-gameplay scene switching.
+- Added two-camera, grid and main-camera OBS layouts using existing capture sources, with saved source/audio choices.
+- Added per-channel quality memory, compatible 720p fallback ladders, bulk audio controls and per-tile pause/resume.
+- Added saved pop-out placement with display-bound recovery.
+- Added CPU, memory and GPU decode-support diagnostics to Native player statistics.
+
+### Fixes
+
+- Fixed Clean View hover controls and immediate pop-out docking.
+- Preserve Kick channel status on failed refreshes instead of replacing it with an empty list.
+- Corrected Mac architecture labels, Intel/Apple Silicon packages, updater metadata and Streamlink discovery.
+- Added an isolated Electron renderer smoke test to Windows release verification.
+- Director remains excluded. Signing credentials are not configured.
+
 ## [0.3.4-alpha.41] - 2026-11-01
 
 ### Fixes

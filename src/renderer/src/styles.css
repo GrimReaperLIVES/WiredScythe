@@ -1217,6 +1217,13 @@ h1 em { color: #fca5a5; font-style: normal; font-weight: 420; }
 .clean-view > main { grid-column: 1; grid-row: 1; }
 .clean-view-edge { position: fixed; inset: 0 0 auto; height: 8px; z-index: 10002; }
 .clean-view-edge:hover, .clean-view-edge:focus-within { height: 48px; }
+.clean-view-revealed .clean-view-edge { pointer-events: none; }
+.clean-view-edge button { pointer-events: auto; }
+.clean-view-revealed .clean-view-edge button { opacity: 1; }
+.obs-settings label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.obs-settings input:not([type="checkbox"]), .obs-settings select { max-width: 100%; padding: 8px; border: 1px solid #7f1d1d; border-radius: 6px; color: #f4f4f5; background: #111114; }
+.obs-settings button { padding: 8px 12px; border: 1px solid #7f1d1d; border-radius: 6px; color: #fee2e2; background: #26090a; cursor: pointer; }
+.obs-settings button:disabled { opacity: .5; cursor: default; }
 .clean-view-exit { position: fixed; top: 14px; left: calc(50% + 24px); border: 1px solid #7f1d1d; border-radius: 7px; background: #26090a; color: #fecaca; padding: 6px; cursor: pointer; }
 .clean-view-edge:not(:hover) button { opacity: 0; }
 .clean-view-edge:focus-within button { opacity: 1; }

@@ -42,6 +42,11 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
           WINDOWS_PUBLISHER_NAME: ${{ secrets.WINDOWS_PUBLISHER_NAME }}
 
+      - name: Verify renderer behavior
+        run: npm run test:smoke
+        env:
+          CYBERWIRE_TEST_USER_DATA: ${{ runner.temp }}/cyberwire-smoke
+
       - name: Prepare release notes
         shell: pwsh
         run: |

@@ -225,6 +225,7 @@ export interface MultiStreamTileState extends MultiStreamTile {
 }
 
 export interface DesktopApi {
+  obs: import("./obs").ObsApi;
   system: {
     openExternal(url: string): Promise<void>;
     getLinkPreview(url: string, allowGeneric?: boolean): Promise<LinkPreview | null>;

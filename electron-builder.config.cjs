@@ -49,8 +49,9 @@ module.exports = {
       : undefined,
   },
   mac: {
+    artifactName: "CyberWire-${arch}.${ext}",
     category: "public.app-category.entertainment",
-    target: ["dmg", "zip"],
+    target: [{ target: "dmg", arch: ["x64", "arm64"] }, { target: "zip", arch: ["x64", "arm64"] }],
     // A PNG is accepted by electron-builder for unsigned local builds. Add an
     // Apple Developer identity later to enable signing and notarization.
     icon: "build/wiredscythe-icon.png",

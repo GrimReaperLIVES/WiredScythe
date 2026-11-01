@@ -131,6 +131,7 @@ import { ChatWindowPlacer } from "./ChatWindowPlacer";
 import { ChatWindowPortal } from "./ChatWindowPortal";
 import { useChatWindow } from "./use-chat-window";
 import { useStreamWindows } from "./use-stream-windows";
+import { ObsSettings } from "./ObsSettings";
 import { renderChatMessageText } from "./chat-message-text";
 import { HlsNativeVideo } from "./HlsNativeVideo";
 import { PinnedChatMessage } from "./PinnedChatMessage";
@@ -152,6 +153,7 @@ const NATIVE_CONTROLS_HIDE_DELAY = 5_000;
 type AppSection = "home" | "browse" | "settings" | "search";
 type ChatLayout = "hidden" | ChatPresentation;
 type SettingsSection =
+  | "obs"
   | "account"
   | "playback"
   | "chat"
@@ -350,6 +352,7 @@ const anonymousPlaybackState: PlaybackSessionState = { linked: false };
 const emptySearchResults: TwitchSearchResults = { channels: [], categories: [] };
 const emoteProviders: EmoteProvider[] = ["7tv", "ffz", "bttv"];
 const settingsSections = [
+  { id: "obs", label: "OBS Spectator", icon: Tv },
   { id: "account", label: "Account", icon: Users },
   { id: "playback", label: "Playback", icon: Tv },
   { id: "chat", label: "Chat", icon: Reply },
@@ -659,6 +662,7 @@ export function App() {
   const [nativeControlsVisible, setNativeControlsVisible] = useState(true);
   const [controlsHideDelay, setControlsHideDelay] = useState(NATIVE_CONTROLS_HIDE_DELAY);
   const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => window.desktop.obs.onError(setNotice), []);
   // The real version arrives from the main process via updates.getStatus();
   // an empty placeholder avoids hardcoding a release version in the renderer.
   const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus>({
@@ -6968,6 +6972,7 @@ export function App() {
                   </div>
                   </section>
                 )}
+                {!hasSettingsSearch && settingsSection === "obs" && <ObsSettings />}
                 {!hasSettingsSearch && settingsSection === "about" && (
                   <section className="settings-section-panel settings-about">
                     <header className="settings-section-heading">

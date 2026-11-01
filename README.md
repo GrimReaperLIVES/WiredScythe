@@ -34,6 +34,16 @@
 
 ## Latest updates
 
+### v0.3.4-alpha.42
+
+Settings now includes **OBS Spectator**. Enable OBS's WebSocket server, enter its local port/password, and connect. Choose a spectator scene or prepare one from existing OBS capture inputs. The default hotkey is **Ctrl+Shift+F9**; pressing it again returns to the previous gameplay scene. Camera presets preserve the complete frame. Applying audio choices changes the selected OBS inputs' mute states wherever those inputs are used.
+
+To capture each streamer separately, pop out the streams in Cyber Wire and create an OBS Window Capture input for each window. Select those inputs in OBS Spectator, choose a camera layout, and click **Apply camera layout in OBS**. This prepares the layout without switching your broadcast scene. The OBS password is kept only in memory for the session.
+
+This update also includes remembered stream quality, bulk audio controls, pause/resume per tile, saved pop-out placement, Clean View fixes, and failure-preserving Kick status updates. Native player statistics show CPU, memory and GPU decode support to help diagnose playback issues.
+
+Mac downloads are labeled **x64** for Intel and **arm64** for Apple Silicon. Native playback on macOS currently requires a separate Streamlink installation; Homebrew locations are detected automatically. The Mac packages remain unsigned pending Apple credentials.
+
 ### v0.3.4-alpha.40
 
 - Cyber Wire installers retain existing settings and account sessions.
