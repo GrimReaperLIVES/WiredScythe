@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## [0.3.4-alpha.43] - 2026-11-01
+
+- Fixed explicit chat show/dock commands after hiding the panel, and fixed native chat overlay reveal in hover mode.
+- Overlay hide/dock controls stay visible. Desktop smoke checks cover incoming fixture messages, overlay/dock, stream close and sidebar minimize/restore.
 
 - Followed channels now start visible and expanded. Users can minimize or hide them explicitly, and restoring a hidden sidebar expands the channel list.
 

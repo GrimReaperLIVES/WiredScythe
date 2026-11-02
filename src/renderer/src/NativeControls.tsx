@@ -1287,6 +1287,14 @@ export function NativeControls({
               <ChevronRight size={17} />
             </button>
             <button
+              aria-label="Dock chat beside the video"
+              onClick={() => selectChatLayout("side-chat")}
+              title="Dock chat beside the video"
+              type="button"
+            >
+              <ChevronLeft size={17} />
+            </button>
+            <button
               aria-expanded={chatSettingsOpen}
               aria-label="Chat overlay settings"
               className={chatSettingsOpen ? "active" : ""}
