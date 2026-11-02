@@ -351,6 +351,21 @@
   min-height: 0;
   padding: 2px;
 }
+.multi-grid.layout-main,
+.multi-grid.layout-free {
+  display: block;
+  position: relative;
+  padding: 0;
+}
+.layout-free .multi-tile-name-box {
+  cursor: move;
+}
+.layout-main > .multi-tile,
+.layout-free > .multi-tile {
+  grid-column: auto !important;
+  grid-row: auto !important;
+  border: 1px solid #29292f;
+}
 
 .multi-grid.count-0 {
   place-items: center;
@@ -851,7 +866,10 @@
   flex: 0 0 auto;
   border-radius: 50%;
 }
-.multi-add-list img.wiredscythe-add-icon { border-radius: 6px; object-fit: contain; }
+.multi-add-list img.wiredscythe-add-icon {
+  border-radius: 6px;
+  object-fit: contain;
+}
 
 .multi-add-list button > svg {
   width: 22px;

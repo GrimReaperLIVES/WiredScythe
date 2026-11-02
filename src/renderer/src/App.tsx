@@ -86,18 +86,13 @@ import type {
   TwitchPickerEmote,
 } from "../../shared/chat";
 import { applyChatMessageBatch } from "../../shared/chat-messages";
-import {
-  messageMentionsLogin,
-} from "../../shared/chat";
+import { messageMentionsLogin } from "../../shared/chat";
 import {
   buildRecentChatUsers,
   filterChatMentionCandidates,
 } from "../../shared/chat-content";
 import { NO_CHAT_RESTRICTIONS } from "../../shared/chat";
-import {
-  mergeChangelogEntries,
-  parseChangelog,
-} from "../../shared/changelog";
+import { mergeChangelogEntries, parseChangelog } from "../../shared/changelog";
 import { readableUsernameColor } from "../../shared/chat-color";
 import { isChatterBlocked, useBlockedChatters } from "./blocked-chatters";
 import { usePreference } from "./use-preference";
@@ -132,6 +127,11 @@ import { ChatWindowPortal } from "./ChatWindowPortal";
 import { useChatWindow } from "./use-chat-window";
 import { useStreamWindows } from "./use-stream-windows";
 import { ObsSettings } from "./ObsSettings";
+import {
+  defaultInterfacePanels,
+  loadInterfacePanels,
+  type PanelMode,
+} from "../../shared/interface-panels";
 import { renderChatMessageText } from "./chat-message-text";
 import { HlsNativeVideo } from "./HlsNativeVideo";
 import { PinnedChatMessage } from "./PinnedChatMessage";
@@ -153,13 +153,7 @@ const NATIVE_CONTROLS_HIDE_DELAY = 5_000;
 type AppSection = "home" | "browse" | "settings" | "search";
 type ChatLayout = "hidden" | ChatPresentation;
 type SettingsSection =
-  | "obs"
-  | "account"
-  | "playback"
-  | "chat"
-  | "emotes"
-  | "appearance"
-  | "about";
+  "obs" | "account" | "playback" | "chat" | "emotes" | "appearance" | "about";
 type ChannelNavigationIdentity = {
   login: string;
   displayName: string;
@@ -205,13 +199,17 @@ const FollowedChannelRow = memo(function FollowedChannelRow({
   const platform = parseChannelKey(channel.login).platform;
   return (
     <button
-      className={channel.isLive ? "followed-channel" : "followed-channel offline"}
+      className={
+        channel.isLive ? "followed-channel" : "followed-channel offline"
+      }
       onClick={() => onActivate(channel)}
       onContextMenu={(event) => {
         event.preventDefault();
         onOpenMenu(channel.login, event.clientX, event.clientY);
       }}
-      onMouseEnter={channel.isLive ? () => onPreresolve(channel.login) : undefined}
+      onMouseEnter={
+        channel.isLive ? () => onPreresolve(channel.login) : undefined
+      }
       onMouseLeave={onCancelPreresolve}
       title={collapsed ? channel.displayName : undefined}
       type="button"
@@ -224,16 +222,27 @@ const FollowedChannelRow = memo(function FollowedChannelRow({
         }
       >
         <img alt="" loading="lazy" src={channel.profileImageUrl} />
-        {channel.isLive && <i className={`channel-live-dot ${platform}`} aria-hidden="true" />}
-        {favorite && <Star aria-hidden="true" className="channel-favorite-star" size={10} />}
+        {channel.isLive && (
+          <i className={`channel-live-dot ${platform}`} aria-hidden="true" />
+        )}
+        {favorite && (
+          <Star
+            aria-hidden="true"
+            className="channel-favorite-star"
+            size={10}
+          />
+        )}
       </span>
       <span className="followed-copy">
-        <strong>{channel.displayName || parseChannelKey(channel.login).login}</strong>
+        <strong>
+          {channel.displayName || parseChannelKey(channel.login).login}
+        </strong>
         <small>{channel.category}</small>
       </span>
       {channel.isLive && (
         <span className="viewer-count">
-          <i className={platform} /> {compactViewerFormatter.format(channel.viewerCount)}
+          <i className={platform} />{" "}
+          {compactViewerFormatter.format(channel.viewerCount)}
         </span>
       )}
     </button>
@@ -257,99 +266,110 @@ type VirtualizedOfflineChannelRowsProps = {
 // Offline follows can contain hundreds of channels. content-visibility still
 // makes Chromium activate, lay out, and decode those rows during the scroll;
 // this window keeps only the visible rows and a small buffer in the DOM.
-const VirtualizedOfflineChannelRows = memo(function VirtualizedOfflineChannelRows({
-  channels,
-  collapsed,
-  favoriteChannels,
-  showServiceRing,
-  onActivate,
-  onCancelPreresolve,
-  onOpenMenu,
-  onPreresolve,
-}: VirtualizedOfflineChannelRowsProps) {
-  const windowRef = useRef<HTMLDivElement>(null);
-  const [range, setRange] = useState(() => ({
-    start: 0,
-    end: Math.min(channels.length, followedChannelOverscan * 2),
-  }));
+const VirtualizedOfflineChannelRows = memo(
+  function VirtualizedOfflineChannelRows({
+    channels,
+    collapsed,
+    favoriteChannels,
+    showServiceRing,
+    onActivate,
+    onCancelPreresolve,
+    onOpenMenu,
+    onPreresolve,
+  }: VirtualizedOfflineChannelRowsProps) {
+    const windowRef = useRef<HTMLDivElement>(null);
+    const [range, setRange] = useState(() => ({
+      start: 0,
+      end: Math.min(channels.length, followedChannelOverscan * 2),
+    }));
 
-  useLayoutEffect(() => {
-    const windowElement = windowRef.current;
-    const scroller = windowElement?.parentElement;
-    if (!windowElement || !scroller) return;
+    useLayoutEffect(() => {
+      const windowElement = windowRef.current;
+      const scroller = windowElement?.parentElement;
+      if (!windowElement || !scroller) return;
 
-    let frame: number | null = null;
-    const measure = () => {
-      frame = null;
-      const sectionTop = windowElement.offsetTop;
-      const visibleTop = Math.max(0, scroller.scrollTop - sectionTop);
-      const visibleBottom = Math.max(
-        visibleTop,
-        scroller.scrollTop + scroller.clientHeight - sectionTop,
-      );
-      const start = Math.max(
-        0,
-        Math.floor(visibleTop / followedChannelRowHeight) - followedChannelOverscan,
-      );
-      const end = Math.min(
-        channels.length,
-        Math.ceil(visibleBottom / followedChannelRowHeight) + followedChannelOverscan,
-      );
-      setRange((current) =>
-        current.start === start && current.end === end ? current : { start, end },
-      );
-    };
-    const scheduleMeasure = () => {
-      if (frame === null) frame = window.requestAnimationFrame(measure);
-    };
-    const resizeObserver = new ResizeObserver(scheduleMeasure);
-
-    scroller.addEventListener("scroll", scheduleMeasure, { passive: true });
-    resizeObserver.observe(scroller);
-    resizeObserver.observe(windowElement);
-    measure();
-
-    return () => {
-      scroller.removeEventListener("scroll", scheduleMeasure);
-      resizeObserver.disconnect();
-      if (frame !== null) window.cancelAnimationFrame(frame);
-    };
-  }, [channels]);
-
-  return (
-    <div
-      className="virtual-followed-window"
-      ref={windowRef}
-      style={{ height: channels.length * followedChannelRowHeight }}
-    >
-      {channels.slice(range.start, range.end).map((channel, offset) => {
-        const index = range.start + offset;
-        return (
-          <div
-            className="virtual-followed-row"
-            key={channel.id}
-            style={{ transform: `translateY(${index * followedChannelRowHeight}px)` }}
-          >
-            <FollowedChannelRow
-              channel={channel}
-              collapsed={collapsed}
-              favorite={favoriteChannels.has(channel.login)}
-              onActivate={onActivate}
-              onCancelPreresolve={onCancelPreresolve}
-              onOpenMenu={onOpenMenu}
-              onPreresolve={onPreresolve}
-              showServiceRing={showServiceRing}
-            />
-          </div>
+      let frame: number | null = null;
+      const measure = () => {
+        frame = null;
+        const sectionTop = windowElement.offsetTop;
+        const visibleTop = Math.max(0, scroller.scrollTop - sectionTop);
+        const visibleBottom = Math.max(
+          visibleTop,
+          scroller.scrollTop + scroller.clientHeight - sectionTop,
         );
-      })}
-    </div>
-  );
-});
+        const start = Math.max(
+          0,
+          Math.floor(visibleTop / followedChannelRowHeight) -
+            followedChannelOverscan,
+        );
+        const end = Math.min(
+          channels.length,
+          Math.ceil(visibleBottom / followedChannelRowHeight) +
+            followedChannelOverscan,
+        );
+        setRange((current) =>
+          current.start === start && current.end === end
+            ? current
+            : { start, end },
+        );
+      };
+      const scheduleMeasure = () => {
+        if (frame === null) frame = window.requestAnimationFrame(measure);
+      };
+      const resizeObserver = new ResizeObserver(scheduleMeasure);
+
+      scroller.addEventListener("scroll", scheduleMeasure, { passive: true });
+      resizeObserver.observe(scroller);
+      resizeObserver.observe(windowElement);
+      measure();
+
+      return () => {
+        scroller.removeEventListener("scroll", scheduleMeasure);
+        resizeObserver.disconnect();
+        if (frame !== null) window.cancelAnimationFrame(frame);
+      };
+    }, [channels]);
+
+    return (
+      <div
+        className="virtual-followed-window"
+        ref={windowRef}
+        style={{ height: channels.length * followedChannelRowHeight }}
+      >
+        {channels.slice(range.start, range.end).map((channel, offset) => {
+          const index = range.start + offset;
+          return (
+            <div
+              className="virtual-followed-row"
+              key={channel.id}
+              style={{
+                transform: `translateY(${index * followedChannelRowHeight}px)`,
+              }}
+            >
+              <FollowedChannelRow
+                channel={channel}
+                collapsed={collapsed}
+                favorite={favoriteChannels.has(channel.login)}
+                onActivate={onActivate}
+                onCancelPreresolve={onCancelPreresolve}
+                onOpenMenu={onOpenMenu}
+                onPreresolve={onPreresolve}
+                showServiceRing={showServiceRing}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  },
+);
 
 const signedOutState: TwitchAuthState = { status: "signed-out", account: null };
 const anonymousPlaybackState: PlaybackSessionState = { linked: false };
-const emptySearchResults: TwitchSearchResults = { channels: [], categories: [] };
+const emptySearchResults: TwitchSearchResults = {
+  channels: [],
+  categories: [],
+};
 const emoteProviders: EmoteProvider[] = ["7tv", "ffz", "bttv"];
 const settingsSections = [
   { id: "obs", label: "OBS Spectator", icon: Tv },
@@ -390,7 +410,8 @@ const settingsSearchEntries: {
   {
     section: "playback",
     title: "Default playback engine",
-    description: "Choose Cyber Wire Native or Twitch Standard playback. Kick always uses Native.",
+    description:
+      "Choose Cyber Wire Native or Twitch Standard playback. Kick always uses Native.",
     keywords: "player native standard official",
   },
   {
@@ -402,7 +423,8 @@ const settingsSearchEntries: {
   {
     section: "playback",
     title: "Playback latency",
-    description: "Choose reliable Balanced playback or experimental Ultra-low latency.",
+    description:
+      "Choose reliable Balanced playback or experimental Ultra-low latency.",
     keywords: "buffer hls prefetch reliable fast latency",
   },
   {
@@ -512,7 +534,10 @@ const languageNames: Record<string, string> = {
   zh: "chinese",
 };
 
-function emptyProviderEmoteMaps(): Map<EmoteProvider, Map<string, ProviderEmote>> {
+function emptyProviderEmoteMaps(): Map<
+  EmoteProvider,
+  Map<string, ProviderEmote>
+> {
   return new Map(emoteProviders.map((provider) => [provider, new Map()]));
 }
 
@@ -548,7 +573,10 @@ function formatUptime(
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
-function visibleStreamTags(tags: string[] | undefined, language: string | undefined): string[] {
+function visibleStreamTags(
+  tags: string[] | undefined,
+  language: string | undefined,
+): string[] {
   const languageCode = language?.toLowerCase() ?? "";
   const languageName = languageNames[languageCode];
   const seen = new Set<string>();
@@ -570,11 +598,11 @@ function visibleStreamTags(tags: string[] | undefined, language: string | undefi
     .slice(0, 3);
 }
 
-
 export function App() {
   const [activeSection, setActiveSection] = useState<AppSection>("home");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>("account");
+  const [settingsSection, setSettingsSection] =
+    useState<SettingsSection>("account");
   const [settingsSearch, setSettingsSearch] = useState("");
   const settingsSearchResults = useMemo(() => {
     const query = settingsSearch.trim().toLocaleLowerCase();
@@ -590,22 +618,35 @@ export function App() {
   const [changelogEntries, setChangelogEntries] = useState(
     bundledChangelogEntries,
   );
-  const [changelogReturnsToSettings, setChangelogReturnsToSettings] = useState(false);
-  const [playerReturnSection, setPlayerReturnSection] = useState<AppSection>("home");
+  const [changelogReturnsToSettings, setChangelogReturnsToSettings] =
+    useState(false);
+  const [playerReturnSection, setPlayerReturnSection] =
+    useState<AppSection>("home");
   const [channelInput, setChannelInput] = useState("");
-  const [kickSearchResults, setKickSearchResults] = useState<KickChannelResult[]>([]);
-  const [kickSearchCategories, setKickSearchCategories] = useState<BrowseCategory[]>([]);
+  const [kickSearchResults, setKickSearchResults] = useState<
+    KickChannelResult[]
+  >([]);
+  const [kickSearchCategories, setKickSearchCategories] = useState<
+    BrowseCategory[]
+  >([]);
   const [kickAccount, setKickAccount] = useState<KickUserAccount | null>(null);
   const [kickAuthBusy, setKickAuthBusy] = useState(false);
   const [followPending, setFollowPending] = useState(false);
   const [followedRefreshing, setFollowedRefreshing] = useState(false);
-  const [kickFollowedChannels, setKickFollowedChannels] = useState<KickChannelDetails[]>([]);
-  const [platformFilter, setPlatformFilter] = useState<"twitch" | "kick" | "both">("twitch");
-  const [searchPlatformFilter, setSearchPlatformFilter] =
-    useState<"twitch" | "kick" | "both">("both");
+  const [kickFollowedChannels, setKickFollowedChannels] = useState<
+    KickChannelDetails[]
+  >([]);
+  const [platformFilter, setPlatformFilter] = useState<
+    "twitch" | "kick" | "both"
+  >("twitch");
+  const [searchPlatformFilter, setSearchPlatformFilter] = useState<
+    "twitch" | "kick" | "both"
+  >("both");
   // A "twitch:" / "kick:" prefix in the search box becomes this pinned service,
   // shown as a chip; Enter then opens the typed name straight on that service.
-  const [searchScope, setSearchScope] = useState<"twitch" | "kick" | null>(null);
+  const [searchScope, setSearchScope] = useState<"twitch" | "kick" | null>(
+    null,
+  );
   const [topSearchResults, setTopSearchResults] =
     useState<TwitchSearchResults>(emptySearchResults);
   const [topSearchOpen, setTopSearchOpen] = useState(false);
@@ -620,29 +661,67 @@ export function App() {
     useState<ChannelNavigationIdentity>();
   const [error, setError] = useState<string | null>(null);
   const [chatVisible, setChatVisible] = useState(true);
-  const { target: chatWindowTarget, open: openChatWindow, close: closeChatWindow } =
-    useChatWindow();
+  const {
+    target: chatWindowTarget,
+    open: openChatWindow,
+    close: closeChatWindow,
+  } = useChatWindow();
   const {
     targets: singleStreamWindowTargets,
     open: openSingleStreamWindow,
     close: closeSingleStreamWindow,
   } = useStreamWindows();
-  const singleStreamWindowTarget = singleStreamWindowTargets.get("single-player");
+  const singleStreamWindowTarget =
+    singleStreamWindowTargets.get("single-player");
   const closeChatWindowRef = useRef(closeChatWindow);
   useEffect(() => {
     if (settingsSection !== "emotes" || !settingsOpen) return;
-    void window.desktop.chat.getCacheSize().then(setEmoteStoreUsage).catch(() => undefined);
+    void window.desktop.chat
+      .getCacheSize()
+      .then(setEmoteStoreUsage)
+      .catch(() => undefined);
   }, [settingsOpen, settingsSection]);
   useEffect(() => {
     closeChatWindowRef.current = closeChatWindow;
   }, [closeChatWindow]);
-  const [chatPresentation, setChatPresentation] = useState<ChatPresentation>("side");
+  const [chatPresentation, setChatPresentation] =
+    useState<ChatPresentation>("side");
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [cleanView, setCleanView] = useState(false);
+  const [panelModes, setPanelModes] = useState(() =>
+    loadInterfacePanels(localStorage.getItem("cyberwire.interface.panels")),
+  );
+  const [panelReveal, setPanelReveal] = useState({
+    navigation: false,
+    chat: false,
+  });
+  useEffect(() => {
+    localStorage.setItem(
+      "cyberwire.interface.panels",
+      JSON.stringify(panelModes),
+    );
+  }, [panelModes]);
+  useEffect(() => {
+    const restore = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "u") {
+        event.preventDefault();
+        setPanelModes({ ...defaultInterfacePanels });
+        setSidebarHidden(false);
+        setSidebarCollapsed(false);
+        setChatVisible(true);
+        setCleanView(false);
+        localStorage.setItem("wiredscythe.sidebar.hidden", "false");
+      }
+    };
+    window.addEventListener("keydown", restore);
+    return () => window.removeEventListener("keydown", restore);
+  }, []);
   const [cleanViewLocked, setCleanViewLocked] = useState(false);
   const [cleanViewRevealed, setCleanViewRevealed] = useState(false);
-  const [cleanViewOnWatch, setCleanViewOnWatch] = useState(() => localStorage.getItem("cyberwire.cleanViewOnWatch") === "true");
+  const [cleanViewOnWatch, setCleanViewOnWatch] = useState(
+    () => localStorage.getItem("cyberwire.cleanViewOnWatch") === "true",
+  );
   useEffect(() => {
     if (!activeChannel || !cleanViewOnWatch) return;
     const frame = requestAnimationFrame(() => setCleanView(true));
@@ -660,7 +739,9 @@ export function App() {
     return () => window.removeEventListener("keydown", exitCleanView);
   }, []);
   const [nativeControlsVisible, setNativeControlsVisible] = useState(true);
-  const [controlsHideDelay, setControlsHideDelay] = useState(NATIVE_CONTROLS_HIDE_DELAY);
+  const [controlsHideDelay, setControlsHideDelay] = useState(
+    NATIVE_CONTROLS_HIDE_DELAY,
+  );
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => window.desktop.obs.onError(setNotice), []);
   // The real version arrives from the main process via updates.getStatus();
@@ -676,29 +757,46 @@ export function App() {
   const [deviceAuthorization, setDeviceAuthorization] =
     useState<TwitchDeviceAuthorization | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [followedChannels, setFollowedChannels] = useState<FollowedChannel[]>([]);
-  const [favoriteChannels, setFavoriteChannels] = useState<Set<string>>(new Set());
+  const [followedChannels, setFollowedChannels] = useState<FollowedChannel[]>(
+    [],
+  );
+  const [favoriteChannels, setFavoriteChannels] = useState<Set<string>>(
+    new Set(),
+  );
   const [channelMenu, setChannelMenu] = useState<{
     login: string;
     x: number;
     y: number;
   } | null>(null);
-  const [browsePlatform, setBrowsePlatform] = useState<"twitch" | "kick">("twitch");
-  const [browseCategories, setBrowseCategories] = useState<BrowseCategory[]>([]);
-  const [browseCategoryCursor, setBrowseCategoryCursor] = useState<string | undefined>();
+  const [browsePlatform, setBrowsePlatform] = useState<"twitch" | "kick">(
+    "twitch",
+  );
+  const [browseCategories, setBrowseCategories] = useState<BrowseCategory[]>(
+    [],
+  );
+  const [browseCategoryCursor, setBrowseCategoryCursor] = useState<
+    string | undefined
+  >();
   const [browseSearch, setBrowseSearch] = useState("");
   const [browseLoading, setBrowseLoading] = useState(true);
   const [browseError, setBrowseError] = useState<string | null>(null);
   const [selectedBrowseCategory, setSelectedBrowseCategory] =
     useState<BrowseCategory | null>(null);
   const [categoryStreams, setCategoryStreams] = useState<BrowseStream[]>([]);
-  const [categoryStreamCursor, setCategoryStreamCursor] = useState<string | undefined>();
+  const [categoryStreamCursor, setCategoryStreamCursor] = useState<
+    string | undefined
+  >();
   const [categoryStreamsLoading, setCategoryStreamsLoading] = useState(false);
-  const [streamMetadata, setStreamMetadata] = useState<StreamMetadata | null>(null);
-  const [playbackSession, setPlaybackSession] =
-    useState<PlaybackSessionState>(anonymousPlaybackState);
+  const [streamMetadata, setStreamMetadata] = useState<StreamMetadata | null>(
+    null,
+  );
+  const [playbackSession, setPlaybackSession] = useState<PlaybackSessionState>(
+    anonymousPlaybackState,
+  );
   const [playbackSessionBusy, setPlaybackSessionBusy] = useState(false);
-  const [sevenTvStatus, setSevenTvStatus] = useState<EmoteSetResult | null>(null);
+  const [sevenTvStatus, setSevenTvStatus] = useState<EmoteSetResult | null>(
+    null,
+  );
   const [sevenTvBusy, setSevenTvBusy] = useState(false);
   const [chatConnectionState, setChatConnectionState] =
     useState<ChatConnectionState>("disconnected");
@@ -708,24 +806,49 @@ export function App() {
   }>({ channel: null, restrictions: NO_CHAT_RESTRICTIONS });
   const [chatInput, setChatInput] = useState("");
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
-  const [openReplyThread, setOpenReplyThread] = useState<ChatMessage | null>(null);
-  const [selectedChatUser, setSelectedChatUser] = useState<ChatMessage | null>(null);
-  const [selectedChatUserAnchor, setSelectedChatUserAnchor] = useState<DOMRect | undefined>();
-  const [providerEmoteMaps, setProviderEmoteMaps] = useState(emptyProviderEmoteMaps);
+  const [openReplyThread, setOpenReplyThread] = useState<ChatMessage | null>(
+    null,
+  );
+  const [selectedChatUser, setSelectedChatUser] = useState<ChatMessage | null>(
+    null,
+  );
+  const [selectedChatUserAnchor, setSelectedChatUserAnchor] = useState<
+    DOMRect | undefined
+  >();
+  const [providerEmoteMaps, setProviderEmoteMaps] = useState(
+    emptyProviderEmoteMaps,
+  );
   const [providerChannelNames, setProviderChannelNames] = useState(
     emptyProviderChannelNames,
   );
-  const [twitchBadges, setTwitchBadges] = useState<Map<string, ChatBadgeAsset>>(new Map());
-  const [twitchPickerEmotes, setTwitchPickerEmotes] = useState<TwitchPickerEmote[]>([]);
-  const [kickPickerEmotes, setKickPickerEmotes] = useState<TwitchPickerEmote[]>([]);
-  const [kickSevenTvEmotes, setKickSevenTvEmotes] = useState(emptyProviderEmoteMaps);
+  const [twitchBadges, setTwitchBadges] = useState<Map<string, ChatBadgeAsset>>(
+    new Map(),
+  );
+  const [twitchPickerEmotes, setTwitchPickerEmotes] = useState<
+    TwitchPickerEmote[]
+  >([]);
+  const [kickPickerEmotes, setKickPickerEmotes] = useState<TwitchPickerEmote[]>(
+    [],
+  );
+  const [kickSevenTvEmotes, setKickSevenTvEmotes] = useState(
+    emptyProviderEmoteMaps,
+  );
   // Cache each channel's loaded emotes/badges so switching chat (multistream
   // tabs especially) reuses them instantly instead of clearing and refetching.
   const emoteBundleCache = useRef<
-    Map<string, { maps: Map<EmoteProvider, Map<string, ProviderEmote>>; names: Map<EmoteProvider, Set<string>> }>
+    Map<
+      string,
+      {
+        maps: Map<EmoteProvider, Map<string, ProviderEmote>>;
+        names: Map<EmoteProvider, Set<string>>;
+      }
+    >
   >(new Map());
   const badgeBundleCache = useRef<
-    Map<string, { badges: Map<string, ChatBadgeAsset>; picker: TwitchPickerEmote[] }>
+    Map<
+      string,
+      { badges: Map<string, ChatBadgeAsset>; picker: TwitchPickerEmote[] }
+    >
   >(new Map());
   const [emotePickerOpen, setEmotePickerOpen] = useState(false);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
@@ -739,19 +862,32 @@ export function App() {
     id: string;
   } | null>(null);
   const [chatTimestamps, setChatTimestamps] = useState(
-    () => window.localStorage.getItem("wiredscythe.chat.timestamps") !== "false",
+    () =>
+      window.localStorage.getItem("wiredscythe.chat.timestamps") !== "false",
   );
   const [chatHistoryLimit, setChatHistoryLimit] = useState(() => {
-    const stored = Number(window.localStorage.getItem("wiredscythe.chat.historyLimit"));
-    return Number.isInteger(stored) && stored >= 20 && stored <= 100 ? stored : 20;
+    const stored = Number(
+      window.localStorage.getItem("wiredscythe.chat.historyLimit"),
+    );
+    return Number.isInteger(stored) && stored >= 20 && stored <= 100
+      ? stored
+      : 20;
   });
   const [chatFontSize, setChatFontSize] = useState(() => {
-    const stored = Number(window.localStorage.getItem("wiredscythe.chat.fontSize"));
-    return Number.isInteger(stored) && stored >= 14 && stored <= 25 ? stored : 14;
+    const stored = Number(
+      window.localStorage.getItem("wiredscythe.chat.fontSize"),
+    );
+    return Number.isInteger(stored) && stored >= 14 && stored <= 25
+      ? stored
+      : 14;
   });
   const [chatEmoteSize, setChatEmoteSize] = useState(() => {
-    const stored = Number(window.localStorage.getItem("wiredscythe.chat.emoteSize"));
-    return Number.isInteger(stored) && stored >= 18 && stored <= 48 ? stored : 27;
+    const stored = Number(
+      window.localStorage.getItem("wiredscythe.chat.emoteSize"),
+    );
+    return Number.isInteger(stored) && stored >= 18 && stored <= 48
+      ? stored
+      : 27;
   });
   const [chatDeletedMessageStyle, setChatDeletedMessageStyle] =
     useState<AppPreferences["chatDeletedMessageStyle"]>("placeholder");
@@ -764,20 +900,29 @@ export function App() {
   );
   const [chatSidebarWidth, setChatSidebarWidth] = useState(384);
   const playerPageRef = useRef<HTMLElement>(null);
-  const chatResizeState = useRef<{ layoutLeft: number; layoutRight: number } | null>(null);
+  const chatResizeState = useRef<{
+    layoutLeft: number;
+    layoutRight: number;
+  } | null>(null);
   const [chatResizing, setChatResizing] = useState(false);
   const [chatOpacity, setChatOpacity] = useState(() => {
-    const stored = Number(window.localStorage.getItem("wiredscythe.chat.overlayOpacity"));
-    return Number.isFinite(stored) && stored >= 25 && stored <= 100 ? stored : 88;
+    const stored = Number(
+      window.localStorage.getItem("wiredscythe.chat.overlayOpacity"),
+    );
+    return Number.isFinite(stored) && stored >= 25 && stored <= 100
+      ? stored
+      : 88;
   });
   const [mentionSoundEnabled, setMentionSoundEnabled] = useState(false);
   const [mentionSoundVolume, setMentionSoundVolume] = useState(100);
   const [mentionSoundId, setMentionSoundId] = useState<MentionSoundId>("ping");
-  const [genericLinkPreviewsEnabled, setGenericLinkPreviewsEnabled] = useState(false);
+  const [genericLinkPreviewsEnabled, setGenericLinkPreviewsEnabled] =
+    useState(false);
   const [emoteAutocompleteMatch, setEmoteAutocompleteMatch] =
     useState<AppPreferences["emoteAutocompleteMatch"]>("prefix");
   const [clearingEmoteCache, setClearingEmoteCache] = useState(false);
-  const [emoteStoreUsage, setEmoteStoreUsage] = useState<EmoteStoreUsage | null>(null);
+  const [emoteStoreUsage, setEmoteStoreUsage] =
+    useState<EmoteStoreUsage | null>(null);
   // Emote artwork is kept in a store of the app's own, so this figure is emotes
   // and nothing else — countable, unlike Chromium's cache, which could only
   // ever report one total for video, thumbnails and artwork together. The
@@ -802,7 +947,9 @@ export function App() {
     () => window.localStorage.getItem("wiredscythe.appearance.oled") === "true",
   );
   const [preferredMode, setPreferredMode] = useState<PlayerMode>(() =>
-    window.localStorage.getItem("wiredscythe.playback.default") === "official" ? "official" : "native",
+    window.localStorage.getItem("wiredscythe.playback.default") === "official"
+      ? "official"
+      : "native",
   );
   const [playbackLatencyMode, setPlaybackLatencyMode] =
     useState<AppPreferences["playbackLatencyMode"]>("ultra-low");
@@ -822,7 +969,8 @@ export function App() {
     mentionSoundVolume,
     oledMode,
     audioCompression:
-      window.localStorage.getItem("wiredscythe.playback.audioCompression") === "true",
+      window.localStorage.getItem("wiredscythe.playback.audioCompression") ===
+      "true",
   });
   const [activeMode, setActiveMode] = useState<PlayerMode | null>(null);
   useEffect(() => {
@@ -835,11 +983,16 @@ export function App() {
   // Twitch-style floating mini player: the HLS session keeps playing in a
   // small draggable corner while the user browses other sections.
   const [miniPlayerActive, setMiniPlayerActive] = useState(false);
-  const [miniPlayerPosition, setMiniPlayerPosition] = useState<
-    { left: number; top: number } | null
-  >(null);
+  const [miniPlayerPosition, setMiniPlayerPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
   const [miniPlayerWidth, setMiniPlayerWidth] = useState(320);
-  const miniPlayerDragOffset = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const miniPlayerDragOffset = useRef<{
+    x: number;
+    y: number;
+    moved: boolean;
+  } | null>(null);
   const miniPlayerRef = useRef<HTMLDivElement>(null);
   const persistentHlsSurfaceRef = useRef<HTMLDivElement>(null);
   const [nativeAvailability, setNativeAvailability] =
@@ -865,7 +1018,9 @@ export function App() {
   } | null>(null);
   // All tile channels stay connected at once; each keeps its own message buffer
   // so switching tabs is instant and nothing is missed in the background.
-  const [multiChatBuffers, setMultiChatBuffers] = useState<Map<string, ChatMessage[]>>(new Map());
+  const [multiChatBuffers, setMultiChatBuffers] = useState<
+    Map<string, ChatMessage[]>
+  >(new Map());
   const [multiChatStates, setMultiChatStates] = useState<
     Map<string, ChatConnectionState>
   >(new Map());
@@ -879,7 +1034,10 @@ export function App() {
   // it. A user tab click or tile activation still sets multiChatChannel.
   const effectiveMultiChatChannel = useMemo(() => {
     if (!multiStreamActive) return null;
-    if (multiChatChannel && multiTiles.some((tile) => tile.channel === multiChatChannel)) {
+    if (
+      multiChatChannel &&
+      multiTiles.some((tile) => tile.channel === multiChatChannel)
+    ) {
       return multiChatChannel;
     }
     const fallback = multiTiles.find((tile) => tile.active) ?? multiTiles[0];
@@ -887,15 +1045,20 @@ export function App() {
   }, [multiStreamActive, multiChatChannel, multiTiles]);
   // The channel the chat pane (connection, emotes, badges, sending) follows:
   // the selected tab in multistream, otherwise the single watched channel.
-  const chatChannel = multiStreamActive ? effectiveMultiChatChannel : activeChannel;
+  const chatChannel = multiStreamActive
+    ? effectiveMultiChatChannel
+    : activeChannel;
   const chatRestrictions =
     chatRestrictionState.channel === chatChannel
       ? chatRestrictionState.restrictions
       : NO_CHAT_RESTRICTIONS;
-  const restoreUnsentChat = useCallback((message: string, reply?: ChatMessage) => {
-    setChatInput(message);
-    setReplyingTo(reply ?? null);
-  }, []);
+  const restoreUnsentChat = useCallback(
+    (message: string, reply?: ChatMessage) => {
+      setChatInput(message);
+      setReplyingTo(reply ?? null);
+    },
+    [],
+  );
   const chatSender = useChatSendQueue(
     chatChannel,
     chatRestrictions.slowModeSeconds,
@@ -905,21 +1068,25 @@ export function App() {
     chatChannel !== null && parseChannelKey(chatChannel).platform === "kick";
   // Chat resolves provider emotes by name, so Kick messages render 7TV emotes
   // the same way Twitch ones do.
-  const activeProviderEmotes = chatIsKick ? kickSevenTvEmotes : providerEmoteMaps;
+  const activeProviderEmotes = chatIsKick
+    ? kickSevenTvEmotes
+    : providerEmoteMaps;
   const pickerEmotes = chatIsKick ? kickPickerEmotes : twitchPickerEmotes;
-  const pickerPlatformLabel = chatIsKick ? ("Kick" as const) : ("Twitch" as const);
+  const pickerPlatformLabel = chatIsKick
+    ? ("Kick" as const)
+    : ("Twitch" as const);
   // 7TV works on Kick; FrankerFaceZ and BetterTTV do not, so only 7TV carries
   // over and the other tabs stay empty rather than showing Twitch's.
-  const pickerProviderEmotes = chatIsKick ? kickSevenTvEmotes : providerEmoteMaps;
+  const pickerProviderEmotes = chatIsKick
+    ? kickSevenTvEmotes
+    : providerEmoteMaps;
   const chatBroadcasterId = multiStreamActive
     ? multiChatBroadcasterResult?.channel === effectiveMultiChatChannel
       ? multiChatBroadcasterResult.id
       : null
     : (streamMetadata?.broadcasterId ?? null);
   const currentPinnedChatMessage =
-    pinnedChatResult?.channel === chatChannel
-      ? pinnedChatResult.message
-      : null;
+    pinnedChatResult?.channel === chatChannel ? pinnedChatResult.message : null;
   const visiblePinnedChatMessage =
     currentPinnedChatMessage?.id === dismissedPinnedMessage?.id &&
     dismissedPinnedMessage?.channel === chatChannel
@@ -945,8 +1112,7 @@ export function App() {
           : window.desktop.twitch.getPinnedChatMessage(chatBroadcasterId));
         if (disposed) return;
         const expired =
-          pin?.endsAt !== undefined &&
-          Date.parse(pin.endsAt) <= Date.now();
+          pin?.endsAt !== undefined && Date.parse(pin.endsAt) <= Date.now();
         setPinnedChatResult({
           channel: chatChannel,
           message: expired ? null : pin,
@@ -997,7 +1163,8 @@ export function App() {
   // Stable so the reply thread and user card can memoize their message rows;
   // an inline arrow would change identity every chat batch and defeat it.
   const renderCardText = useCallback(
-    (message: ChatMessage) => renderChatMessageText(message, chatProviderEmotes),
+    (message: ChatMessage) =>
+      renderChatMessageText(message, chatProviderEmotes),
     [chatProviderEmotes],
   );
   const playerHost = useRef<HTMLDivElement>(null);
@@ -1045,7 +1212,9 @@ export function App() {
   const categoryStreamLoadPending = useRef(false);
   const nativeControlsTimer = useRef<number | null>(null);
   const watchChannelGeneration = useRef(0);
-  const lastPlayerPointerPosition = useRef<{ x: number; y: number } | null>(null);
+  const lastPlayerPointerPosition = useRef<{ x: number; y: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!emotePickerOpen && !chatSettingsOpen && !chatUserListOpen) return;
@@ -1076,7 +1245,8 @@ export function App() {
       }
     };
     document.addEventListener("pointerdown", closeOpenChatMenus, true);
-    return () => document.removeEventListener("pointerdown", closeOpenChatMenus, true);
+    return () =>
+      document.removeEventListener("pointerdown", closeOpenChatMenus, true);
   }, [chatSettingsOpen, chatUserListOpen, emotePickerOpen]);
 
   const revealNativeControls = useCallback(() => {
@@ -1117,7 +1287,8 @@ export function App() {
     if (activeChannel) return activeChannelDisplayName;
     if (activeSection === "settings") return "Settings";
     if (activeSection === "search") return "Search";
-    if (activeSection === "browse") return selectedBrowseCategory?.name ?? "Browse";
+    if (activeSection === "browse")
+      return selectedBrowseCategory?.name ?? "Browse";
     return "Home";
   }, [
     activeChannel,
@@ -1174,14 +1345,21 @@ export function App() {
       const result = await fetchBrowseCategories(browseSearch, requestedCursor);
       setBrowseCategories((current) => {
         const existingIds = new Set(current.map((category) => category.id));
-        return [...current, ...result.items.filter((category) => !existingIds.has(category.id))];
+        return [
+          ...current,
+          ...result.items.filter((category) => !existingIds.has(category.id)),
+        ];
       });
       setBrowseCategoryCursor(
-        result.cursor && result.cursor !== requestedCursor ? result.cursor : undefined,
+        result.cursor && result.cursor !== requestedCursor
+          ? result.cursor
+          : undefined,
       );
     } catch (reason) {
       setBrowseError(
-        reason instanceof Error ? reason.message : "Unable to load more Twitch categories.",
+        reason instanceof Error
+          ? reason.message
+          : "Unable to load more Twitch categories.",
       );
     } finally {
       browseCategoryLoadPending.current = false;
@@ -1202,16 +1380,28 @@ export function App() {
     setBrowseError(null);
     const requestedCursor = categoryStreamCursor;
     try {
-      const result = await fetchCategoryStreams(selectedBrowseCategory.id, requestedCursor);
+      const result = await fetchCategoryStreams(
+        selectedBrowseCategory.id,
+        requestedCursor,
+      );
       setCategoryStreams((current) => {
         const existingIds = new Set(current.map((stream) => stream.id));
-        return [...current, ...result.items.filter((stream) => !existingIds.has(stream.id))];
+        return [
+          ...current,
+          ...result.items.filter((stream) => !existingIds.has(stream.id)),
+        ];
       });
       setCategoryStreamCursor(
-        result.cursor && result.cursor !== requestedCursor ? result.cursor : undefined,
+        result.cursor && result.cursor !== requestedCursor
+          ? result.cursor
+          : undefined,
       );
     } catch (reason) {
-      setBrowseError(reason instanceof Error ? reason.message : "Unable to load more streams.");
+      setBrowseError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to load more streams.",
+      );
     } finally {
       categoryStreamLoadPending.current = false;
       setCategoryStreamsLoading(false);
@@ -1220,7 +1410,8 @@ export function App() {
 
   useEffect(() => {
     void refreshNativeAvailability();
-    const removeStateListener = window.desktop.player.onNativeState(setNativeState);
+    const removeStateListener =
+      window.desktop.player.onNativeState(setNativeState);
     return () => {
       removeStateListener();
     };
@@ -1281,17 +1472,21 @@ export function App() {
   // Listeners stay registered so no message is missed between starting
   // multistream and this effect running; they're idle when main isn't sending.
   useEffect(() => {
-    const removeMessage = window.desktop.player.onMultiChatMessage((channel, message) => {
-      const pending = multiChatPending.current;
-      pending.set(channel, [...(pending.get(channel) ?? []), message]);
-    });
-    const removeState = window.desktop.player.onMultiChatState((channel, state) => {
-      setMultiChatStates((current) => {
-        const next = new Map(current);
-        next.set(channel, state);
-        return next;
-      });
-    });
+    const removeMessage = window.desktop.player.onMultiChatMessage(
+      (channel, message) => {
+        const pending = multiChatPending.current;
+        pending.set(channel, [...(pending.get(channel) ?? []), message]);
+      },
+    );
+    const removeState = window.desktop.player.onMultiChatState(
+      (channel, state) => {
+        setMultiChatStates((current) => {
+          const next = new Map(current);
+          next.set(channel, state);
+          return next;
+        });
+      },
+    );
     return () => {
       removeMessage();
       removeState();
@@ -1309,7 +1504,10 @@ export function App() {
       setMultiChatBuffers((current) => {
         const next = new Map(current);
         for (const [channel, messages] of batch) {
-          next.set(channel, applyChatMessageBatch(current.get(channel) ?? [], messages));
+          next.set(
+            channel,
+            applyChatMessageBatch(current.get(channel) ?? [], messages),
+          );
         }
         return next;
       });
@@ -1330,7 +1528,8 @@ export function App() {
   const handleMultiChatScroll = useCallback(() => {
     const host = multiChatHost.current;
     if (!host) return;
-    const atBottom = host.scrollHeight - host.scrollTop - host.clientHeight < 40;
+    const atBottom =
+      host.scrollHeight - host.scrollTop - host.clientHeight < 40;
     if (atBottom) {
       multiChatPinned.current = true;
       setMultiChatPaused(false);
@@ -1374,10 +1573,7 @@ export function App() {
     return () => observer.disconnect();
   }, [multiStreamActive, effectiveMultiChatChannel]);
 
-  useEffect(
-    () => window.desktop.player.onFullscreenChanged(setFullscreen),
-    [],
-  );
+  useEffect(() => window.desktop.player.onFullscreenChanged(setFullscreen), []);
 
   useEffect(() => {
     let disposed = false;
@@ -1418,7 +1614,8 @@ export function App() {
       setPreferencesReady(true);
     };
 
-    const removeListener = window.desktop.preferences.onChanged(applyPreferences);
+    const removeListener =
+      window.desktop.preferences.onChanged(applyPreferences);
     void window.desktop.preferences
       .getOrMigrate(legacyPreferences.current)
       .then(applyPreferences)
@@ -1488,7 +1685,9 @@ export function App() {
   }, [chatHistoryLimit, preferencesReady]);
 
   const viewerLogin =
-    authState.status === "signed-in" ? authState.account.login.toLowerCase() : "";
+    authState.status === "signed-in"
+      ? authState.account.login.toLowerCase()
+      : "";
 
   useEffect(() => {
     mentionSettings.current = {
@@ -1542,7 +1741,10 @@ export function App() {
         }
         maps.set(result.provider, providerMap);
         if (result.scope === "channel") {
-          names.set(result.provider, new Set(result.emotes.map((emote) => emote.name)));
+          names.set(
+            result.provider,
+            new Set(result.emotes.map((emote) => emote.name)),
+          );
         }
       }
       const bundle = { maps, names };
@@ -1557,7 +1759,9 @@ export function App() {
     if (existing) return existing;
     const assets = await window.desktop.chat.getAssets(channel);
     const bundle = {
-      badges: new Map(assets.badges.map((badge) => [badge.key, badge] as const)),
+      badges: new Map(
+        assets.badges.map((badge) => [badge.key, badge] as const),
+      ),
       picker: assets.emotes,
     };
     badgeBundleCache.current.set(channel, bundle);
@@ -1565,8 +1769,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!chatChannel || parseChannelKey(chatChannel).platform !== "twitch") return;
-    const cached = emoteBundleCache.current.get(`${chatChannel}|${chatBroadcasterId ?? ""}`);
+    if (!chatChannel || parseChannelKey(chatChannel).platform !== "twitch")
+      return;
+    const cached = emoteBundleCache.current.get(
+      `${chatChannel}|${chatBroadcasterId ?? ""}`,
+    );
     if (cached) {
       setProviderEmoteMaps(cached.maps);
       setProviderChannelNames(cached.names);
@@ -1657,14 +1864,21 @@ export function App() {
         .then((meta) => {
           if (cancelled) return;
           void loadEmoteBundle(tile.channel, meta?.broadcasterId ?? null);
-          if (authState.status === "signed-in") void loadBadgeBundle(tile.channel);
+          if (authState.status === "signed-in")
+            void loadBadgeBundle(tile.channel);
         })
         .catch(() => warmedChatChannels.current.delete(tile.channel));
     }
     return () => {
       cancelled = true;
     };
-  }, [multiStreamActive, multiTiles, authState.status, loadEmoteBundle, loadBadgeBundle]);
+  }, [
+    multiStreamActive,
+    multiTiles,
+    authState.status,
+    loadEmoteBundle,
+    loadBadgeBundle,
+  ]);
 
   // The side chat now stays mounted while hidden. Messages that arrive while
   // it's hidden don't move its scroll, so re-pin to the newest on re-show if it
@@ -1689,7 +1903,9 @@ export function App() {
         activeChannel
           ? {
               color: "#9147ff",
-              displayName: activeChannelDisplayName ?? parseChannelKey(activeChannel).login,
+              displayName:
+                activeChannelDisplayName ??
+                parseChannelKey(activeChannel).login,
               login: parseChannelKey(activeChannel).login,
             }
           : undefined,
@@ -1705,7 +1921,9 @@ export function App() {
         activeChannel
           ? {
               color: "#9147ff",
-              displayName: activeChannelDisplayName ?? parseChannelKey(activeChannel).login,
+              displayName:
+                activeChannelDisplayName ??
+                parseChannelKey(activeChannel).login,
               login: parseChannelKey(activeChannel).login,
             }
           : undefined,
@@ -1761,11 +1979,7 @@ export function App() {
   // which previously discarded the buffer and briefly restarted at live.
   useLayoutEffect(() => {
     const surface = persistentHlsSurfaceRef.current;
-    if (
-      !surface ||
-      !activeChannel ||
-      activeMode !== "native"
-    ) {
+    if (!surface || !activeChannel || activeMode !== "native") {
       return;
     }
     const host = miniPlayerActive ? miniPlayerRef.current : playerHost.current;
@@ -1824,7 +2038,8 @@ export function App() {
   // stray hovers are cheap.
   const preresolveTimer = useRef<number | null>(null);
   const schedulePreresolve = useCallback((login: string) => {
-    if (preresolveTimer.current !== null) window.clearTimeout(preresolveTimer.current);
+    if (preresolveTimer.current !== null)
+      window.clearTimeout(preresolveTimer.current);
     preresolveTimer.current = window.setTimeout(() => {
       preresolveTimer.current = null;
       window.desktop.player.preresolveStream(login);
@@ -1859,10 +2074,13 @@ export function App() {
       .catch(() => undefined);
   }, []);
 
-  const openChatUserCard = useCallback((message: ChatMessage, anchor: DOMRect) => {
-    setSelectedChatUser(message);
-    setSelectedChatUserAnchor(anchor);
-  }, []);
+  const openChatUserCard = useCallback(
+    (message: ChatMessage, anchor: DOMRect) => {
+      setSelectedChatUser(message);
+      setSelectedChatUserAnchor(anchor);
+    },
+    [],
+  );
 
   function toggleOledMode(): void {
     setOledMode((current) => !current);
@@ -1921,10 +2139,14 @@ export function App() {
   // per move); state and the persisted preference update only on release.
   function beginChatResize(event: React.PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
-    const layout = playerPageRef.current?.querySelector<HTMLElement>(".viewer-layout");
+    const layout =
+      playerPageRef.current?.querySelector<HTMLElement>(".viewer-layout");
     if (!layout) return;
     const rect = layout.getBoundingClientRect();
-    chatResizeState.current = { layoutLeft: rect.left, layoutRight: rect.right };
+    chatResizeState.current = {
+      layoutLeft: rect.left,
+      layoutRight: rect.right,
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
     setChatResizing(true);
@@ -1945,14 +2167,19 @@ export function App() {
     const desired = chatOnLeft
       ? event.clientX - bounds.layoutLeft
       : bounds.layoutRight - event.clientX;
-    page.style.setProperty("--chat-sidebar-width", `${clampChatWidth(desired, layoutWidth)}px`);
+    page.style.setProperty(
+      "--chat-sidebar-width",
+      `${clampChatWidth(desired, layoutWidth)}px`,
+    );
   }
 
   function endChatResize(event: React.PointerEvent<HTMLDivElement>) {
     if (!chatResizeState.current) return;
     chatResizeState.current = null;
     setChatResizing(false);
-    const value = playerPageRef.current?.style.getPropertyValue("--chat-sidebar-width");
+    const value = playerPageRef.current?.style.getPropertyValue(
+      "--chat-sidebar-width",
+    );
     const parsed = value ? Number.parseInt(value, 10) : NaN;
     if (Number.isFinite(parsed)) setChatSidebarWidth(parsed);
     event.currentTarget.releasePointerCapture(event.pointerId);
@@ -1960,7 +2187,9 @@ export function App() {
 
   useEffect(() => {
     void loadAuthState();
-    void window.desktop.twitch.getPlaybackSessionState().then(setPlaybackSession);
+    void window.desktop.twitch
+      .getPlaybackSessionState()
+      .then(setPlaybackSession);
     void window.desktop.updates.getStatus().then(setUpdateStatus);
     void refreshChangelogEntries();
     return window.desktop.updates.onStatus(setUpdateStatus);
@@ -2028,7 +2257,8 @@ export function App() {
   // player surface: Ctrl+Shift+B toggles the followed-channel rail.
   useEffect(() => {
     const handleSidebarShortcut = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || !event.shiftKey || event.key.toLowerCase() !== "b") return;
+      if (!event.ctrlKey || !event.shiftKey || event.key.toLowerCase() !== "b")
+        return;
       event.preventDefault();
       setSidebarHidden((current) => {
         const next = !current;
@@ -2042,7 +2272,11 @@ export function App() {
 
   useEffect(() => {
     const query = channelInput.trim();
-    if (searchPlatformFilter === "twitch" || query.length < 2 || !searchActive) {
+    if (
+      searchPlatformFilter === "twitch" ||
+      query.length < 2 ||
+      !searchActive
+    ) {
       return;
     }
     let cancelled = false;
@@ -2059,7 +2293,10 @@ export function App() {
             (channels.status === "fulfilled" ? channels.value : []).slice(0, 6),
           );
           setKickSearchCategories(
-            (categories.status === "fulfilled" ? categories.value.items : []).slice(0, 4),
+            (categories.status === "fulfilled"
+              ? categories.value.items
+              : []
+            ).slice(0, 4),
           );
         })
         .finally(() => {
@@ -2077,7 +2314,8 @@ export function App() {
   useEffect(() => {
     const query = channelInput.trim();
     if (searchPlatformFilter === "kick") return;
-    if (authState.status !== "signed-in" || query.length < 2 || !searchActive) return;
+    if (authState.status !== "signed-in" || query.length < 2 || !searchActive)
+      return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void window.desktop.twitch
@@ -2099,7 +2337,8 @@ export function App() {
   }, [authState.status, channelInput, searchPlatformFilter, searchActive]);
 
   useEffect(() => {
-    const needsTwitchAuth = browsePlatform === "twitch" && authState.status !== "signed-in";
+    const needsTwitchAuth =
+      browsePlatform === "twitch" && authState.status !== "signed-in";
     if (
       activeSection === "browse" &&
       !needsTwitchAuth &&
@@ -2116,7 +2355,9 @@ export function App() {
         .catch((reason: unknown) => {
           if (!cancelled) {
             setBrowseError(
-              reason instanceof Error ? reason.message : "Unable to load categories.",
+              reason instanceof Error
+                ? reason.message
+                : "Unable to load categories.",
             );
           }
         })
@@ -2226,7 +2467,9 @@ export function App() {
             if (state.reason === "expired") {
               await window.desktop.kick.signOut();
               if (!cancelled) {
-                setNotice("Your Kick session expired. Sign in again to use account features.");
+                setNotice(
+                  "Your Kick session expired. Sign in again to use account features.",
+                );
               }
             }
             return;
@@ -2258,7 +2501,10 @@ export function App() {
       .getChannel(target.login)
       .then(async (channel) => {
         if (cancelled || !channel?.userId) return;
-        const set = await window.desktop.emotes.getSevenTvChannel(channel.userId, "kick");
+        const set = await window.desktop.emotes.getSevenTvChannel(
+          channel.userId,
+          "kick",
+        );
         if (cancelled) return;
         const maps = emptyProviderEmoteMaps();
         const sevenTv = maps.get("7tv");
@@ -2283,7 +2529,7 @@ export function App() {
               scope: isChannelSet ? ("channel" as const) : ("global" as const),
               subscriptionOnly: emote.subscribersOnly,
               ownerId: `kick-set-${set.id}`,
-              ownerName: isChannelSet ? (target.login) : set.name,
+              ownerName: isChannelSet ? target.login : set.name,
             }));
           }),
         );
@@ -2344,14 +2590,18 @@ export function App() {
       })
       .catch((reason: unknown) => {
         if (!cancelled) {
-          const message = reason instanceof Error ? reason.message : String(reason);
+          const message =
+            reason instanceof Error ? reason.message : String(reason);
           setNotice(`Channel information unavailable: ${message}`);
         }
       });
     const refresh = window.setInterval(() => {
-      void window.desktop.twitch.getStreamMetadata(activeChannel).then((metadata) => {
-        if (!cancelled) setStreamMetadata(metadata);
-      }).catch(() => undefined);
+      void window.desktop.twitch
+        .getStreamMetadata(activeChannel)
+        .then((metadata) => {
+          if (!cancelled) setStreamMetadata(metadata);
+        })
+        .catch(() => undefined);
       // 30s keeps the "stream ended" detection reasonably prompt without
       // hammering Helix when an HLS playlist stops advancing.
     }, 30_000);
@@ -2390,7 +2640,9 @@ export function App() {
   // One shared tick keeps every visible uptime label fresh without a per-card
   // interval — but only while a label can actually be on screen. It re-renders
   // the whole app, so it must not run when nothing is live and nothing is open.
-  const hasLiveFollowedChannel = followedChannels.some((channel) => channel.isLive);
+  const hasLiveFollowedChannel = followedChannels.some(
+    (channel) => channel.isLive,
+  );
   useEffect(() => {
     if (!activeChannel && !hasLiveFollowedChannel) return;
     const timer = window.setInterval(() => setUptimeNow(Date.now()), 30_000);
@@ -2400,22 +2652,30 @@ export function App() {
   // The player header is the only place that needs second-level precision.
   // Keeping this separate avoids re-rendering every live card once per second.
   useEffect(() => {
-    const startedAt = streamMetadata?.startedAt ?? activeChannelIdentity?.startedAt;
+    const startedAt =
+      streamMetadata?.startedAt ?? activeChannelIdentity?.startedAt;
     if (!activeChannel || !startedAt) return;
 
     let interval: number | null = null;
     const tick = () => setToolbarUptimeNow(Date.now());
-    const alignToSecond = window.setTimeout(() => {
-      tick();
-      interval = window.setInterval(tick, 1_000);
-    }, 1_000 - (Date.now() % 1_000));
+    const alignToSecond = window.setTimeout(
+      () => {
+        tick();
+        interval = window.setInterval(tick, 1_000);
+      },
+      1_000 - (Date.now() % 1_000),
+    );
 
     tick();
     return () => {
       window.clearTimeout(alignToSecond);
       if (interval !== null) window.clearInterval(interval);
     };
-  }, [activeChannel, activeChannelIdentity?.startedAt, streamMetadata?.startedAt]);
+  }, [
+    activeChannel,
+    activeChannelIdentity?.startedAt,
+    streamMetadata?.startedAt,
+  ]);
 
   useEffect(() => {
     // Player shortcuts must not fire while the player is minimized to the
@@ -2503,22 +2763,43 @@ export function App() {
     if (!activeChannel) return null;
     const target = parseChannelKey(activeChannel);
     if (target.platform === "kick") {
-      if (kickFollowedChannels.some((channel) => channel.slug.toLowerCase() === target.login.toLowerCase())) return true;
-    } else if (followedChannels.some((channel) => channel.login === target.login)) {
+      if (
+        kickFollowedChannels.some(
+          (channel) =>
+            channel.slug.toLowerCase() === target.login.toLowerCase(),
+        )
+      )
+        return true;
+    } else if (
+      followedChannels.some((channel) => channel.login === target.login)
+    ) {
       return true;
     }
 
     const metadataMatchesChannel =
       streamMetadata?.login.toLowerCase() === target.login.toLowerCase();
-    if (metadataMatchesChannel && typeof streamMetadata.isFollowed === "boolean") {
+    if (
+      metadataMatchesChannel &&
+      typeof streamMetadata.isFollowed === "boolean"
+    ) {
       return streamMetadata.isFollowed;
     }
 
     // Signed-out accounts cannot have a follow relationship to resolve. For a
     // signed-in account, null means Helix/Kick is still checking.
-    const signedIn = target.platform === "kick" ? kickAccount !== null : authState.status === "signed-in";
+    const signedIn =
+      target.platform === "kick"
+        ? kickAccount !== null
+        : authState.status === "signed-in";
     return signedIn ? null : false;
-  }, [activeChannel, authState.status, followedChannels, kickAccount, kickFollowedChannels, streamMetadata]);
+  }, [
+    activeChannel,
+    authState.status,
+    followedChannels,
+    kickAccount,
+    kickFollowedChannels,
+    streamMetadata,
+  ]);
   const activeChannelIsFollowed = activeChannelFollowState === true;
 
   useEffect(
@@ -2559,7 +2840,11 @@ export function App() {
 
   async function choosePreferredMode(mode: PlayerMode) {
     if (!(await savePreferredMode(mode))) return;
-    if (mode === "native" && nativeAvailability && !nativeAvailability.available) {
+    if (
+      mode === "native" &&
+      nativeAvailability &&
+      !nativeAvailability.available
+    ) {
       setNotice(
         `Native is now the default, but it will fall back to Standard until ${nativeAvailability.reason ?? "Streamlink is available"}`,
       );
@@ -2577,7 +2862,11 @@ export function App() {
     try {
       setAuthState(await window.desktop.twitch.getAuthState());
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Unable to read Twitch sign-in.");
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to read Twitch sign-in.",
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -2606,7 +2895,11 @@ export function App() {
       setFollowedChannels(await window.desktop.twitch.getFollowedChannels());
     } catch (reason) {
       if (options?.silent) return;
-      setNotice(reason instanceof Error ? reason.message : "Unable to load followed channels.");
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to load followed channels.",
+      );
     }
   }
 
@@ -2620,10 +2913,16 @@ export function App() {
         query,
         append ? browseCategoryCursor : undefined,
       );
-      setBrowseCategories((current) => append ? [...current, ...result.items] : result.items);
+      setBrowseCategories((current) =>
+        append ? [...current, ...result.items] : result.items,
+      );
       setBrowseCategoryCursor(result.cursor);
     } catch (reason) {
-      setBrowseError(reason instanceof Error ? reason.message : "Unable to load Twitch categories.");
+      setBrowseError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to load Twitch categories.",
+      );
     } finally {
       setBrowseLoading(false);
     }
@@ -2680,7 +2979,9 @@ export function App() {
       setCategoryStreamCursor(result.cursor);
     } catch (reason) {
       setBrowseError(
-        reason instanceof Error ? reason.message : `Unable to load ${category.name} streams.`,
+        reason instanceof Error
+          ? reason.message
+          : `Unable to load ${category.name} streams.`,
       );
     } finally {
       setCategoryStreamsLoading(false);
@@ -2704,7 +3005,8 @@ export function App() {
       setNotice("Signed in with Twitch.");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : String(reason);
-      if (!message.toLowerCase().includes("cancel")) setNotice(message || "Twitch sign-in failed.");
+      if (!message.toLowerCase().includes("cancel"))
+        setNotice(message || "Twitch sign-in failed.");
     } finally {
       setAuthBusy(false);
     }
@@ -2722,7 +3024,9 @@ export function App() {
       const account = await window.desktop.kick.signIn();
       setKickAccount(account);
       if (account !== null) {
-        setKickFollowedChannels(await window.desktop.kick.getFollowedChannels());
+        setKickFollowedChannels(
+          await window.desktop.kick.getFollowedChannels(),
+        );
       }
     } catch {
       setNotice("Could not sign in to Kick.");
@@ -2768,7 +3072,11 @@ export function App() {
           : "Playback session was not linked.",
       );
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Unable to link the playback session.");
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to link the playback session.",
+      );
     } finally {
       setPlaybackSessionBusy(false);
     }
@@ -2778,7 +3086,9 @@ export function App() {
     setPlaybackSessionBusy(true);
     try {
       setPlaybackSession(await window.desktop.twitch.unlinkPlaybackSession());
-      setNotice("Playback token, cookies, and isolated Twitch website storage were removed.");
+      setNotice(
+        "Playback token, cookies, and isolated Twitch website storage were removed.",
+      );
     } finally {
       setPlaybackSessionBusy(false);
     }
@@ -2789,9 +3099,15 @@ export function App() {
     try {
       const result = await window.desktop.emotes.getSevenTvGlobal();
       setSevenTvStatus(result);
-      setNotice(`7TV is available: ${result.emotes.length.toLocaleString()} global emotes loaded.`);
+      setNotice(
+        `7TV is available: ${result.emotes.length.toLocaleString()} global emotes loaded.`,
+      );
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "7TV is currently unavailable.");
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "7TV is currently unavailable.",
+      );
     } finally {
       setSevenTvBusy(false);
     }
@@ -2822,7 +3138,9 @@ export function App() {
     // Show the loading state for the services the new scope will re-fetch,
     // otherwise the page briefly reads "No results" until the fetch lands.
     const canSearch = channelInput.trim().length >= 2;
-    setTwitchSearchLoading(canSearch && option !== "kick" && authState.status === "signed-in");
+    setTwitchSearchLoading(
+      canSearch && option !== "kick" && authState.status === "signed-in",
+    );
     setKickSearchLoading(canSearch && option !== "twitch");
     void window.desktop.preferences.update({ searchPlatformFilter: option });
   }
@@ -2851,7 +3169,9 @@ export function App() {
     // A leading "twitch:" / "kick:" becomes a pinned-service chip; the rest is
     // the channel name to open on Enter.
     const prefix = /^(twitch|kick):(.*)$/i.exec(value);
-    const scope = prefix ? (prefix[1].toLowerCase() as "twitch" | "kick") : searchScope;
+    const scope = prefix
+      ? (prefix[1].toLowerCase() as "twitch" | "kick")
+      : searchScope;
     if (prefix) {
       setSearchScope(scope);
       value = prefix[2];
@@ -2865,7 +3185,8 @@ export function App() {
     const longEnough = value.trim().length >= 2;
     // Twitch's directory API needs a sign-in. Keep the picker open anyway so
     // every user can directly open a public Twitch channel by name.
-    const searchesTwitch = searchPlatformFilter !== "kick" && authState.status === "signed-in";
+    const searchesTwitch =
+      searchPlatformFilter !== "kick" && authState.status === "signed-in";
     const searchesKick = searchPlatformFilter !== "twitch";
     setTopSearchOpen(longEnough);
     setTwitchSearchLoading(longEnough && searchesTwitch);
@@ -2900,9 +3221,13 @@ export function App() {
     if (!metadata?.categoryId || !metadata.category) return;
 
     try {
-      let category = browseCategories.find((item) => item.id === metadata.categoryId);
+      let category = browseCategories.find(
+        (item) => item.id === metadata.categoryId,
+      );
       if (!category) {
-        const result = await window.desktop.twitch.getBrowseCategories(metadata.category);
+        const result = await window.desktop.twitch.getBrowseCategories(
+          metadata.category,
+        );
         category = result.items.find((item) => item.id === metadata.categoryId);
       }
       category ??= {
@@ -2994,7 +3319,9 @@ export function App() {
     setActiveChannelIdentity(
       identity ??
         followedChannels.find(
-          (followedChannel) => followedChannel.login.toLowerCase() === channel.trim().toLowerCase(),
+          (followedChannel) =>
+            followedChannel.login.toLowerCase() ===
+            channel.trim().toLowerCase(),
         ),
     );
     try {
@@ -3093,7 +3420,9 @@ export function App() {
     try {
       const tile = await window.desktop.player.multiAddTile(channel);
       if (!tile) {
-        setNotice("That channel is already in Multistream, invalid, or all nine spots are full.");
+        setNotice(
+          "That channel is already in Multistream, invalid, or all nine spots are full.",
+        );
         return;
       }
       setMultiTiles((current) => {
@@ -3103,7 +3432,9 @@ export function App() {
         return next;
       });
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Unable to add that stream.");
+      setNotice(
+        reason instanceof Error ? reason.message : "Unable to add that stream.",
+      );
     }
   }
 
@@ -3122,9 +3453,15 @@ export function App() {
   function nameForChannel(channelKey: string): string {
     const { platform, login } = parseChannelKey(channelKey);
     if (platform === "kick") {
-      return kickFollowedChannels.find((channel) => channel.slug === login)?.displayName ?? login;
+      return (
+        kickFollowedChannels.find((channel) => channel.slug === login)
+          ?.displayName ?? login
+      );
     }
-    return followedChannels.find((channel) => channel.login === login)?.displayName ?? login;
+    return (
+      followedChannels.find((channel) => channel.login === login)
+        ?.displayName ?? login
+    );
   }
 
   function streamTooltipForChannel(key: string): string {
@@ -3140,7 +3477,9 @@ export function App() {
       name,
       channel.category || (channel.isLive ? "Live" : "Offline"),
       channel.title &&
-        (channel.title.length > 96 ? `${channel.title.slice(0, 93).trimEnd()}…` : channel.title),
+        (channel.title.length > 96
+          ? `${channel.title.slice(0, 93).trimEnd()}…`
+          : channel.title),
       channel.isLive
         ? `${Intl.NumberFormat("en").format(channel.viewerCount)} viewers`
         : "Offline",
@@ -3205,7 +3544,11 @@ export function App() {
             : `Native player unavailable: ${result.fallbackReason} Using the official player.`,
         );
       } else {
-        setNotice(mode === "native" ? "Native player started." : "Official player restored.");
+        setNotice(
+          mode === "native"
+            ? "Native player started."
+            : "Official player restored.",
+        );
       }
     } catch {
       setNotice("Unable to switch player modes.");
@@ -3214,7 +3557,11 @@ export function App() {
 
   async function retryNativePlayer() {
     if (!activeChannel) return;
-    const result = await window.desktop.player.open(activeChannel, "native", nativeState.quality);
+    const result = await window.desktop.player.open(
+      activeChannel,
+      "native",
+      nativeState.quality,
+    );
     setActiveMode(result.mode);
     setNativeControlsVisible(true);
     if (result.fallbackReason) setNotice(result.fallbackReason);
@@ -3222,7 +3569,8 @@ export function App() {
 
   async function setFullscreenMode(nextFullscreen: boolean) {
     try {
-      const actualState = await window.desktop.player.setFullscreen(nextFullscreen);
+      const actualState =
+        await window.desktop.player.setFullscreen(nextFullscreen);
       setFullscreen(actualState);
       setNativeControlsVisible(true);
     } catch {
@@ -3235,7 +3583,9 @@ export function App() {
     const target = parseChannelKey(activeChannel);
     try {
       if (target.platform === "kick") {
-        await window.desktop.system.openExternal(channelUrl("kick", target.login));
+        await window.desktop.system.openExternal(
+          channelUrl("kick", target.login),
+        );
       } else {
         await window.desktop.twitch.openChannel(activeChannel);
       }
@@ -3250,7 +3600,10 @@ export function App() {
     const target = parseChannelKey(activeChannel);
     const name = streamMetadata?.displayName ?? target.login;
     try {
-      await window.desktop.player.openSubscription(activeChannel, `${name} Subscription`);
+      await window.desktop.player.openSubscription(
+        activeChannel,
+        `${name} Subscription`,
+      );
     } catch {
       setNotice("Unable to open the subscription page.");
     }
@@ -3272,9 +3625,13 @@ export function App() {
       setFollowPending(true);
       try {
         await window.desktop.kick.setFollowing(target.login, nextFollow);
-        setKickFollowedChannels(await window.desktop.kick.getFollowedChannels());
+        setKickFollowedChannels(
+          await window.desktop.kick.getFollowedChannels(),
+        );
       } catch (reason) {
-        setNotice(reason instanceof Error ? reason.message : "Could not update follow.");
+        setNotice(
+          reason instanceof Error ? reason.message : "Could not update follow.",
+        );
       } finally {
         setFollowPending(false);
       }
@@ -3295,9 +3652,15 @@ export function App() {
       ]);
       setFollowedChannels(channels);
       setStreamMetadata(metadata);
-      setNotice(nextFollow ? `Following ${metadata?.displayName ?? target.login}.` : `Unfollowed ${metadata?.displayName ?? target.login}.`);
+      setNotice(
+        nextFollow
+          ? `Following ${metadata?.displayName ?? target.login}.`
+          : `Unfollowed ${metadata?.displayName ?? target.login}.`,
+      );
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Could not update follow.");
+      setNotice(
+        reason instanceof Error ? reason.message : "Could not update follow.",
+      );
     } finally {
       setFollowPending(false);
     }
@@ -3321,7 +3684,11 @@ export function App() {
       await window.desktop.twitch.createClip(activeChannel);
       setNotice("Clip created. Twitch's editor opened in your browser.");
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Unable to create this clip.");
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to create this clip.",
+      );
     }
   }
 
@@ -3329,7 +3696,11 @@ export function App() {
     event.preventDefault();
     if (!chatChannel || !chatInput.trim()) return;
     const platform = parseChannelKey(chatChannel).platform;
-    if (platform === "kick" ? kickAccount === null : authState.status !== "signed-in") {
+    if (
+      platform === "kick"
+        ? kickAccount === null
+        : authState.status !== "signed-in"
+    ) {
       chatSender.showError(
         platform === "kick"
           ? "Sign in to Kick from Settings to send chat messages."
@@ -3362,7 +3733,9 @@ export function App() {
     if (chatRestrictions.subscribersOnly) parts.push("Subscribers-only chat");
     if (chatRestrictions.emoteOnly) parts.push("Emote-only chat");
     if (chatRestrictions.slowModeSeconds) {
-      parts.push(`Slow mode · ${chatRestrictions.slowModeSeconds}s between messages`);
+      parts.push(
+        `Slow mode · ${chatRestrictions.slowModeSeconds}s between messages`,
+      );
     }
     return parts.length > 0 ? parts.join(" · ") : null;
   }, [activeChannelFollowState, chatRestrictions]);
@@ -3373,7 +3746,9 @@ export function App() {
     ? parseChannelKey(chatChannel).platform
     : "twitch";
   const chatSignedIn =
-    activeChatPlatform === "kick" ? kickAccount !== null : authState.status === "signed-in";
+    activeChatPlatform === "kick"
+      ? kickAccount !== null
+      : authState.status === "signed-in";
   const singleChatDisabled = !chatSignedIn || chatBlocked;
 
   // Both services in one list, in scope order, keyed by channel key so a Kick
@@ -3430,7 +3805,11 @@ export function App() {
     [offlineFollowedChannels, sortFavoritesFirst],
   );
   const localOnlyFavorites = useMemo(
-    () => [...favoriteChannels].filter((channel) => !combinedFollowedChannels.some((entry) => entry.login === channel)),
+    () =>
+      [...favoriteChannels].filter(
+        (channel) =>
+          !combinedFollowedChannels.some((entry) => entry.login === channel),
+      ),
     [combinedFollowedChannels, favoriteChannels],
   );
 
@@ -3451,7 +3830,11 @@ export function App() {
     if (!channelMenu) return;
     const close = () => setChannelMenu(null);
     const closeOutside = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest(".channel-context-menu")) return;
+      if (
+        event.target instanceof Element &&
+        event.target.closest(".channel-context-menu")
+      )
+        return;
       setChannelMenu(null);
     };
     // Only the followed list scrolling matters — that's what moves the row the
@@ -3459,7 +3842,10 @@ export function App() {
     // and live chat auto-scrolls constantly, which was closing the menu on its
     // own after a second.
     const closeOnListScroll = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest(".followed-list")) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest(".followed-list")
+      ) {
         setChannelMenu(null);
       }
     };
@@ -3487,48 +3873,94 @@ export function App() {
     !!streamMetadata &&
     streamMetadata.login.toLowerCase() === activeChannel.toLowerCase() &&
     !streamMetadata.isLive;
-  const toolbarProfileImage = streamMetadata?.profileImageUrl || activeChannelIdentity?.profileImageUrl;
+  const toolbarProfileImage =
+    streamMetadata?.profileImageUrl || activeChannelIdentity?.profileImageUrl;
   const toolbarTitle =
     streamMetadata?.title ??
     activeChannelIdentity?.title ??
-    ((streamMetadata && !streamMetadata.isLive) || activeChannelIdentity?.isLive === false
+    ((streamMetadata && !streamMetadata.isLive) ||
+    activeChannelIdentity?.isLive === false
       ? "Offline"
       : "Loading channel…");
-  const toolbarIsLive = streamMetadata?.isLive ?? activeChannelIdentity?.isLive ?? false;
-  const toolbarViewerCount = streamMetadata?.viewerCount ?? activeChannelIdentity?.viewerCount ?? 0;
-  const toolbarStartedAt = streamMetadata?.startedAt ?? activeChannelIdentity?.startedAt;
-  const toolbarCategory = streamMetadata?.category ?? activeChannelIdentity?.category;
-  const toolbarLanguage = streamMetadata?.language ?? activeChannelIdentity?.language;
+  const toolbarIsLive =
+    streamMetadata?.isLive ?? activeChannelIdentity?.isLive ?? false;
+  const toolbarViewerCount =
+    streamMetadata?.viewerCount ?? activeChannelIdentity?.viewerCount ?? 0;
+  const toolbarStartedAt =
+    streamMetadata?.startedAt ?? activeChannelIdentity?.startedAt;
+  const toolbarCategory =
+    streamMetadata?.category ?? activeChannelIdentity?.category;
+  const toolbarLanguage =
+    streamMetadata?.language ?? activeChannelIdentity?.language;
   const toolbarTags = streamMetadata?.tags ?? activeChannelIdentity?.tags;
-  const toolbarIsMature = streamMetadata?.isMature ?? activeChannelIdentity?.isMature;
+  const toolbarIsMature =
+    streamMetadata?.isMature ?? activeChannelIdentity?.isMature;
 
   return (
     <div
       onMouseMove={(event) => {
-        if (cleanView && !cleanViewLocked && event.clientY < 45) setCleanViewRevealed(true);
+        if (!cleanView) {
+          const target = event.target instanceof Element ? event.target : null;
+          const navigation =
+            event.clientY < 42 ||
+            Boolean(target?.closest(".topbar, .panel-edge-top"));
+          const chat =
+            (chatOnLeft
+              ? event.clientX < 8
+              : event.clientX > window.innerWidth - 8) ||
+            Boolean(
+              target?.closest(".chat-panel, .multi-chat, .native-video-chat"),
+            );
+          setPanelReveal((previous) =>
+            previous.navigation === navigation && previous.chat === chat
+              ? previous
+              : { navigation, chat },
+          );
+        }
+        if (cleanView && !cleanViewLocked && event.clientY < 45)
+          setCleanViewRevealed(true);
         else if (
-          cleanViewRevealed && event.clientY > 260 && event.clientX > 260 &&
-          !(event.target instanceof Element && event.target.closest(".sidebar, .topbar, .chat-panel, .multi-chat, .clean-view-edge, .controls-bar, .multi-tile-controls"))
-        ) setCleanViewRevealed(false);
+          cleanViewRevealed &&
+          event.clientY > 260 &&
+          event.clientX > 260 &&
+          !(
+            event.target instanceof Element &&
+            event.target.closest(
+              ".sidebar, .topbar, .chat-panel, .multi-chat, .clean-view-edge, .controls-bar, .multi-tile-controls",
+            )
+          )
+        )
+          setCleanViewRevealed(false);
       }}
       className={[
         "app-shell",
         oledMode ? "oled-mode" : "",
         chatOnLeft ? "chat-left" : "",
-        sidebarCollapsed ? "sidebar-collapsed" : "",
-        sidebarHidden ? "sidebar-hidden" : "",
+        sidebarCollapsed || panelModes.sidebar === "hover"
+          ? "sidebar-collapsed"
+          : "",
+        sidebarHidden || panelModes.sidebar === "hidden"
+          ? "sidebar-hidden"
+          : "",
+        `panel-navigation-${panelModes.navigation} panel-chat-${panelModes.chat} panel-controls-${panelModes.controls}`,
+        panelReveal.navigation ? "panel-navigation-revealed" : "",
+        panelReveal.chat ? "panel-chat-revealed" : "",
         theaterMode ? "theater-mode" : "",
         multiStreamActive && multiTheater ? "multi-theater" : "",
         fullscreen ? "fullscreen-mode" : "",
         multiStreamActive && fullscreen ? "multi-fullscreen" : "",
         fullscreen && !nativeControlsVisible ? "controls-hidden" : "",
         cleanView ? "clean-view" : "",
-        cleanView && cleanViewRevealed && !cleanViewLocked ? "clean-view-revealed" : "",
+        cleanView && cleanViewRevealed && !cleanViewLocked
+          ? "clean-view-revealed"
+          : "",
       ].join(" ")}
-      style={{
-        "--chat-font-size": `${chatFontSize}px`,
-        "--chat-emote-size": `${chatEmoteSize}px`,
-      } as CSSProperties}
+      style={
+        {
+          "--chat-font-size": `${chatFontSize}px`,
+          "--chat-emote-size": `${chatEmoteSize}px`,
+        } as CSSProperties
+      }
     >
       {/* One layer serves both windows: chat can be rendered into a window of
           its own, and a tooltip is drawn into whichever document holds the
@@ -3562,7 +3994,12 @@ export function App() {
         </div>
       )}
       {notice && (
-        <div className="app-toast" key={notice} role="status" aria-live="polite">
+        <div
+          className="app-toast"
+          key={notice}
+          role="status"
+          aria-live="polite"
+        >
           {notice}
         </div>
       )}
@@ -3591,7 +4028,9 @@ export function App() {
       )}
 
       <div className="brand">
-        <span className="brand-mark"><img alt="" src={wiredScytheIcon} /></span>
+        <span className="brand-mark">
+          <img alt="" src={wiredScytheIcon} />
+        </span>
         <span>Cyber Wire</span>
       </div>
 
@@ -3600,7 +4039,11 @@ export function App() {
           <div className="rail-heading">
             <span id="followed-heading">Followed channels</span>
             <button
-              aria-label={sidebarCollapsed ? "Expand followed channels" : "Collapse followed channels"}
+              aria-label={
+                sidebarCollapsed
+                  ? "Expand followed channels"
+                  : "Collapse followed channels"
+              }
               aria-pressed={sidebarCollapsed}
               className="sidebar-collapse-toggle"
               onClick={() => setSidebarCollapsed((current) => !current)}
@@ -3618,7 +4061,10 @@ export function App() {
               className="sidebar-hide-toggle"
               onClick={() => {
                 setSidebarHidden(true);
-                window.localStorage.setItem("wiredscythe.sidebar.hidden", "true");
+                window.localStorage.setItem(
+                  "wiredscythe.sidebar.hidden",
+                  "true",
+                );
               }}
               title="Hide sidebar"
               type="button"
@@ -3626,7 +4072,11 @@ export function App() {
               <X size={14} />
             </button>
           </div>
-          <div className="followed-platforms" role="group" aria-label="Services to show">
+          <div
+            className="followed-platforms"
+            role="group"
+            aria-label="Services to show"
+          >
             {(["twitch", "kick", "both"] as const).map((option) => (
               <button
                 aria-pressed={platformFilter === option}
@@ -3634,7 +4084,9 @@ export function App() {
                 key={option}
                 onClick={() => {
                   setPlatformFilter(option);
-                  void window.desktop.preferences.update({ platformFilter: option });
+                  void window.desktop.preferences.update({
+                    platformFilter: option,
+                  });
                 }}
                 type="button"
               >
@@ -3646,7 +4098,11 @@ export function App() {
                 ) : (
                   <ProviderLogo name={option} />
                 )}
-                {option === "twitch" ? "Twitch" : option === "kick" ? "Kick" : "Both"}
+                {option === "twitch"
+                  ? "Twitch"
+                  : option === "kick"
+                    ? "Kick"
+                    : "Both"}
               </button>
             ))}
           </div>
@@ -3667,18 +4123,29 @@ export function App() {
                       onClick={() => void watchChannel(channel)}
                       onContextMenu={(event) => {
                         event.preventDefault();
-                        openFollowedChannelMenu(channel, event.clientX, event.clientY);
+                        openFollowedChannelMenu(
+                          channel,
+                          event.clientX,
+                          event.clientY,
+                        );
                       }}
                       title="Play this local favorite"
                       type="button"
                     >
                       <span className="channel-avatar">
                         <ProviderLogo name={parsed.platform} />
-                        <Star aria-hidden="true" className="channel-favorite-star" size={10} />
+                        <Star
+                          aria-hidden="true"
+                          className="channel-favorite-star"
+                          size={10}
+                        />
                       </span>
                       <span className="followed-copy">
                         <strong>{label}</strong>
-                        <small>{parsed.platform === "kick" ? "Kick" : "Twitch"} · Status unknown</small>
+                        <small>
+                          {parsed.platform === "kick" ? "Kick" : "Twitch"} ·
+                          Status unknown
+                        </small>
                       </span>
                     </button>
                   );
@@ -3690,7 +4157,9 @@ export function App() {
               kickAccount === null && (
                 <div className="followed-empty">
                   <strong>Not signed in to Kick</strong>
-                  <span>Sign in from Settings to see the channels you follow.</span>
+                  <span>
+                    Sign in from Settings to see the channels you follow.
+                  </span>
                 </div>
               )}
             {sidebarLiveChannels.length > 0 && (
@@ -3734,21 +4203,23 @@ export function App() {
             )}
             {followedChannels.length === 0 && (
               <div className="followed-empty">
-                <div className="empty-orbit"><Heart size={16} /></div>
+                <div className="empty-orbit">
+                  <Heart size={16} />
+                </div>
                 <strong>Your channels will live here</strong>
                 <span>Sign in to see followed channels and who is live.</span>
               </div>
             )}
           </div>
         </section>
-
       </aside>
-      {sidebarHidden && (
+      {(sidebarHidden || panelModes.sidebar === "hidden") && (
         <button
           aria-label="Show followed channels sidebar"
           className="sidebar-reveal-toggle"
           onClick={() => {
             setSidebarHidden(false);
+            setPanelModes((previous) => ({ ...previous, sidebar: "always" }));
             window.localStorage.setItem("wiredscythe.sidebar.hidden", "false");
           }}
           title="Show sidebar"
@@ -3758,26 +4229,74 @@ export function App() {
         </button>
       )}
       {cleanView && (
-        <div className="clean-view-edge" onMouseEnter={() => { if (!cleanViewLocked) setCleanViewRevealed(true); }}>
-        <button
-          aria-label={cleanViewLocked ? "Unlock hover reveal" : "Lock interface hidden"}
-          className="clean-view-unlock"
-          onClick={() => { setCleanViewLocked(!cleanViewLocked); setCleanViewRevealed(false); }}
-          title={cleanViewLocked ? "Unlock hover reveal" : "Lock interface hidden"}
-          type="button"
+        <div
+          className="clean-view-edge"
+          onMouseEnter={() => {
+            if (!cleanViewLocked) setCleanViewRevealed(true);
+          }}
         >
-          <Pin size={15} />
-        </button>
-        <button className="clean-view-exit" onClick={() => { setCleanView(false); setCleanViewRevealed(false); }} type="button">Exit Clean View</button>
+          <button
+            aria-label={
+              cleanViewLocked ? "Unlock hover reveal" : "Lock interface hidden"
+            }
+            className="clean-view-unlock"
+            onClick={() => {
+              setCleanViewLocked(!cleanViewLocked);
+              setCleanViewRevealed(false);
+            }}
+            title={
+              cleanViewLocked ? "Unlock hover reveal" : "Lock interface hidden"
+            }
+            type="button"
+          >
+            <Pin size={15} />
+          </button>
+          <button
+            className="clean-view-exit"
+            onClick={() => {
+              setCleanView(false);
+              setCleanViewRevealed(false);
+            }}
+            type="button"
+          >
+            Exit Clean View
+          </button>
         </div>
       )}
 
+      {panelModes.navigation === "hover" && !cleanView && (
+        <div className="panel-edge-top" aria-hidden="true" />
+      )}
+      {panelModes.chat === "hover" && !cleanView && (
+        <div
+          className={chatOnLeft ? "panel-edge-chat left" : "panel-edge-chat"}
+          aria-hidden="true"
+        />
+      )}
+      {panelModes.navigation === "hidden" && !cleanView && (
+        <button
+          className="interface-settings-recovery"
+          type="button"
+          title="Interface settings (Ctrl+Shift+U restores panels)"
+          aria-label="Interface settings"
+          onClick={() => {
+            setSettingsSection("appearance");
+            setSettingsOpen(true);
+          }}
+        >
+          <Settings size={16} />
+        </button>
+      )}
       <main>
         <header className="topbar">
           <nav className="top-navigation" aria-label="Main navigation">
             <button
               aria-current={activeSection === "home" ? "page" : undefined}
-              className={activeSection === "home" ? "top-nav-item active" : "top-nav-item"}
+              className={
+                activeSection === "home"
+                  ? "top-nav-item active"
+                  : "top-nav-item"
+              }
               onClick={() => void navigateTo("home")}
               type="button"
             >
@@ -3785,7 +4304,11 @@ export function App() {
             </button>
             <button
               aria-current={activeSection === "browse" ? "page" : undefined}
-              className={activeSection === "browse" ? "top-nav-item active" : "top-nav-item"}
+              className={
+                activeSection === "browse"
+                  ? "top-nav-item active"
+                  : "top-nav-item"
+              }
               onClick={() => void navigateTo("browse")}
               type="button"
             >
@@ -3821,7 +4344,11 @@ export function App() {
               autoComplete="off"
               onChange={(event) => updateTopSearch(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Backspace" && channelInput.length === 0 && searchScope) {
+                if (
+                  event.key === "Backspace" &&
+                  channelInput.length === 0 &&
+                  searchScope
+                ) {
                   setSearchScope(null);
                 }
               }}
@@ -3849,11 +4376,17 @@ export function App() {
             )}
             {topSearchOpen && (
               <div className="top-search-results">
-                <div className="top-search-platforms" role="group" aria-label="Services to search">
+                <div
+                  className="top-search-platforms"
+                  role="group"
+                  aria-label="Services to search"
+                >
                   {(["twitch", "kick", "both"] as const).map((option) => (
                     <button
                       aria-pressed={searchPlatformFilter === option}
-                      className={searchPlatformFilter === option ? "active" : ""}
+                      className={
+                        searchPlatformFilter === option ? "active" : ""
+                      }
                       key={option}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => selectSearchPlatform(option)}
@@ -3867,7 +4400,11 @@ export function App() {
                       ) : (
                         <ProviderLogo name={option} />
                       )}
-                      {option === "twitch" ? "Twitch" : option === "kick" ? "Kick" : "Both"}
+                      {option === "twitch"
+                        ? "Twitch"
+                        : option === "kick"
+                          ? "Kick"
+                          : "Both"}
                     </button>
                   ))}
                 </div>
@@ -3882,29 +4419,39 @@ export function App() {
                   </div>
                 ) : (
                   <>
-                    {searchPlatformFilter !== "kick" && authState.status !== "signed-in" && (
-                      <div className="top-search-state">
-                        Type a Twitch channel name below to open it as a guest. Sign-in only unlocks Twitch directory results.
-                      </div>
-                    )}
+                    {searchPlatformFilter !== "kick" &&
+                      authState.status !== "signed-in" && (
+                        <div className="top-search-state">
+                          Type a Twitch channel name below to open it as a
+                          guest. Sign-in only unlocks Twitch directory results.
+                        </div>
+                      )}
                     {searchPlatformFilter !== "kick" && (
                       <button
                         className="top-search-direct"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
                           setTopSearchOpen(false);
-                          const normalizedLogin = channelInput.trim().toLowerCase();
+                          const normalizedLogin = channelInput
+                            .trim()
+                            .toLowerCase();
                           void watchChannel(
                             channelInput,
                             topSearchResults.channels.find(
-                              (channel) => channel.login.toLowerCase() === normalizedLogin,
+                              (channel) =>
+                                channel.login.toLowerCase() === normalizedLogin,
                             ),
                           );
                         }}
                         type="button"
                       >
-                        <img className="wiredscythe-search-icon" src={wiredScytheIcon} alt="" />
-                        Watch <strong>{channelInput.trim()}</strong> in Cyber Wire
+                        <img
+                          className="wiredscythe-search-icon"
+                          src={wiredScytheIcon}
+                          alt=""
+                        />
+                        Watch <strong>{channelInput.trim()}</strong> in Cyber
+                        Wire
                       </button>
                     )}
                     {searchPlatformFilter !== "twitch" && (
@@ -3913,23 +4460,37 @@ export function App() {
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
                           setTopSearchOpen(false);
-                          void watchChannel(channelKey("kick", channelInput.trim().toLowerCase()));
+                          void watchChannel(
+                            channelKey(
+                              "kick",
+                              channelInput.trim().toLowerCase(),
+                            ),
+                          );
                         }}
                         type="button"
                       >
-                        <img className="wiredscythe-search-icon" src={wiredScytheIcon} alt="" />
-                        Watch <strong>{channelInput.trim()}</strong> in Cyber Wire
+                        <img
+                          className="wiredscythe-search-icon"
+                          src={wiredScytheIcon}
+                          alt=""
+                        />
+                        Watch <strong>{channelInput.trim()}</strong> in Cyber
+                        Wire
                       </button>
                     )}
                     {topSearchResults.categories.length > 0 && (
                       <section>
-                        <span className="top-search-heading">Twitch Categories</span>
+                        <span className="top-search-heading">
+                          Twitch Categories
+                        </span>
                         {topSearchResults.categories.map((category) => (
                           <button
                             className="top-search-result"
                             key={`category-${category.id}`}
                             onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => void chooseSearchCategory(category, "twitch")}
+                            onClick={() =>
+                              void chooseSearchCategory(category, "twitch")
+                            }
                             type="button"
                           >
                             <img alt="" src={category.boxArtUrl} />
@@ -3941,26 +4502,31 @@ export function App() {
                         ))}
                       </section>
                     )}
-                    {searchPlatformFilter !== "twitch" && kickSearchCategories.length > 0 && (
-                      <section>
-                        <span className="top-search-heading">Kick Categories</span>
-                        {kickSearchCategories.map((category) => (
-                          <button
-                            className="top-search-result"
-                            key={`kick-category-${category.id}`}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => void chooseSearchCategory(category, "kick")}
-                            type="button"
-                          >
-                            <img alt="" src={category.boxArtUrl} />
-                            <span>
-                              <strong>{category.name}</strong>
-                              <small>Category</small>
-                            </span>
-                          </button>
-                        ))}
-                      </section>
-                    )}
+                    {searchPlatformFilter !== "twitch" &&
+                      kickSearchCategories.length > 0 && (
+                        <section>
+                          <span className="top-search-heading">
+                            Kick Categories
+                          </span>
+                          {kickSearchCategories.map((category) => (
+                            <button
+                              className="top-search-result"
+                              key={`kick-category-${category.id}`}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() =>
+                                void chooseSearchCategory(category, "kick")
+                              }
+                              type="button"
+                            >
+                              <img alt="" src={category.boxArtUrl} />
+                              <span>
+                                <strong>{category.name}</strong>
+                                <small>Category</small>
+                              </span>
+                            </button>
+                          ))}
+                        </section>
+                      )}
                     {topSearchResults.channels.length > 0 && (
                       <section>
                         <span className="top-search-heading">Twitch</span>
@@ -3970,12 +4536,20 @@ export function App() {
                             key={`channel-${channel.id}`}
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => chooseSearchChannel(channel)}
-                            onMouseEnter={channel.isLive ? () => schedulePreresolve(channel.login) : undefined}
+                            onMouseEnter={
+                              channel.isLive
+                                ? () => schedulePreresolve(channel.login)
+                                : undefined
+                            }
                             onMouseLeave={cancelPreresolve}
                             type="button"
                           >
                             {channel.profileImageUrl ? (
-                              <img className="channel-result-avatar" alt="" src={channel.profileImageUrl} />
+                              <img
+                                className="channel-result-avatar"
+                                alt=""
+                                src={channel.profileImageUrl}
+                              />
                             ) : (
                               <span className="channel-result-fallback">
                                 {channel.displayName.slice(0, 1).toUpperCase()}
@@ -3995,7 +4569,10 @@ export function App() {
                                         ? `${Intl.NumberFormat("en-US").format(channel.viewerCount)} viewers`
                                         : undefined,
                                       channel.startedAt
-                                        ? formatUptime(channel.startedAt, uptimeNow)
+                                        ? formatUptime(
+                                            channel.startedAt,
+                                            uptimeNow,
+                                          )
                                         : undefined,
                                     ]
                                       .filter(Boolean)
@@ -4007,46 +4584,59 @@ export function App() {
                         ))}
                       </section>
                     )}
-                    {searchPlatformFilter !== "twitch" && kickSearchResults.length > 0 && (
-                      <section>
-                        <span className="top-search-heading">Kick</span>
-                        {kickSearchResults.map((channel) => (
-                          <button
-                            className="top-search-result"
-                            key={`kick-${channel.id}`}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => {
-                              setTopSearchOpen(false);
-                              void watchChannel(channelKey("kick", channel.slug));
-                            }}
-                            type="button"
-                          >
-                            {channel.profileImageUrl ? (
-                              <img className="channel-result-avatar" alt="" src={channel.profileImageUrl} />
-                            ) : (
-                              <span className="channel-result-fallback">
-                                {channel.displayName.slice(0, 1).toUpperCase()}
+                    {searchPlatformFilter !== "twitch" &&
+                      kickSearchResults.length > 0 && (
+                        <section>
+                          <span className="top-search-heading">Kick</span>
+                          {kickSearchResults.map((channel) => (
+                            <button
+                              className="top-search-result"
+                              key={`kick-${channel.id}`}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                setTopSearchOpen(false);
+                                void watchChannel(
+                                  channelKey("kick", channel.slug),
+                                );
+                              }}
+                              type="button"
+                            >
+                              {channel.profileImageUrl ? (
+                                <img
+                                  className="channel-result-avatar"
+                                  alt=""
+                                  src={channel.profileImageUrl}
+                                />
+                              ) : (
+                                <span className="channel-result-fallback">
+                                  {channel.displayName
+                                    .slice(0, 1)
+                                    .toUpperCase()}
+                                </span>
+                              )}
+                              <span>
+                                <strong>
+                                  {channel.displayName}
+                                  {channel.isLive && <i>LIVE</i>}
+                                </strong>
+                                <small>
+                                  <ProviderLogo name="kick" />{" "}
+                                  {channel.isLive
+                                    ? channel.category || "Live"
+                                    : "Offline"}
+                                </small>
                               </span>
-                            )}
-                            <span>
-                              <strong>
-                                {channel.displayName}
-                                {channel.isLive && <i>LIVE</i>}
-                              </strong>
-                              <small>
-                                <ProviderLogo name="kick" />{" "}
-                                {channel.isLive ? channel.category || "Live" : "Offline"}
-                              </small>
-                            </span>
-                          </button>
-                        ))}
-                      </section>
-                    )}
+                            </button>
+                          ))}
+                        </section>
+                      )}
                     {topSearchResults.categories.length === 0 &&
                       topSearchResults.channels.length === 0 &&
                       kickSearchResults.length === 0 &&
                       kickSearchCategories.length === 0 && (
-                        <div className="top-search-state">No channels or categories found.</div>
+                        <div className="top-search-state">
+                          No channels or categories found.
+                        </div>
                       )}
                   </>
                 )}
@@ -4054,88 +4644,134 @@ export function App() {
             )}
           </form>
           <div className="top-actions">
-          <button className="top-multistream" type="button" aria-pressed={cleanView} onClick={() => { setCleanView(true); setCleanViewLocked(false); setCleanViewRevealed(false); }} title="Hide interface; hover top edge to reveal. Escape exits."><Pin size={16} /><span>Clean View</span></button>
-          <div className="mode-switch top-mode-switch" aria-label="Playback engine">
             <button
-              aria-pressed={(activeChannel ? activeMode : preferredMode) === "native"}
-              className={(activeChannel ? activeMode : preferredMode) === "native" ? "active experimental" : "experimental"}
-              onClick={() =>
-                activeChannel
-                  ? void switchPlayerMode("native")
-                  : void choosePreferredMode("native")
+              className="top-multistream"
+              type="button"
+              aria-pressed={cleanView}
+              onClick={() => {
+                setCleanView(true);
+                setCleanViewLocked(false);
+                setCleanViewRevealed(false);
+              }}
+              title="Hide interface; hover top edge to reveal. Escape exits."
+            >
+              <Pin size={16} />
+              <span>Clean View</span>
+            </button>
+            <div
+              className="mode-switch top-mode-switch"
+              aria-label="Playback engine"
+            >
+              <button
+                aria-pressed={
+                  (activeChannel ? activeMode : preferredMode) === "native"
+                }
+                className={
+                  (activeChannel ? activeMode : preferredMode) === "native"
+                    ? "active experimental"
+                    : "experimental"
+                }
+                onClick={() =>
+                  activeChannel
+                    ? void switchPlayerMode("native")
+                    : void choosePreferredMode("native")
+                }
+                title="Use the Native player"
+                type="button"
+              >
+                Native
+              </button>
+              <button
+                aria-pressed={
+                  (activeChannel ? activeMode : preferredMode) === "official"
+                }
+                className={
+                  (activeChannel ? activeMode : preferredMode) === "official"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  activeChannel
+                    ? void switchPlayerMode("official")
+                    : void choosePreferredMode("official")
+                }
+                title="Use Twitch's Standard player (Twitch only)"
+                type="button"
+              >
+                Standard
+              </button>
+            </div>
+            <button
+              aria-pressed={multiStreamActive}
+              className={
+                multiStreamActive ? "top-multistream active" : "top-multistream"
               }
-              title="Use the Native player"
+              onClick={() =>
+                multiStreamActive ? exitMultiStream() : void enterMultiStream()
+              }
+              title="Watch up to 4 public streams at once — no sign-in needed"
               type="button"
             >
-              Native
+              <LayoutGrid size={16} />
+              <span>Multistream</span>
             </button>
             <button
-              aria-pressed={(activeChannel ? activeMode : preferredMode) === "official"}
-              className={(activeChannel ? activeMode : preferredMode) === "official" ? "active" : ""}
+              className="sign-in"
+              disabled={authBusy}
               onClick={() =>
-                activeChannel
-                  ? void switchPlayerMode("official")
-                  : void choosePreferredMode("official")
+                authState.status === "signed-in"
+                  ? setSettingsOpen(true)
+                  : void beginSignIn()
               }
-              title="Use Twitch's Standard player (Twitch only)"
+              type="button"
+              title={
+                authState.status === "signed-in"
+                  ? "Account settings"
+                  : "Sign in with Twitch"
+              }
+            >
+              {authState.status === "signed-in" ? (
+                <>
+                  <span className="top-account-avatar">
+                    <img alt="" src={authState.account.profileImageUrl} />
+                    <i aria-label="Twitch connected" title="Twitch connected" />
+                  </span>
+                  <span className="top-account-name">
+                    {authState.account.displayName}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <LogIn size={17} />
+                  <span>{authBusy ? "Working…" : "Sign in"}</span>
+                </>
+              )}
+            </button>
+            <button
+              aria-current={settingsOpen ? "page" : undefined}
+              aria-label="Settings"
+              className={
+                settingsOpen
+                  ? "top-settings-button active"
+                  : "top-settings-button"
+              }
+              onClick={() => setSettingsOpen((current) => !current)}
+              title="Settings"
               type="button"
             >
-              Standard
+              <Settings size={18} />
             </button>
-          </div>
-          <button
-            aria-pressed={multiStreamActive}
-            className={multiStreamActive ? "top-multistream active" : "top-multistream"}
-            onClick={() => (multiStreamActive ? exitMultiStream() : void enterMultiStream())}
-            title="Watch up to 4 public streams at once — no sign-in needed"
-            type="button"
-          >
-            <LayoutGrid size={16} />
-            <span>Multistream</span>
-          </button>
-          <button
-            className="sign-in"
-            disabled={authBusy}
-            onClick={() =>
-              authState.status === "signed-in" ? setSettingsOpen(true) : void beginSignIn()
-            }
-            type="button"
-            title={authState.status === "signed-in" ? "Account settings" : "Sign in with Twitch"}
-          >
-            {authState.status === "signed-in" ? (
-              <>
-                <span className="top-account-avatar">
-                  <img alt="" src={authState.account.profileImageUrl} />
-                  <i aria-label="Twitch connected" title="Twitch connected" />
-                </span>
-                <span className="top-account-name">{authState.account.displayName}</span>
-              </>
-            ) : (
-              <>
-                <LogIn size={17} />
-                <span>{authBusy ? "Working…" : "Sign in"}</span>
-              </>
-            )}
-          </button>
-          <button
-            aria-current={settingsOpen ? "page" : undefined}
-            aria-label="Settings"
-            className={
-              settingsOpen
-                ? "top-settings-button active"
-                : "top-settings-button"
-            }
-            onClick={() => setSettingsOpen((current) => !current)}
-            title="Settings"
-            type="button"
-          >
-            <Settings size={18} />
-          </button>
           </div>
         </header>
 
         {multiStreamActive ? (
-          <div className={multiChatVisible ? "multi-stream-layout" : "multi-stream-layout multi-chat-hidden"}>
+          <div
+            className={
+              multiChatVisible
+                ? "multi-stream-layout"
+                : "multi-stream-layout multi-chat-hidden"
+            }
+          >
             <MultiStreamView
               tiles={multiTiles}
               followedLive={liveFollowedChannels}
@@ -4147,37 +4783,62 @@ export function App() {
               onAdd={(channel) => void addMultiTile(channel)}
               onSearchChannels={async (query, platform) => {
                 if (platform === "kick") {
-                  return (await window.desktop.kick.search(query)).slice(0, 8).map((channel) => ({
-                    login: channel.slug,
+                  return (await window.desktop.kick.search(query))
+                    .slice(0, 8)
+                    .map((channel) => ({
+                      login: channel.slug,
+                      displayName: channel.displayName,
+                      profileImageUrl: channel.profileImageUrl,
+                      category: channel.category,
+                      isLive: channel.isLive,
+                    }));
+                }
+                if (authState.status !== "signed-in") return [];
+                return (await window.desktop.twitch.search(query)).channels
+                  .slice(0, 8)
+                  .map((channel) => ({
+                    login: channel.login,
                     displayName: channel.displayName,
                     profileImageUrl: channel.profileImageUrl,
                     category: channel.category,
                     isLive: channel.isLive,
                   }));
-                }
-                if (authState.status !== "signed-in") return [];
-                return (await window.desktop.twitch.search(query)).channels.slice(0, 8).map((channel) => ({
-                  login: channel.login,
-                  displayName: channel.displayName,
-                  profileImageUrl: channel.profileImageUrl,
-                  category: channel.category,
-                  isLive: channel.isLive,
-                }));
               }}
               onRemove={removeMultiTile}
               onActivate={activateMultiTile}
               onToggleMute={(id) =>
-                window.desktop.player.multiControl(id, { command: "toggle-mute" })
+                window.desktop.player.multiControl(id, {
+                  command: "toggle-mute",
+                })
               }
-              onSetMuted={(id, muted) => window.desktop.player.multiControl(id, { command: "set-muted", muted })}
+              onSetMuted={(id, muted) =>
+                window.desktop.player.multiControl(id, {
+                  command: "set-muted",
+                  muted,
+                })
+              }
               onSetVolume={(id, volume) =>
-                window.desktop.player.multiControl(id, { command: "set-volume", value: volume })
+                window.desktop.player.multiControl(id, {
+                  command: "set-volume",
+                  value: volume,
+                })
               }
               onToggleCompressor={(id, enabled) =>
-                window.desktop.player.multiControl(id, { command: "set-compressor", enabled })
+                window.desktop.player.multiControl(id, {
+                  command: "set-compressor",
+                  enabled,
+                })
               }
-              onSetQuality={(id, quality) =>
-                void window.desktop.player.multiSetQuality(id, quality).catch((reason: unknown) => setNotice(reason instanceof Error ? reason.message : "Unable to change stream quality."))
+              onSetQuality={(id, quality, remember = true) =>
+                void window.desktop.player
+                  .multiSetQuality(id, quality, remember)
+                  .catch((reason: unknown) =>
+                    setNotice(
+                      reason instanceof Error
+                        ? reason.message
+                        : "Unable to change stream quality.",
+                    ),
+                  )
               }
               chatVisible={multiChatVisible}
               onToggleChat={() => setMultiChatVisible((current) => !current)}
@@ -4198,26 +4859,27 @@ export function App() {
                 }
               >
                 {multiTiles.length === 0 ? (
-                  <span className="multi-chat-empty-tabs">Add a stream to see its chat</span>
+                  <span className="multi-chat-empty-tabs">
+                    Add a stream to see its chat
+                  </span>
                 ) : (
                   multiTiles.map((tile) => {
                     const channelName = nameForChannel(tile.channel);
                     const platform = parseChannelKey(tile.channel).platform;
-                    const chatSelected = effectiveMultiChatChannel === tile.channel;
+                    const chatSelected =
+                      effectiveMultiChatChannel === tile.channel;
                     return (
                       <button
                         aria-label={`Open chat for ${channelName}${tile.active ? ", audio active" : ""}`}
                         aria-selected={chatSelected}
-                        className={
-                          [
-                            "multi-chat-tab",
-                            platform,
-                            chatSelected ? "active" : "",
-                            tile.active ? "audio-active" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")
-                        }
+                        className={[
+                          "multi-chat-tab",
+                          platform,
+                          chatSelected ? "active" : "",
+                          tile.active ? "audio-active" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
                         key={tile.id}
                         onClick={() => setMultiChatChannel(tile.channel)}
                         role="tab"
@@ -4256,7 +4918,8 @@ export function App() {
                     <div className="chat-empty-state">
                       {!effectiveMultiChatChannel
                         ? "Add a stream to see its chat"
-                        : multiChatStates.get(effectiveMultiChatChannel) === "connected"
+                        : multiChatStates.get(effectiveMultiChatChannel) ===
+                            "connected"
                           ? "Waiting for the next chat message…"
                           : "Connecting to Twitch chat…"}
                     </div>
@@ -4318,7 +4981,10 @@ export function App() {
                     emoteMatch={emoteAutocompleteMatch}
                     mentionTab={mentionTabBehavior}
                     aria-label="Send a chat message"
-                    disabled={authState.status !== "signed-in" || !effectiveMultiChatChannel}
+                    disabled={
+                      authState.status !== "signed-in" ||
+                      !effectiveMultiChatChannel
+                    }
                     maxLength={500}
                     mentionCandidates={chatMentionCandidates}
                     onValueChange={setChatInput}
@@ -4340,9 +5006,13 @@ export function App() {
                         aria-expanded={emotePickerOpen}
                         aria-label="Choose Twitch and 7TV emotes"
                         className={
-                          emotePickerOpen ? "emote-picker-button active" : "emote-picker-button"
+                          emotePickerOpen
+                            ? "emote-picker-button active"
+                            : "emote-picker-button"
                         }
-                        onClick={() => setEmotePickerOpen((current) => !current)}
+                        onClick={() =>
+                          setEmotePickerOpen((current) => !current)
+                        }
                         title="Twitch and 7TV emotes"
                         type="button"
                       >
@@ -4350,7 +5020,9 @@ export function App() {
                       </button>
                       {emotePickerOpen && (
                         <EmotePicker
-                          channelName={nameForChannel(effectiveMultiChatChannel ?? "Channel")}
+                          channelName={nameForChannel(
+                            effectiveMultiChatChannel ?? "Channel",
+                          )}
                           onClose={() => setEmotePickerOpen(false)}
                           onSelect={(name) =>
                             setChatInput(
@@ -4361,7 +5033,7 @@ export function App() {
                           providerChannelEmoteNames={providerChannelNames}
                           providerEmotes={pickerProviderEmotes}
                           twitchEmotes={pickerEmotes}
-                    platformLabel={pickerPlatformLabel}
+                          platformLabel={pickerPlatformLabel}
                         />
                       )}
                     </div>
@@ -4383,7 +5055,11 @@ export function App() {
                     <button
                       aria-expanded={chatSettingsOpen}
                       aria-label="Chat settings"
-                      className={chatSettingsOpen ? "toolbar-icon active" : "toolbar-icon"}
+                      className={
+                        chatSettingsOpen
+                          ? "toolbar-icon active"
+                          : "toolbar-icon"
+                      }
                       onClick={() => setChatSettingsOpen((current) => !current)}
                       title="Chat settings"
                       type="button"
@@ -4396,7 +5072,8 @@ export function App() {
                         <TwitchChatColorControls
                           platform={
                             effectiveMultiChatChannel
-                              ? parseChannelKey(effectiveMultiChatChannel).platform
+                              ? parseChannelKey(effectiveMultiChatChannel)
+                                  .platform
                               : "twitch"
                           }
                         />
@@ -4420,7 +5097,9 @@ export function App() {
                           checked={chatDeletedMessageStyle === "dimmed"}
                           label="Dim deleted messages"
                           onChange={(checked) =>
-                            setChatDeletedMessageStyle(checked ? "dimmed" : "placeholder")
+                            setChatDeletedMessageStyle(
+                              checked ? "dimmed" : "placeholder",
+                            )
                           }
                         />
                         <label>
@@ -4429,7 +5108,9 @@ export function App() {
                             aria-label="Chat font size"
                             max="25"
                             min="14"
-                            onChange={(event) => setChatFontSize(Number(event.target.value))}
+                            onChange={(event) =>
+                              setChatFontSize(Number(event.target.value))
+                            }
                             type="range"
                             value={chatFontSize}
                           />
@@ -4440,7 +5121,9 @@ export function App() {
                             aria-label="Chat emote size"
                             max="48"
                             min="18"
-                            onChange={(event) => setChatEmoteSize(Number(event.target.value))}
+                            onChange={(event) =>
+                              setChatEmoteSize(Number(event.target.value))
+                            }
                             type="range"
                             value={chatEmoteSize}
                           />
@@ -4451,13 +5134,19 @@ export function App() {
                             aria-label="Chat history message count"
                             max="100"
                             min="20"
-                            onChange={(event) => setChatHistoryLimit(Number(event.target.value))}
+                            onChange={(event) =>
+                              setChatHistoryLimit(Number(event.target.value))
+                            }
                             step="10"
                             type="range"
                             value={chatHistoryLimit}
                           />
                         </label>
-                        <button className="chat-settings-more" onClick={openFullChatSettings} type="button">
+                        <button
+                          className="chat-settings-more"
+                          onClick={openFullChatSettings}
+                          type="button"
+                        >
                           <Settings size={14} />
                           More chat settings
                           <ChevronRight size={14} />
@@ -4466,8 +5155,12 @@ export function App() {
                     )}
                   </div>
                   <button
-                    className={chatIsKick ? "chat-send-button kick" : "chat-send-button"}
-                    disabled={authState.status !== "signed-in" || !chatInput.trim()}
+                    className={
+                      chatIsKick ? "chat-send-button kick" : "chat-send-button"
+                    }
+                    disabled={
+                      authState.status !== "signed-in" || !chatInput.trim()
+                    }
                     type="submit"
                   >
                     {replyingTo ? "Reply" : "Chat"}
@@ -4510,16 +5203,26 @@ export function App() {
               chatResizing ? "chat-resizing" : "",
               // In theater/fullscreen the toolbar floats over the video, so it
               // fades with the player controls rather than staying permanent.
-              activeMode === "native" && !nativeControlsVisible ? "controls-hidden" : "",
+              activeMode === "native" && !nativeControlsVisible
+                ? "controls-hidden"
+                : "",
             ]
               .filter(Boolean)
               .join(" ")}
             ref={playerPageRef}
-            style={{ "--chat-sidebar-width": `${chatSidebarWidth}px` } as CSSProperties}
+            style={
+              {
+                "--chat-sidebar-width": `${chatSidebarWidth}px`,
+              } as CSSProperties
+            }
             onMouseMove={(event) => {
               const previous = lastPlayerPointerPosition.current;
-              if (previous?.x === event.clientX && previous.y === event.clientY) return;
-              lastPlayerPointerPosition.current = { x: event.clientX, y: event.clientY };
+              if (previous?.x === event.clientX && previous.y === event.clientY)
+                return;
+              lastPlayerPointerPosition.current = {
+                x: event.clientX,
+                y: event.clientY,
+              };
               const overVideo =
                 event.target instanceof Element &&
                 (event.target.closest(".video-column") ||
@@ -4546,233 +5249,314 @@ export function App() {
           >
             <div
               className={`player-toolbar ${
-                !chatVisible || chatWindowTarget || chatPresentation === "overlay"
+                !chatVisible ||
+                chatWindowTarget ||
+                chatPresentation === "overlay"
                   ? "chat-collapsed"
                   : ""
               }`}
             >
               <div className="player-toolbar-main">
-              <button
-                aria-label="Back to browsing"
-                className="back-button"
-                onClick={() => void closePlayer()}
-                title="Back"
-                type="button"
-              >
-                <ChevronLeft size={25} />
-              </button>
-              {toolbarProfileImage && (
-                <img className="stream-avatar" alt="" src={toolbarProfileImage} />
-              )}
-              {toolbarIsLive && (
-                <div className="toolbar-stream-stats">
-                  <span className="toolbar-viewers" title="Current viewers">
-                    <Users size={14} />
-                    <strong>
-                      {Intl.NumberFormat("en-US").format(toolbarViewerCount)}
-                    </strong>
-                  </span>
-                  <span className="toolbar-uptime" title="Stream uptime">
-                    <Clock size={13} />
-                    {formatUptime(toolbarStartedAt, toolbarUptimeNow, true)}
-                  </span>
+                <button
+                  aria-label="Back to browsing"
+                  className="back-button"
+                  onClick={() => void closePlayer()}
+                  title="Back"
+                  type="button"
+                >
+                  <ChevronLeft size={25} />
+                </button>
+                {toolbarProfileImage && (
+                  <img
+                    className="stream-avatar"
+                    alt=""
+                    src={toolbarProfileImage}
+                  />
+                )}
+                {toolbarIsLive && (
+                  <div className="toolbar-stream-stats">
+                    <span className="toolbar-viewers" title="Current viewers">
+                      <Users size={14} />
+                      <strong>
+                        {Intl.NumberFormat("en-US").format(toolbarViewerCount)}
+                      </strong>
+                    </span>
+                    <span className="toolbar-uptime" title="Stream uptime">
+                      <Clock size={13} />
+                      {formatUptime(toolbarStartedAt, toolbarUptimeNow, true)}
+                    </span>
+                  </div>
+                )}
+                <div className="channel-identity">
+                  <div>
+                    <span className="stream-title" title={toolbarTitle}>
+                      {toolbarTitle}
+                    </span>
+                    <div className="channel-name-line">
+                      <strong>{activeChannelDisplayName}</strong>
+                      {toolbarCategory && (
+                        <button
+                          className="toolbar-category"
+                          disabled={!streamMetadata?.categoryId}
+                          onClick={() => void chooseStreamCategory()}
+                          title={
+                            streamMetadata?.categoryId
+                              ? `Browse ${toolbarCategory}`
+                              : toolbarCategory
+                          }
+                          type="button"
+                        >
+                          {toolbarCategory}
+                        </button>
+                      )}
+                      {toolbarLanguage && (
+                        <span className="toolbar-stream-tag">
+                          {toolbarLanguage.toUpperCase()}
+                        </span>
+                      )}
+                      {toolbarTags?.slice(0, 2).map((tag) => (
+                        <span
+                          className="toolbar-stream-tag"
+                          key={tag}
+                          title={tag}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {toolbarIsMature && (
+                        <span className="toolbar-stream-tag mature">
+                          Mature
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="channel-identity">
-                <div>
-                  <span className="stream-title" title={toolbarTitle}>
-                    {toolbarTitle}
-                  </span>
-                  <div className="channel-name-line">
-                    <strong>{activeChannelDisplayName}</strong>
-                    {toolbarCategory && (
+
+                <div
+                  className="player-actions"
+                  aria-label="Channel and player actions"
+                >
+                  <button
+                    aria-label={
+                      favoriteChannels.has(activeChannel ?? "")
+                        ? "Remove local favorite"
+                        : "Add local favorite"
+                    }
+                    aria-pressed={favoriteChannels.has(activeChannel ?? "")}
+                    className={
+                      favoriteChannels.has(activeChannel ?? "")
+                        ? "toolbar-icon favorite-action active"
+                        : "toolbar-icon favorite-action"
+                    }
+                    onClick={() =>
+                      activeChannel && toggleFavoriteChannel(activeChannel)
+                    }
+                    title={
+                      favoriteChannels.has(activeChannel ?? "")
+                        ? "Remove local favorite"
+                        : "Add local favorite"
+                    }
+                    type="button"
+                  >
+                    <Star
+                      fill={
+                        favoriteChannels.has(activeChannel ?? "")
+                          ? "currentColor"
+                          : "none"
+                      }
+                      size={17}
+                    />
+                  </button>
+                  <button
+                    aria-label={
+                      activeChannelIsFollowed
+                        ? "Following channel"
+                        : "Follow channel"
+                    }
+                    aria-pressed={activeChannelIsFollowed}
+                    className={
+                      activeChannelIsFollowed
+                        ? "toolbar-icon follow-action active"
+                        : "toolbar-icon follow-action"
+                    }
+                    disabled={followPending}
+                    onClick={() => void handleFollow()}
+                    title={
+                      followPending
+                        ? "Updating…"
+                        : streamMetadata?.isFollowed
+                          ? "You follow this channel"
+                          : activeChannel &&
+                              parseChannelKey(activeChannel).platform === "kick"
+                            ? "Follow on Kick"
+                            : "Follow on Twitch"
+                    }
+                    type="button"
+                  >
+                    {followPending ? (
+                      <RefreshCw className="spin" size={16} />
+                    ) : (
+                      <Heart
+                        fill={activeChannelIsFollowed ? "currentColor" : "none"}
+                        size={17}
+                      />
+                    )}
+                  </button>
+                  <button
+                    aria-label={
+                      streamMetadata?.subscription?.isSubscribed
+                        ? "Subscribed"
+                        : "Subscribe"
+                    }
+                    className={[
+                      "toolbar-icon",
+                      "subscribe-action",
+                      streamMetadata?.subscription?.isSubscribed
+                        ? "active"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => void openSubscribePage()}
+                    title={
+                      activeChannel &&
+                      parseChannelKey(activeChannel).platform === "kick"
+                        ? "Open the Kick subscription page"
+                        : "Open the Twitch subscription page"
+                    }
+                    type="button"
+                  >
+                    <Badge
+                      fill={
+                        streamMetadata?.subscription?.isSubscribed
+                          ? "currentColor"
+                          : "none"
+                      }
+                      size={17}
+                    />
+                  </button>
+                  <button
+                    className="toolbar-action"
+                    disabled={
+                      activeChannel !== null &&
+                      parseChannelKey(activeChannel).platform === "twitch" &&
+                      authState.status !== "signed-in"
+                    }
+                    onClick={() => void createClip()}
+                    title={
+                      activeChannel &&
+                      parseChannelKey(activeChannel).platform === "kick"
+                        ? "Open Kick's clip editor"
+                        : authState.status !== "signed-in"
+                          ? "Sign in with Twitch to create clips"
+                          : "Create a clip with Twitch's official API"
+                    }
+                    type="button"
+                  >
+                    <Scissors size={16} /> <span>Clip</span>
+                  </button>
+                  {activeMode !== "native" && (
+                    <>
                       <button
-                        className="toolbar-category"
-                        disabled={!streamMetadata?.categoryId}
-                        onClick={() => void chooseStreamCategory()}
+                        aria-label={
+                          singleStreamWindowTarget
+                            ? "Dock stream"
+                            : "Pop out stream"
+                        }
+                        aria-pressed={Boolean(singleStreamWindowTarget)}
+                        className={
+                          singleStreamWindowTarget
+                            ? "toolbar-action active"
+                            : "toolbar-action"
+                        }
+                        onClick={() => {
+                          if (singleStreamWindowTarget) {
+                            closeSingleStreamWindow("single-player");
+                            return;
+                          }
+                          if (activeChannel) {
+                            openSingleStreamWindow(
+                              "single-player",
+                              activeChannelDisplayName ?? activeChannel,
+                            );
+                          }
+                        }}
                         title={
-                          streamMetadata?.categoryId
-                            ? `Browse ${toolbarCategory}`
-                            : toolbarCategory
+                          singleStreamWindowTarget
+                            ? "Dock stream back in Cyber Wire"
+                            : "Open a resizable picture-in-picture window"
                         }
                         type="button"
                       >
-                        {toolbarCategory}
+                        <PictureInPicture2 size={16} />
+                        <span>
+                          {singleStreamWindowTarget ? "Dock" : "Pop out"}
+                        </span>
                       </button>
-                    )}
-                    {toolbarLanguage && (
-                      <span className="toolbar-stream-tag">
-                        {toolbarLanguage.toUpperCase()}
-                      </span>
-                    )}
-                    {toolbarTags?.slice(0, 2).map((tag) => (
-                      <span className="toolbar-stream-tag" key={tag} title={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                    {toolbarIsMature && (
-                      <span className="toolbar-stream-tag mature">Mature</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="player-actions" aria-label="Channel and player actions">
-                <button
-                  aria-label={favoriteChannels.has(activeChannel ?? "") ? "Remove local favorite" : "Add local favorite"}
-                  aria-pressed={favoriteChannels.has(activeChannel ?? "")}
-                  className={favoriteChannels.has(activeChannel ?? "") ? "toolbar-icon favorite-action active" : "toolbar-icon favorite-action"}
-                  onClick={() => activeChannel && toggleFavoriteChannel(activeChannel)}
-                  title={favoriteChannels.has(activeChannel ?? "") ? "Remove local favorite" : "Add local favorite"}
-                  type="button"
-                >
-                  <Star fill={favoriteChannels.has(activeChannel ?? "") ? "currentColor" : "none"} size={17} />
-                </button>
-                <button
-                  aria-label={activeChannelIsFollowed ? "Following channel" : "Follow channel"}
-                  aria-pressed={activeChannelIsFollowed}
-                  className={activeChannelIsFollowed ? "toolbar-icon follow-action active" : "toolbar-icon follow-action"}
-                  disabled={followPending}
-                  onClick={() => void handleFollow()}
-                  title={
-                    followPending
-                      ? "Updating…"
-                      : streamMetadata?.isFollowed
-                        ? "You follow this channel"
-                        : activeChannel && parseChannelKey(activeChannel).platform === "kick"
-                          ? "Follow on Kick"
-                          : "Follow on Twitch"
-                  }
-                  type="button"
-                >
-                  {followPending ? (
-                    <RefreshCw className="spin" size={16} />
-                  ) : (
-                    <Heart fill={activeChannelIsFollowed ? "currentColor" : "none"} size={17} />
+                      <button
+                        aria-pressed={theaterMode}
+                        className={
+                          theaterMode
+                            ? "toolbar-action active"
+                            : "toolbar-action"
+                        }
+                        onClick={() => setTheaterMode((current) => !current)}
+                        title="Toggle theater mode (T)"
+                        type="button"
+                      >
+                        <Tv size={16} /> <span>Theater</span>
+                      </button>
+                      <button
+                        aria-pressed={fullscreen}
+                        className={
+                          fullscreen
+                            ? "toolbar-action active"
+                            : "toolbar-action"
+                        }
+                        onClick={() => void setFullscreenMode(!fullscreen)}
+                        title="Toggle fullscreen window (F)"
+                        type="button"
+                      >
+                        {fullscreen ? (
+                          <Minimize size={16} />
+                        ) : (
+                          <Maximize size={16} />
+                        )}
+                        <span>{fullscreen ? "Exit full" : "Fullscreen"}</span>
+                      </button>
+                      <button
+                        aria-pressed={cleanView}
+                        className={
+                          cleanView ? "toolbar-action active" : "toolbar-action"
+                        }
+                        onClick={() => setCleanView((current) => !current)}
+                        title="Hide all app chrome (Clean View)"
+                        type="button"
+                      >
+                        <Pin size={16} />{" "}
+                        <span>{cleanView ? "Unlock" : "Clean View"}</span>
+                      </button>
+                    </>
                   )}
-                </button>
-                <button
-                  aria-label={
-                    streamMetadata?.subscription?.isSubscribed ? "Subscribed" : "Subscribe"
-                  }
-                  className={[
-                    "toolbar-icon",
-                    "subscribe-action",
-                    streamMetadata?.subscription?.isSubscribed ? "active" : "",
-                  ].filter(Boolean).join(" ")}
-                  onClick={() => void openSubscribePage()}
-                  title={
-                    activeChannel && parseChannelKey(activeChannel).platform === "kick"
-                      ? "Open the Kick subscription page"
-                      : "Open the Twitch subscription page"
-                  }
-                  type="button"
-                >
-                  <Badge
-                    fill={streamMetadata?.subscription?.isSubscribed ? "currentColor" : "none"}
-                    size={17}
-                  />
-                </button>
-                <button
-                  className="toolbar-action"
-                  disabled={
-                    activeChannel !== null &&
-                    parseChannelKey(activeChannel).platform === "twitch" &&
-                    authState.status !== "signed-in"
-                  }
-                  onClick={() => void createClip()}
-                  title={
-                    activeChannel && parseChannelKey(activeChannel).platform === "kick"
-                      ? "Open Kick's clip editor"
-                      : authState.status !== "signed-in"
-                        ? "Sign in with Twitch to create clips"
-                        : "Create a clip with Twitch's official API"
-                  }
-                  type="button"
-                >
-                  <Scissors size={16} /> <span>Clip</span>
-                </button>
-                {activeMode !== "native" && (
-                  <>
-                    <button
-                      aria-label={
-                        singleStreamWindowTarget ? "Dock stream" : "Pop out stream"
-                      }
-                      aria-pressed={Boolean(singleStreamWindowTarget)}
-                      className={
-                        singleStreamWindowTarget
-                          ? "toolbar-action active"
-                          : "toolbar-action"
-                      }
-                      onClick={() => {
-                        if (singleStreamWindowTarget) {
-                          closeSingleStreamWindow("single-player");
-                          return;
-                        }
-                        if (activeChannel) {
-                          openSingleStreamWindow(
-                            "single-player",
-                            activeChannelDisplayName ?? activeChannel,
-                          );
-                        }
-                      }}
-                      title={
-                        singleStreamWindowTarget
-                          ? "Dock stream back in Cyber Wire"
-                          : "Open a resizable picture-in-picture window"
-                      }
-                      type="button"
-                    >
-                      <PictureInPicture2 size={16} />
-                      <span>{singleStreamWindowTarget ? "Dock" : "Pop out"}</span>
-                    </button>
-                    <button
-                      aria-pressed={theaterMode}
-                      className={theaterMode ? "toolbar-action active" : "toolbar-action"}
-                      onClick={() => setTheaterMode((current) => !current)}
-                      title="Toggle theater mode (T)"
-                      type="button"
-                    >
-                      <Tv size={16} /> <span>Theater</span>
-                    </button>
-                    <button
-                      aria-pressed={fullscreen}
-                      className={fullscreen ? "toolbar-action active" : "toolbar-action"}
-                      onClick={() => void setFullscreenMode(!fullscreen)}
-                      title="Toggle fullscreen window (F)"
-                      type="button"
-                    >
-                      {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                      <span>{fullscreen ? "Exit full" : "Fullscreen"}</span>
-                    </button>
-                    <button
-                      aria-pressed={cleanView}
-                      className={cleanView ? "toolbar-action active" : "toolbar-action"}
-                      onClick={() => setCleanView((current) => !current)}
-                      title="Hide all app chrome (Clean View)"
-                      type="button"
-                    >
-                      <Pin size={16} /> <span>{cleanView ? "Unlock" : "Clean View"}</span>
-                    </button>
-                  </>
-                )}
-                <button
-                  aria-label="Open channel in browser"
-                  className="toolbar-icon"
-                  onClick={() => void openChannelInBrowser()}
-                  title="Open channel in browser"
-                  type="button"
-                >
-                  <ExternalLink size={16} />
-                </button>
-              </div>
+                  <button
+                    aria-label="Open channel in browser"
+                    className="toolbar-icon"
+                    onClick={() => void openChannelInBrowser()}
+                    title="Open channel in browser"
+                    type="button"
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                </div>
               </div>
             </div>
 
             <div
               className={[
                 "viewer-layout",
-                !chatVisible || chatWindowTarget || chatPresentation === "overlay"
+                !chatVisible ||
+                chatWindowTarget ||
+                chatPresentation === "overlay"
                   ? "chat-collapsed"
                   : "",
                 chatPresentation === "overlay" ? "chat-overlay-mode" : "",
@@ -4786,21 +5570,29 @@ export function App() {
                   title="Show stream chat"
                   type="button"
                 >
-                  {chatOnLeft ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
+                  {chatOnLeft ? (
+                    <ChevronRight size={19} />
+                  ) : (
+                    <ChevronLeft size={19} />
+                  )}
                 </button>
               )}
               <div
                 className={[
                   "video-column",
                   activeMode === "native" ? "native" : "",
-                  activeMode === "native" && !nativeControlsVisible ? "controls-hidden" : "",
+                  activeMode === "native" && !nativeControlsVisible
+                    ? "controls-hidden"
+                    : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
                 <div
                   className={
-                    activeMode === "native" ? "player-host hls-surface-host" : "player-host"
+                    activeMode === "native"
+                      ? "player-host hls-surface-host"
+                      : "player-host"
                   }
                   ref={playerHost}
                   aria-label={`${activeMode === "native" ? "Native" : "Official Twitch"} player for ${activeChannel}`}
@@ -4815,7 +5607,9 @@ export function App() {
                       return;
                     }
                     event.preventDefault();
-                    window.desktop.player.controlNative({ command: "toggle-mute" });
+                    window.desktop.player.controlNative({
+                      command: "toggle-mute",
+                    });
                     revealNativeControls();
                   }}
                   onMouseDown={(event) => {
@@ -4834,32 +5628,9 @@ export function App() {
                   }}
                 >
                   {activeMode === "official" &&
-                    (singleStreamWindowTarget
-                      ? createPortal(
-                          <div className="single-stream-popout-shell">
-                            <iframe
-                              allow="autoplay; fullscreen; picture-in-picture"
-                              allowFullScreen
-                              className="standard-player-frame"
-                              key={`standard-player:${activeChannel}`}
-                              sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
-                              src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
-                              aria-label={`Official Twitch player for ${activeChannel}`}
-                            />
-                            <button
-                              aria-label="Dock stream"
-                              className="single-stream-popout-dock"
-                              onClick={() => closeSingleStreamWindow("single-player")}
-                              title="Dock stream back in Cyber Wire"
-                              type="button"
-                            >
-                              Dock stream
-                            </button>
-                          </div>,
-                          singleStreamWindowTarget.document.body,
-                          "single-stream-popout",
-                        )
-                      : (
+                    (singleStreamWindowTarget ? (
+                      createPortal(
+                        <div className="single-stream-popout-shell">
                           <iframe
                             allow="autoplay; fullscreen; picture-in-picture"
                             allowFullScreen
@@ -4869,7 +5640,32 @@ export function App() {
                             src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
                             aria-label={`Official Twitch player for ${activeChannel}`}
                           />
-                        ))}
+                          <button
+                            aria-label="Dock stream"
+                            className="single-stream-popout-dock"
+                            onClick={() =>
+                              closeSingleStreamWindow("single-player")
+                            }
+                            title="Dock stream back in Cyber Wire"
+                            type="button"
+                          >
+                            Dock stream
+                          </button>
+                        </div>,
+                        singleStreamWindowTarget.document.body,
+                        "single-stream-popout",
+                      )
+                    ) : (
+                      <iframe
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                        className="standard-player-frame"
+                        key={`standard-player:${activeChannel}`}
+                        sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
+                        src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
+                        aria-label={`Official Twitch player for ${activeChannel}`}
+                      />
+                    ))}
                   {activeMode === "native" && (
                     <>
                       <NativeControls
@@ -4880,7 +5676,8 @@ export function App() {
                           theaterMode,
                           chatVisible,
                           chatPresentation,
-                          channelDisplayName: activeChannelDisplayName ?? undefined,
+                          channelDisplayName:
+                            activeChannelDisplayName ?? undefined,
                           viewerLogin,
                           isFollowed: activeChannelFollowState ?? undefined,
                         }}
@@ -4890,44 +5687,55 @@ export function App() {
                     </>
                   )}
                   {activeMode === "native" &&
-                    (nativeState.status !== "playing" || nativeStreamOffline) && (
-                    <div className="native-player-placeholder">
-                      {!nativeStreamOffline && (
-                        <span className={`native-status-orb ${nativeState.status}`} />
-                      )}
-                      <strong>
-                        {nativeStreamOffline
-                          ? `${streamMetadata?.displayName ?? activeChannel} has ended the stream`
-                          : nativeState.error === "Stream is offline."
-                            ? "Stream offline"
-                            : nativeState.status === "error"
-                              ? "Native player could not start"
-                              : nativeState.transition?.kind === "quality"
-                                ? `Switching to ${formatQualityLabel(nativeState.transition.detail as NativeQualityValue)}`
-                                : nativeState.transition?.kind === "channel"
-                                  ? `Loading ${streamMetadata?.displayName ?? activeChannel}`
-                                  : "Starting native player"}
-                      </strong>
-                      <p>
-                        {nativeStreamOffline
-                          ? "The channel is now offline. This will update automatically if they go live again."
-                          : (nativeState.error ??
-                            (nativeState.transition?.kind === "quality"
-                              ? "Reconnecting the stream at the new quality."
-                              : "Streamlink is resolving and connecting the live stream."))}
-                      </p>
-                      {(nativeStreamOffline || nativeState.status === "error") && (
-                        <button onClick={() => void retryNativePlayer()} type="button">
-                          <RotateCcw size={15} /> Retry
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    (nativeState.status !== "playing" ||
+                      nativeStreamOffline) && (
+                      <div className="native-player-placeholder">
+                        {!nativeStreamOffline && (
+                          <span
+                            className={`native-status-orb ${nativeState.status}`}
+                          />
+                        )}
+                        <strong>
+                          {nativeStreamOffline
+                            ? `${streamMetadata?.displayName ?? activeChannel} has ended the stream`
+                            : nativeState.error === "Stream is offline."
+                              ? "Stream offline"
+                              : nativeState.status === "error"
+                                ? "Native player could not start"
+                                : nativeState.transition?.kind === "quality"
+                                  ? `Switching to ${formatQualityLabel(nativeState.transition.detail as NativeQualityValue)}`
+                                  : nativeState.transition?.kind === "channel"
+                                    ? `Loading ${streamMetadata?.displayName ?? activeChannel}`
+                                    : "Starting native player"}
+                        </strong>
+                        <p>
+                          {nativeStreamOffline
+                            ? "The channel is now offline. This will update automatically if they go live again."
+                            : (nativeState.error ??
+                              (nativeState.transition?.kind === "quality"
+                                ? "Reconnecting the stream at the new quality."
+                                : "Streamlink is resolving and connecting the live stream."))}
+                        </p>
+                        {(nativeStreamOffline ||
+                          nativeState.status === "error") && (
+                          <button
+                            onClick={() => void retryNativePlayer()}
+                            type="button"
+                          >
+                            <RotateCcw size={15} /> Retry
+                          </button>
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
               {!(activeMode === "native" && chatPresentation === "overlay") && (
                 <ChatWindowPortal
-                  className={oledMode ? "chat-window-shell oled-mode" : "chat-window-shell"}
+                  className={
+                    oledMode
+                      ? "chat-window-shell oled-mode"
+                      : "chat-window-shell"
+                  }
                   // The sizes chat is drawn at are set on the app shell, which
                   // the panel is no longer inside once it is in a window of its
                   // own, so they travel with it.
@@ -4939,360 +5747,407 @@ export function App() {
                   }
                   target={chatWindowTarget}
                 >
-                <aside
-                  className={[
-                    "chat-panel",
-                    chatPresentation === "overlay" ? "overlay" : "",
-                    // Keep the panel mounted and just hide it, so re-showing is
-                    // instant instead of re-rendering the whole message list.
-                    chatVisible ? "" : "chat-hidden",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-label={`${activeChannel} chat`}
-                  onMouseEnter={revealChatComposer}
-                  style={
-                    chatPresentation === "overlay"
-                      ? { backgroundColor: `rgb(24 24 27 / ${chatOpacity}%)` }
-                      : undefined
-                  }
-                >
-                  {chatPresentation === "side" && !chatWindowTarget && (
-                    <div
-                      aria-label="Resize chat"
-                      className={
-                        chatOnLeft
-                          ? "chat-resize-handle chat-resize-handle-right"
-                          : "chat-resize-handle chat-resize-handle-left"
-                      }
-                      onDoubleClick={() => setChatSidebarWidth(384)}
-                      onPointerDown={beginChatResize}
-                      onPointerMove={updateChatResize}
-                      onPointerUp={endChatResize}
-                      role="separator"
-                    />
-                  )}
-                  {chatPresentation === "overlay" && (
-                    <div className="chat-overlay-tools">
-                      <button
-                        aria-label="Hide chat overlay"
-                        onClick={() => setChatLayout("hidden")}
-                        title="Hide chat"
-                        type="button"
-                      >
-                        <ChevronRight size={17} />
-                      </button>
-                      {pinnedChatMessageHidden && (
-                        <button
-                          aria-label="Show pinned message"
-                          onClick={() => setDismissedPinnedMessage(null)}
-                          title="Show pinned message"
-                          type="button"
-                        >
-                          <Pin size={16} />
-                        </button>
-                      )}
-                      <div className="chat-user-list-anchor">
-                        <button
-                          aria-expanded={chatUserListOpen}
-                          aria-label="Users in chat"
-                          className={chatUserListOpen ? "active" : ""}
-                          onClick={() => {
-                            setChatSettingsOpen(false);
-                            setChatUserListOpen((current) => !current);
-                          }}
-                          title="Users in chat"
-                          type="button"
-                        >
-                          <Users size={16} />
-                        </button>
-                        {chatUserListOpen && chatPresentation === "overlay" && (
-                          <ChatUserList
-                            badges={twitchBadges}
-                            entries={chatUserListEntries}
-                            key={`overlay-${chatChannel}`}
-                            oledMode={oledMode}
-                            onClose={() => setChatUserListOpen(false)}
-                            onOpenUser={openChatUserCard}
-                            platform={activeChatPlatform}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  <div className="chat-panel-header">
-                    {/* Collapsing chat back into a layout it is not part of
-                        means nothing while it has a window of its own. */}
-                    {chatWindowTarget ? (
-                      <ChatWindowPlacer />
-                    ) : (
-                      <button
-                        aria-label="Collapse chat"
-                        className="toolbar-icon chat-collapse-button"
-                        onClick={() => setChatLayout("hidden")}
-                        title="Collapse chat"
-                        type="button"
-                      >
-                        {chatOnLeft && chatPresentation === "side" ? (
-                          <ChevronLeft size={18} />
-                        ) : (
-                          <ChevronRight size={18} />
-                        )}
-                      </button>
-                    )}
-                    <strong>Stream Chat</strong>
-                    <div className="chat-header-actions">
-                      {!chatWindowTarget && (
-                        <button
-                          aria-label="Pop chat out into its own window"
-                          className="toolbar-icon"
-                          onClick={openChatWindow}
-                          title="Pop out chat"
-                          type="button"
-                        >
-                          <ExternalLink size={16} />
-                        </button>
-                      )}
-                      {pinnedChatMessageHidden && (
-                        <button
-                          aria-label="Show pinned message"
-                          className="toolbar-icon"
-                          onClick={() => setDismissedPinnedMessage(null)}
-                          title="Show pinned message"
-                          type="button"
-                        >
-                          <Pin size={16} />
-                        </button>
-                      )}
-                      <div className="chat-user-list-anchor">
-                        <button
-                          aria-expanded={chatUserListOpen}
-                          aria-label="Users in chat"
-                          className={chatUserListOpen ? "toolbar-icon active" : "toolbar-icon"}
-                          onClick={() => {
-                            setChatSettingsOpen(false);
-                            setChatUserListOpen((current) => !current);
-                          }}
-                          title="Users in chat"
-                          type="button"
-                        >
-                          <Users size={16} />
-                        </button>
-                        {chatUserListOpen && chatPresentation === "side" && (
-                          <ChatUserList
-                            badges={twitchBadges}
-                            entries={chatUserListEntries}
-                            key={chatChannel}
-                            oledMode={oledMode}
-                            onClose={() => setChatUserListOpen(false)}
-                            onOpenUser={openChatUserCard}
-                            platform={activeChatPlatform}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {visiblePinnedChatMessage && (
-                    <PinnedChatMessage
-                      message={visiblePinnedChatMessage}
-                      onDismiss={() => {
-                        if (chatChannel) {
-                          setDismissedPinnedMessage({
-                            channel: chatChannel,
-                            id: visiblePinnedChatMessage.id,
-                          });
+                  <aside
+                    className={[
+                      "chat-panel",
+                      chatPresentation === "overlay" ? "overlay" : "",
+                      // Keep the panel mounted and just hide it, so re-showing is
+                      // instant instead of re-rendering the whole message list.
+                      chatVisible ? "" : "chat-hidden",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    aria-label={`${activeChannel} chat`}
+                    onMouseEnter={revealChatComposer}
+                    style={
+                      chatPresentation === "overlay"
+                        ? { backgroundColor: `rgb(24 24 27 / ${chatOpacity}%)` }
+                        : undefined
+                    }
+                  >
+                    {chatPresentation === "side" && !chatWindowTarget && (
+                      <div
+                        aria-label="Resize chat"
+                        className={
+                          chatOnLeft
+                            ? "chat-resize-handle chat-resize-handle-right"
+                            : "chat-resize-handle chat-resize-handle-left"
                         }
-                      }}
-                    />
-                  )}
-                  <div className="chat-host native-chat" ref={chatHost}>
-                    <div
-                      className={`chat-messages${chatAutoScroll ? "" : " scroll-paused"}`}
-                      ref={chatMessagesHost}
-                      aria-live="polite"
-                      onScroll={handleChatScroll}
-                      onWheel={handleChatWheel}
-                      onPointerDown={handleChatPointerDown}
-                    >
-                      {chatMessages.length === 0 && (
-                        <div className="chat-empty-state">
-                          {chatConnectionState === "connected"
-                            ? "Waiting for the next chat message…"
-                            : activeChannel && parseChannelKey(activeChannel).platform === "kick"
-                              ? "Connecting to Kick chat…"
-                              : "Connecting to Twitch chat…"}
+                        onDoubleClick={() => setChatSidebarWidth(384)}
+                        onPointerDown={beginChatResize}
+                        onPointerMove={updateChatResize}
+                        onPointerUp={endChatResize}
+                        role="separator"
+                      />
+                    )}
+                    {chatPresentation === "overlay" && (
+                      <div className="chat-overlay-tools">
+                        <button
+                          aria-label="Hide chat overlay"
+                          onClick={() => setChatLayout("hidden")}
+                          title="Hide chat"
+                          type="button"
+                        >
+                          <ChevronRight size={17} />
+                        </button>
+                        {pinnedChatMessageHidden && (
+                          <button
+                            aria-label="Show pinned message"
+                            onClick={() => setDismissedPinnedMessage(null)}
+                            title="Show pinned message"
+                            type="button"
+                          >
+                            <Pin size={16} />
+                          </button>
+                        )}
+                        <div className="chat-user-list-anchor">
+                          <button
+                            aria-expanded={chatUserListOpen}
+                            aria-label="Users in chat"
+                            className={chatUserListOpen ? "active" : ""}
+                            onClick={() => {
+                              setChatSettingsOpen(false);
+                              setChatUserListOpen((current) => !current);
+                            }}
+                            title="Users in chat"
+                            type="button"
+                          >
+                            <Users size={16} />
+                          </button>
+                          {chatUserListOpen &&
+                            chatPresentation === "overlay" && (
+                              <ChatUserList
+                                badges={twitchBadges}
+                                entries={chatUserListEntries}
+                                key={`overlay-${chatChannel}`}
+                                oledMode={oledMode}
+                                onClose={() => setChatUserListOpen(false)}
+                                onOpenUser={openChatUserCard}
+                                platform={activeChatPlatform}
+                              />
+                            )}
                         </div>
+                      </div>
+                    )}
+                    <div className="chat-panel-header">
+                      {/* Collapsing chat back into a layout it is not part of
+                        means nothing while it has a window of its own. */}
+                      {chatWindowTarget ? (
+                        <ChatWindowPlacer />
+                      ) : (
+                        <button
+                          aria-label="Collapse chat"
+                          className="toolbar-icon chat-collapse-button"
+                          onClick={() => setChatLayout("hidden")}
+                          title="Collapse chat"
+                          type="button"
+                        >
+                          {chatOnLeft && chatPresentation === "side" ? (
+                            <ChevronLeft size={18} />
+                          ) : (
+                            <ChevronRight size={18} />
+                          )}
+                        </button>
                       )}
-                      {chatMessages.map((message, index) => (
-                        <Fragment key={message.id}>
-                        <ChatMessageRow
+                      <strong>Stream Chat</strong>
+                      <div className="chat-header-actions">
+                        {!chatWindowTarget && (
+                          <button
+                            aria-label="Pop chat out into its own window"
+                            className="toolbar-icon"
+                            onClick={openChatWindow}
+                            title="Pop out chat"
+                            type="button"
+                          >
+                            <ExternalLink size={16} />
+                          </button>
+                        )}
+                        {pinnedChatMessageHidden && (
+                          <button
+                            aria-label="Show pinned message"
+                            className="toolbar-icon"
+                            onClick={() => setDismissedPinnedMessage(null)}
+                            title="Show pinned message"
+                            type="button"
+                          >
+                            <Pin size={16} />
+                          </button>
+                        )}
+                        <div className="chat-user-list-anchor">
+                          <button
+                            aria-expanded={chatUserListOpen}
+                            aria-label="Users in chat"
+                            className={
+                              chatUserListOpen
+                                ? "toolbar-icon active"
+                                : "toolbar-icon"
+                            }
+                            onClick={() => {
+                              setChatSettingsOpen(false);
+                              setChatUserListOpen((current) => !current);
+                            }}
+                            title="Users in chat"
+                            type="button"
+                          >
+                            <Users size={16} />
+                          </button>
+                          {chatUserListOpen && chatPresentation === "side" && (
+                            <ChatUserList
+                              badges={twitchBadges}
+                              entries={chatUserListEntries}
+                              key={chatChannel}
+                              oledMode={oledMode}
+                              onClose={() => setChatUserListOpen(false)}
+                              onOpenUser={openChatUserCard}
+                              platform={activeChatPlatform}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {visiblePinnedChatMessage && (
+                      <PinnedChatMessage
+                        message={visiblePinnedChatMessage}
+                        onDismiss={() => {
+                          if (chatChannel) {
+                            setDismissedPinnedMessage({
+                              channel: chatChannel,
+                              id: visiblePinnedChatMessage.id,
+                            });
+                          }
+                        }}
+                      />
+                    )}
+                    <div className="chat-host native-chat" ref={chatHost}>
+                      <div
+                        className={`chat-messages${chatAutoScroll ? "" : " scroll-paused"}`}
+                        ref={chatMessagesHost}
+                        aria-live="polite"
+                        onScroll={handleChatScroll}
+                        onWheel={handleChatWheel}
+                        onPointerDown={handleChatPointerDown}
+                      >
+                        {chatMessages.length === 0 && (
+                          <div className="chat-empty-state">
+                            {chatConnectionState === "connected"
+                              ? "Waiting for the next chat message…"
+                              : activeChannel &&
+                                  parseChannelKey(activeChannel).platform ===
+                                    "kick"
+                                ? "Connecting to Kick chat…"
+                                : "Connecting to Twitch chat…"}
+                          </div>
+                        )}
+                        {chatMessages.map((message, index) => (
+                          <Fragment key={message.id}>
+                            <ChatMessageRow
+                              badges={twitchBadges}
+                              deletedMessageStyle={chatDeletedMessageStyle}
+                              deletedRevealed={revealedDeletedMessages.has(
+                                message.id,
+                              )}
+                              mentioned={messageMentionsLogin(
+                                message,
+                                viewerLogin,
+                              )}
+                              message={message}
+                              oledMode={oledMode}
+                              onRevealDeleted={revealDeletedMessage}
+                              onOpenThread={setOpenReplyThread}
+                              onOpenUser={openChatUserCard}
+                              onReply={beginReply}
+                              providerEmotes={chatProviderEmotes}
+                              showTimestamp={chatTimestamps}
+                            />
+                            {index === chatHistoryBoundary && (
+                              <div
+                                className="live-chat-divider"
+                                role="separator"
+                              >
+                                <span>Live chat</span>
+                              </div>
+                            )}
+                          </Fragment>
+                        ))}
+                      </div>
+                      {openReplyThread && (
+                        <ReplyThread
                           badges={twitchBadges}
-                          deletedMessageStyle={chatDeletedMessageStyle}
-                          deletedRevealed={revealedDeletedMessages.has(message.id)}
-                          mentioned={messageMentionsLogin(message, viewerLogin)}
-                          message={message}
+                          messages={chatMessages}
                           oledMode={oledMode}
-                          onRevealDeleted={revealDeletedMessage}
-                          onOpenThread={setOpenReplyThread}
+                          onClose={() => setOpenReplyThread(null)}
                           onOpenUser={openChatUserCard}
                           onReply={beginReply}
-                          providerEmotes={chatProviderEmotes}
-                          showTimestamp={chatTimestamps}
+                          renderText={renderCardText}
+                          selected={openReplyThread}
                         />
-                        {index === chatHistoryBoundary && (
-                          <div className="live-chat-divider" role="separator">
-                            <span>Live chat</span>
+                      )}
+                      {selectedChatUser && activeChannel && (
+                        <ChatUserCard
+                          anchor={selectedChatUserAnchor}
+                          badges={twitchBadges}
+                          channel={activeChannel}
+                          root={chatWindowTarget?.document}
+                          key={`${activeChannel}:${selectedChatUser.login}`}
+                          messages={chatMessages}
+                          onClose={() => {
+                            setSelectedChatUser(null);
+                            setSelectedChatUserAnchor(undefined);
+                            setNativeControlsVisible(true);
+                          }}
+                          renderText={renderCardText}
+                          selected={selectedChatUser}
+                        />
+                      )}
+                      {!chatAutoScroll && (
+                        <button
+                          className="scroll-to-current"
+                          onClick={scrollChatToCurrent}
+                          title={
+                            pausedChatNewMessages > 20
+                              ? "20+ new messages"
+                              : pausedChatNewMessages > 0
+                                ? `${pausedChatNewMessages} new ${pausedChatNewMessages === 1 ? "message" : "messages"}`
+                                : "Return to live chat"
+                          }
+                          type="button"
+                        >
+                          <Pause aria-hidden="true" size={12} />
+                          <span>Chat paused due to scroll</span>
+                          <ArrowDown aria-hidden="true" size={14} />
+                        </button>
+                      )}
+                      <form
+                        className="native-chat-input"
+                        onSubmit={sendChatMessage}
+                        ref={chatComposerHost}
+                      >
+                        <ChatSendStatus
+                          onDismiss={chatSender.dismiss}
+                          status={chatSender.status}
+                        />
+                        {chatRestrictionLabel && (
+                          <div
+                            className={
+                              chatBlocked
+                                ? "chat-restriction blocked"
+                                : "chat-restriction"
+                            }
+                          >
+                            <Lock size={13} aria-hidden="true" />
+                            <span>
+                              {chatRestrictionLabel}
+                              {chatBlocked &&
+                                activeChatPlatform === "kick" &&
+                                ". Follow to chat."}
+                              {chatBlocked &&
+                                activeChatPlatform === "twitch" &&
+                                ". Follow on Twitch to chat."}
+                            </span>
                           </div>
                         )}
-                        </Fragment>
-                      ))}
-                    </div>
-                    {openReplyThread && (
-                      <ReplyThread
-                        badges={twitchBadges}
-                        messages={chatMessages}
-                        oledMode={oledMode}
-                        onClose={() => setOpenReplyThread(null)}
-                        onOpenUser={openChatUserCard}
-                        onReply={beginReply}
-                        renderText={renderCardText}
-                        selected={openReplyThread}
-                      />
-                    )}
-                    {selectedChatUser && activeChannel && (
-                      <ChatUserCard
-                        anchor={selectedChatUserAnchor}
-                        badges={twitchBadges}
-                        channel={activeChannel}
-                        root={chatWindowTarget?.document}
-                        key={`${activeChannel}:${selectedChatUser.login}`}
-                        messages={chatMessages}
-                        onClose={() => {
-                          setSelectedChatUser(null);
-                          setSelectedChatUserAnchor(undefined);
-                          setNativeControlsVisible(true);
-                        }}
-                        renderText={renderCardText}
-                        selected={selectedChatUser}
-                      />
-                    )}
-                    {!chatAutoScroll && (
-                      <button
-                        className="scroll-to-current"
-                        onClick={scrollChatToCurrent}
-                        title={
-                          pausedChatNewMessages > 20
-                            ? "20+ new messages"
-                            : pausedChatNewMessages > 0
-                              ? `${pausedChatNewMessages} new ${pausedChatNewMessages === 1 ? "message" : "messages"}`
-                              : "Return to live chat"
-                        }
-                        type="button"
-                      >
-                        <Pause aria-hidden="true" size={12} />
-                        <span>Chat paused due to scroll</span>
-                        <ArrowDown aria-hidden="true" size={14} />
-                      </button>
-                    )}
-                    <form className="native-chat-input" onSubmit={sendChatMessage} ref={chatComposerHost}>
-                      <ChatSendStatus
-                        onDismiss={chatSender.dismiss}
-                        status={chatSender.status}
-                      />
-                      {chatRestrictionLabel && (
-                        <div className={chatBlocked ? "chat-restriction blocked" : "chat-restriction"}>
-                          <Lock size={13} aria-hidden="true" />
-                          <span>
-                            {chatRestrictionLabel}
-                            {chatBlocked && activeChatPlatform === "kick" && ". Follow to chat."}
-                            {chatBlocked && activeChatPlatform === "twitch" && ". Follow on Twitch to chat."}
-                          </span>
-                        </div>
-                      )}
-                      {replyingTo && (
-                        <div className="chat-reply-composer">
-                          <div className="chat-reply-heading">
-                            <span><Reply size={15} /> Replying to {replyingTo.displayName}:</span>
-                            <button
-                              aria-label="Cancel reply"
-                              onClick={() => setReplyingTo(null)}
-                              title="Cancel reply"
-                              type="button"
-                            >
-                              <X size={14} />
-                            </button>
+                        {replyingTo && (
+                          <div className="chat-reply-composer">
+                            <div className="chat-reply-heading">
+                              <span>
+                                <Reply size={15} /> Replying to{" "}
+                                {replyingTo.displayName}:
+                              </span>
+                              <button
+                                aria-label="Cancel reply"
+                                onClick={() => setReplyingTo(null)}
+                                title="Cancel reply"
+                                type="button"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                            <div className="chat-reply-preview">
+                              {replyingTo.badges.slice(0, 1).map((badgeKey) => {
+                                const badge = twitchBadges.get(badgeKey);
+                                return badge ? (
+                                  <ChatBadge badge={badge} key={badgeKey} />
+                                ) : null;
+                              })}
+                              <strong
+                                style={{
+                                  color: readableUsernameColor(
+                                    replyingTo.color,
+                                    oledMode ? "#000000" : "#18181b",
+                                  ),
+                                }}
+                              >
+                                {replyingTo.displayName}:
+                              </strong>
+                              <span>{replyingTo.text}</span>
+                            </div>
                           </div>
-                          <div className="chat-reply-preview">
-                            {replyingTo.badges.slice(0, 1).map((badgeKey) => {
-                              const badge = twitchBadges.get(badgeKey);
-                              return badge ? <ChatBadge badge={badge} key={badgeKey} /> : null;
-                            })}
-                            <strong
-                              style={{
-                                color: readableUsernameColor(
-                                  replyingTo.color,
-                                  oledMode ? "#000000" : "#18181b",
-                                ),
-                              }}
-                            >
-                              {replyingTo.displayName}:
-                            </strong>
-                            <span>{replyingTo.text}</span>
-                          </div>
-                        </div>
-                      )}
-                      <div className="chat-composer-box">
-                        <ChatComposerInput
-                          emoteMatch={emoteAutocompleteMatch}
-                          mentionTab={mentionTabBehavior}
-                          aria-label="Send a chat message"
-                          disabled={singleChatDisabled}
-                          maxLength={500}
-                          mentionCandidates={chatMentionCandidates}
-                          onValueChange={setChatInput}
-                          placeholder={
-                            authState.status === "signed-in"
-                              ? replyingTo
-                                ? "Write a reply"
-                                : "Send a message"
-                              : "Sign in to send messages"
-                          }
-                          ref={chatInputHost}
-                          sevenTvEmotes={chatProviderEmotes}
-                          twitchEmotes={pickerEmotes}
-                          value={chatInput}
-                        />
-                        <div className="chat-composer-inline-actions">
-                          <div className="emote-picker-anchor">
-                            <button
-                              aria-expanded={emotePickerOpen}
-                              aria-label="Choose Twitch and 7TV emotes"
-                              className={emotePickerOpen ? "emote-picker-button active" : "emote-picker-button"}
-                              onClick={() => {
-                                setEmotePickerOpen((current) => !current);
-                              }}
-                              title="Twitch and 7TV emotes"
-                              type="button"
-                            >
-                              <Smile size={17} />
-                            </button>
-                            {emotePickerOpen && (
-                              <>
-                                <EmotePicker
-                                  channelAvatarUrl={streamMetadata?.profileImageUrl}
-                                  channelName={streamMetadata?.displayName ?? activeChannel ?? "Channel"}
-                                  onClose={() => setEmotePickerOpen(false)}
-                                  onSelect={(name) =>
-                                    setChatInput((current) =>
-                                      `${current}${current && !current.endsWith(" ") ? " " : ""}${name} `,
-                                    )
-                                  }
-                                  providerChannelEmoteNames={providerChannelNames}
-                                  providerEmotes={pickerProviderEmotes}
-                                  twitchEmotes={pickerEmotes}
-                    platformLabel={pickerPlatformLabel}
-                                />
-                              {/*
+                        )}
+                        <div className="chat-composer-box">
+                          <ChatComposerInput
+                            emoteMatch={emoteAutocompleteMatch}
+                            mentionTab={mentionTabBehavior}
+                            aria-label="Send a chat message"
+                            disabled={singleChatDisabled}
+                            maxLength={500}
+                            mentionCandidates={chatMentionCandidates}
+                            onValueChange={setChatInput}
+                            placeholder={
+                              authState.status === "signed-in"
+                                ? replyingTo
+                                  ? "Write a reply"
+                                  : "Send a message"
+                                : "Sign in to send messages"
+                            }
+                            ref={chatInputHost}
+                            sevenTvEmotes={chatProviderEmotes}
+                            twitchEmotes={pickerEmotes}
+                            value={chatInput}
+                          />
+                          <div className="chat-composer-inline-actions">
+                            <div className="emote-picker-anchor">
+                              <button
+                                aria-expanded={emotePickerOpen}
+                                aria-label="Choose Twitch and 7TV emotes"
+                                className={
+                                  emotePickerOpen
+                                    ? "emote-picker-button active"
+                                    : "emote-picker-button"
+                                }
+                                onClick={() => {
+                                  setEmotePickerOpen((current) => !current);
+                                }}
+                                title="Twitch and 7TV emotes"
+                                type="button"
+                              >
+                                <Smile size={17} />
+                              </button>
+                              {emotePickerOpen && (
+                                <>
+                                  <EmotePicker
+                                    channelAvatarUrl={
+                                      streamMetadata?.profileImageUrl
+                                    }
+                                    channelName={
+                                      streamMetadata?.displayName ??
+                                      activeChannel ??
+                                      "Channel"
+                                    }
+                                    onClose={() => setEmotePickerOpen(false)}
+                                    onSelect={(name) =>
+                                      setChatInput(
+                                        (current) =>
+                                          `${current}${current && !current.endsWith(" ") ? " " : ""}${name} `,
+                                      )
+                                    }
+                                    providerChannelEmoteNames={
+                                      providerChannelNames
+                                    }
+                                    providerEmotes={pickerProviderEmotes}
+                                    twitchEmotes={pickerEmotes}
+                                    platformLabel={pickerPlatformLabel}
+                                  />
+                                  {/*
                               <div className="emote-picker">
                             <input
                               aria-label="Search emotes"
@@ -5406,130 +6261,150 @@ export function App() {
                             ) : null}
                               </div>
                               */}
-                              </>
-                            )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="chat-composer-footer">
-                        <div className="chat-header-actions chat-composer-settings">
+                        <div className="chat-composer-footer">
+                          <div className="chat-header-actions chat-composer-settings">
+                            <button
+                              aria-expanded={chatSettingsOpen}
+                              aria-label="Chat settings"
+                              className={
+                                chatSettingsOpen
+                                  ? "toolbar-icon active"
+                                  : "toolbar-icon"
+                              }
+                              onClick={() => {
+                                setChatUserListOpen(false);
+                                setChatSettingsOpen((current) => !current);
+                              }}
+                              title="Chat settings"
+                              type="button"
+                            >
+                              <Settings size={16} />
+                            </button>
+                            {chatSettingsOpen && (
+                              <div className="chat-overlay-settings chat-composer-settings-menu">
+                                <strong>Chat settings</strong>
+                                <TwitchChatColorControls
+                                  platform={activeChatPlatform}
+                                />
+                                <ChatToggleSetting
+                                  checked={chatTimestamps}
+                                  label="Show timestamps"
+                                  onChange={setChatTimestamps}
+                                />
+                                <ChatToggleSetting
+                                  checked={mentionSoundEnabled}
+                                  label="Mention sound"
+                                  onChange={setMentionSoundEnabled}
+                                />
+                                <MentionSoundControls
+                                  onSoundChange={setMentionSoundId}
+                                  onVolumeChange={setMentionSoundVolume}
+                                  soundId={mentionSoundId}
+                                  volume={mentionSoundVolume}
+                                />
+                                <ChatToggleSetting
+                                  checked={chatDeletedMessageStyle === "dimmed"}
+                                  label="Dim deleted messages"
+                                  onChange={(checked) =>
+                                    setChatDeletedMessageStyle(
+                                      checked ? "dimmed" : "placeholder",
+                                    )
+                                  }
+                                />
+                                <label>
+                                  <span>Font size: {chatFontSize}px</span>
+                                  <input
+                                    aria-label="Chat font size"
+                                    max="25"
+                                    min="14"
+                                    onChange={(event) =>
+                                      setChatFontSize(
+                                        Number(event.target.value),
+                                      )
+                                    }
+                                    type="range"
+                                    value={chatFontSize}
+                                  />
+                                </label>
+                                <label>
+                                  <span>Emote size: {chatEmoteSize}px</span>
+                                  <input
+                                    aria-label="Chat emote size"
+                                    max="48"
+                                    min="18"
+                                    onChange={(event) =>
+                                      setChatEmoteSize(
+                                        Number(event.target.value),
+                                      )
+                                    }
+                                    type="range"
+                                    value={chatEmoteSize}
+                                  />
+                                </label>
+                                <ChatToggleSetting
+                                  checked={chatOnLeft}
+                                  label="Chat on left"
+                                  onChange={setChatOnLeft}
+                                />
+                                <label>
+                                  <span>History: {chatHistoryLimit}</span>
+                                  <input
+                                    aria-label="Chat history message count"
+                                    max="100"
+                                    min="20"
+                                    onChange={(event) =>
+                                      setChatHistoryLimit(
+                                        Number(event.target.value),
+                                      )
+                                    }
+                                    step="10"
+                                    type="range"
+                                    value={chatHistoryLimit}
+                                  />
+                                </label>
+                                <button
+                                  className="chat-settings-more"
+                                  onClick={openFullChatSettings}
+                                  type="button"
+                                >
+                                  <Settings size={14} />
+                                  More chat settings
+                                  <ChevronRight size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           <button
-                            aria-expanded={chatSettingsOpen}
-                            aria-label="Chat settings"
-                            className={chatSettingsOpen ? "toolbar-icon active" : "toolbar-icon"}
-                            onClick={() => {
-                              setChatUserListOpen(false);
-                              setChatSettingsOpen((current) => !current);
-                            }}
-                            title="Chat settings"
-                            type="button"
+                            className={
+                              chatIsKick
+                                ? "chat-send-button kick"
+                                : "chat-send-button"
+                            }
+                            disabled={singleChatDisabled || !chatInput.trim()}
+                            type="submit"
                           >
-                            <Settings size={16} />
+                            {replyingTo ? "Reply" : "Chat"}
                           </button>
-                          {chatSettingsOpen && (
-                            <div className="chat-overlay-settings chat-composer-settings-menu">
-                              <strong>Chat settings</strong>
-                              <TwitchChatColorControls platform={activeChatPlatform} />
-                              <ChatToggleSetting
-                                checked={chatTimestamps}
-                                label="Show timestamps"
-                                onChange={setChatTimestamps}
-                              />
-                              <ChatToggleSetting
-                                checked={mentionSoundEnabled}
-                                label="Mention sound"
-                                onChange={setMentionSoundEnabled}
-                              />
-                              <MentionSoundControls
-                                onSoundChange={setMentionSoundId}
-                                onVolumeChange={setMentionSoundVolume}
-                                soundId={mentionSoundId}
-                                volume={mentionSoundVolume}
-                              />
-                              <ChatToggleSetting
-                                checked={chatDeletedMessageStyle === "dimmed"}
-                                label="Dim deleted messages"
-                                onChange={(checked) =>
-                                  setChatDeletedMessageStyle(
-                                    checked ? "dimmed" : "placeholder",
-                                  )
-                                }
-                              />
-                              <label>
-                                <span>Font size: {chatFontSize}px</span>
-                                <input
-                                  aria-label="Chat font size"
-                                  max="25"
-                                  min="14"
-                                  onChange={(event) =>
-                                    setChatFontSize(Number(event.target.value))
-                                  }
-                                  type="range"
-                                  value={chatFontSize}
-                                />
-                              </label>
-                              <label>
-                                <span>Emote size: {chatEmoteSize}px</span>
-                                <input
-                                  aria-label="Chat emote size"
-                                  max="48"
-                                  min="18"
-                                  onChange={(event) =>
-                                    setChatEmoteSize(Number(event.target.value))
-                                  }
-                                  type="range"
-                                  value={chatEmoteSize}
-                                />
-                              </label>
-                              <ChatToggleSetting
-                                checked={chatOnLeft}
-                                label="Chat on left"
-                                onChange={setChatOnLeft}
-                              />
-                              <label>
-                                <span>History: {chatHistoryLimit}</span>
-                                <input
-                                  aria-label="Chat history message count"
-                                  max="100"
-                                  min="20"
-                                  onChange={(event) =>
-                                    setChatHistoryLimit(Number(event.target.value))
-                                  }
-                                  step="10"
-                                  type="range"
-                                  value={chatHistoryLimit}
-                                />
-                              </label>
-                              <button
-                                className="chat-settings-more"
-                                onClick={openFullChatSettings}
-                                type="button"
-                              >
-                                <Settings size={14} />
-                                More chat settings
-                                <ChevronRight size={14} />
-                              </button>
-                            </div>
-                          )}
                         </div>
-                        <button
-                          className={chatIsKick ? "chat-send-button kick" : "chat-send-button"}
-                          disabled={singleChatDisabled || !chatInput.trim()}
-                          type="submit"
-                        >
-                          {replyingTo ? "Reply" : "Chat"}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </aside>
+                      </form>
+                    </div>
+                  </aside>
                 </ChatWindowPortal>
               )}
             </div>
           </section>
         ) : activeSection === "browse" ? (
           <section className="browse-page">
-            <div className="browse-platforms" role="group" aria-label="Service to browse">
+            <div
+              className="browse-platforms"
+              role="group"
+              aria-label="Service to browse"
+            >
               {(["twitch", "kick"] as const).map((option) => (
                 <button
                   aria-pressed={browsePlatform === option}
@@ -5538,15 +6413,21 @@ export function App() {
                   onClick={() => selectBrowsePlatform(option)}
                   type="button"
                 >
-                  <ProviderLogo name={option} /> {option === "twitch" ? "Twitch" : "Kick"}
+                  <ProviderLogo name={option} />{" "}
+                  {option === "twitch" ? "Twitch" : "Kick"}
                 </button>
               ))}
             </div>
             {browsePlatform === "twitch" && authState.status !== "signed-in" ? (
               <div className="browse-signed-out">
-                <span><Compass size={26} /></span>
+                <span>
+                  <Compass size={26} />
+                </span>
                 <h1>Browse Twitch categories</h1>
-                <p>Twitch requires an authorized API session to provide its category directory.</p>
+                <p>
+                  Twitch requires an authorized API session to provide its
+                  category directory.
+                </p>
                 <button
                   className="secondary-button"
                   onClick={() => selectBrowsePlatform("kick")}
@@ -5587,7 +6468,11 @@ export function App() {
                   </div>
                 </header>
 
-                {browseError && <p className="home-error" role="alert">{browseError}</p>}
+                {browseError && (
+                  <p className="home-error" role="alert">
+                    {browseError}
+                  </p>
+                )}
                 {categoryStreams.length > 0 ? (
                   <div className="stream-grid browse-stream-grid">
                     {categoryStreams.map((stream) => (
@@ -5600,7 +6485,11 @@ export function App() {
                             ? () => schedulePreresolve(stream.login)
                             : undefined
                         }
-                        onMouseLeave={browsePlatform === "twitch" ? cancelPreresolve : undefined}
+                        onMouseLeave={
+                          browsePlatform === "twitch"
+                            ? cancelPreresolve
+                            : undefined
+                        }
                         title={stream.title || `Watch ${stream.displayName}`}
                         type="button"
                       >
@@ -5615,16 +6504,23 @@ export function App() {
                             {Intl.NumberFormat("en", {
                               notation: "compact",
                               maximumFractionDigits: 1,
-                            }).format(stream.viewerCount)} viewers
+                            }).format(stream.viewerCount)}{" "}
+                            viewers
                           </span>
-                          <span className="stream-card-uptime">{formatUptime(stream.startedAt, uptimeNow)}</span>
+                          <span className="stream-card-uptime">
+                            {formatUptime(stream.startedAt, uptimeNow)}
+                          </span>
                           <span className="stream-card-play">
                             <Play fill="currentColor" size={21} />
                           </span>
                         </span>
                         <span className="stream-card-info">
                           {stream.profileImageUrl ? (
-                            <img className="stream-card-avatar" alt="" src={stream.profileImageUrl} />
+                            <img
+                              className="stream-card-avatar"
+                              alt=""
+                              src={stream.profileImageUrl}
+                            />
                           ) : (
                             <span className="stream-card-avatar stream-card-avatar-fallback">
                               {stream.displayName.slice(0, 1).toUpperCase()}
@@ -5632,12 +6528,21 @@ export function App() {
                           )}
                           <span className="stream-card-copy">
                             <strong title={stream.title}>{stream.title}</strong>
-                            <span className="stream-card-channel">{stream.displayName}</span>
-                            <span className="stream-card-category">{stream.category}</span>
+                            <span className="stream-card-channel">
+                              {stream.displayName}
+                            </span>
+                            <span className="stream-card-category">
+                              {stream.category}
+                            </span>
                             <span className="stream-card-tags">
                               <i>{stream.language.toUpperCase()}</i>
-                              {visibleStreamTags(stream.tags, stream.language).map((tag) => (
-                                <i key={tag} title={tag}>{tag}</i>
+                              {visibleStreamTags(
+                                stream.tags,
+                                stream.language,
+                              ).map((tag) => (
+                                <i key={tag} title={tag}>
+                                  {tag}
+                                </i>
                               ))}
                               {stream.isMature && <i>Mature</i>}
                             </span>
@@ -5648,14 +6553,19 @@ export function App() {
                   </div>
                 ) : !categoryStreamsLoading && !browseError ? (
                   <div className="home-empty-state browse-empty">
-                    <span><Tv size={24} /></span>
+                    <span>
+                      <Tv size={24} />
+                    </span>
                     <h2>No live streams found</h2>
-                    <p>This category does not have any live channels right now.</p>
+                    <p>
+                      This category does not have any live channels right now.
+                    </p>
                   </div>
                 ) : null}
                 {categoryStreamsLoading && (
                   <div className="browse-loading" role="status">
-                    <RefreshCw className="spin" size={18} /> Loading live streams…
+                    <RefreshCw className="spin" size={18} /> Loading live
+                    streams…
                   </div>
                 )}
                 {categoryStreamCursor && !categoryStreamsLoading && (
@@ -5675,7 +6585,10 @@ export function App() {
                     <h1>Browse</h1>
                     <p>Find a category, then choose a live channel.</p>
                   </div>
-                  <form className="browse-search" onSubmit={searchBrowseCategories}>
+                  <form
+                    className="browse-search"
+                    onSubmit={searchBrowseCategories}
+                  >
                     <Search size={17} />
                     <input
                       aria-label="Search Twitch categories"
@@ -5698,7 +6611,11 @@ export function App() {
                   </form>
                 </header>
 
-                {browseError && <p className="home-error" role="alert">{browseError}</p>}
+                {browseError && (
+                  <p className="home-error" role="alert">
+                    {browseError}
+                  </p>
+                )}
                 <div className="browse-category-grid">
                   {browseCategories.map((category) => (
                     <button
@@ -5710,7 +6627,9 @@ export function App() {
                     >
                       <span className="browse-category-art">
                         <img alt="" loading="lazy" src={category.boxArtUrl} />
-                        <span><Play fill="currentColor" size={24} /></span>
+                        <span>
+                          <Play fill="currentColor" size={24} />
+                        </span>
                       </span>
                       <strong>{category.name}</strong>
                       <small>View live channels</small>
@@ -5722,13 +6641,17 @@ export function App() {
                     <RefreshCw className="spin" size={18} /> Loading categories…
                   </div>
                 )}
-                {!browseLoading && browseCategories.length === 0 && !browseError && (
-                  <div className="home-empty-state browse-empty">
-                    <span><Search size={24} /></span>
-                    <h2>No categories found</h2>
-                    <p>Try a different category name.</p>
-                  </div>
-                )}
+                {!browseLoading &&
+                  browseCategories.length === 0 &&
+                  !browseError && (
+                    <div className="home-empty-state browse-empty">
+                      <span>
+                        <Search size={24} />
+                      </span>
+                      <h2>No categories found</h2>
+                      <p>Try a different category name.</p>
+                    </div>
+                  )}
                 {browseCategoryCursor && !browseLoading && (
                   <div
                     aria-label="Load more categories when reached"
@@ -5747,7 +6670,10 @@ export function App() {
             </div>
             <p className="section-kicker">SETTINGS</p>
             <h2>Make Cyber Wire yours</h2>
-            <p>Connect Twitch securely, choose playback, and control optional chat providers.</p>
+            <p>
+              Connect Twitch securely, choose playback, and control optional
+              chat providers.
+            </p>
             <div className="settings-stack">
               <div className="settings-card">
                 <div>
@@ -5781,7 +6707,11 @@ export function App() {
                     </button>
                   </div>
                 ) : authState.status === "signed-out" ? (
-                  <button className="primary-button" onClick={() => void beginSignIn()} type="button">
+                  <button
+                    className="primary-button"
+                    onClick={() => void beginSignIn()}
+                    type="button"
+                  >
                     <LogIn size={15} /> Sign in
                   </button>
                 ) : null}
@@ -5831,15 +6761,16 @@ export function App() {
                   onClick={() => void testSevenTv()}
                   type="button"
                 >
-                  <RefreshCw size={14} /> {sevenTvBusy ? "Testing…" : "Test 7TV"}
+                  <RefreshCw size={14} />{" "}
+                  {sevenTvBusy ? "Testing…" : "Test 7TV"}
                 </button>
               </div>
               <div className="settings-card">
                 <div>
                   <strong>Controls auto-hide delay</strong>
                   <span>
-                    How long the player controls and cursor stay visible before hiding while
-                    a stream is playing.
+                    How long the player controls and cursor stay visible before
+                    hiding while a stream is playing.
                   </span>
                 </div>
                 <label className="settings-slider">
@@ -5859,11 +6790,16 @@ export function App() {
               <div className="settings-card">
                 <div>
                   <strong>OLED mode</strong>
-                  <span>Use true black backgrounds throughout Cyber Wire and its Native overlays.</span>
+                  <span>
+                    Use true black backgrounds throughout Cyber Wire and its
+                    Native overlays.
+                  </span>
                 </div>
                 <button
                   aria-pressed={oledMode}
-                  className={oledMode ? "settings-switch active" : "settings-switch"}
+                  className={
+                    oledMode ? "settings-switch active" : "settings-switch"
+                  }
                   onClick={toggleOledMode}
                   title="Toggle OLED mode"
                   type="button"
@@ -5905,14 +6841,17 @@ export function App() {
                       if (updateStatus.state === "downloaded") {
                         window.desktop.updates.install();
                       } else {
-                        void window.desktop.updates.check().then(setUpdateStatus);
+                        void window.desktop.updates
+                          .check()
+                          .then(setUpdateStatus);
                       }
                     }}
                     type="button"
                   >
                     <RefreshCw
                       className={
-                        updateStatus.state === "checking" || updateStatus.state === "downloading"
+                        updateStatus.state === "checking" ||
+                        updateStatus.state === "downloading"
                           ? "spin"
                           : undefined
                       }
@@ -5935,15 +6874,20 @@ export function App() {
                 <small>
                   {preferredMode === "native"
                     ? nativeAvailability?.available
-              ? "Cyber Wire Native is ready"
-                      : nativeAvailability?.reason ?? "Checking Native availability…"
+                      ? "Cyber Wire Native is ready"
+                      : (nativeAvailability?.reason ??
+                        "Checking Native availability…")
                     : "Twitch’s official player and controls"}
                 </small>
               </span>
               <div className="mode-switch">
                 <button
                   aria-pressed={preferredMode === "native"}
-                  className={preferredMode === "native" ? "active experimental" : "experimental"}
+                  className={
+                    preferredMode === "native"
+                      ? "active experimental"
+                      : "experimental"
+                  }
                   onClick={() => void choosePreferredMode("native")}
                   type="button"
                 >
@@ -5967,10 +6911,18 @@ export function App() {
             <header className="search-page-header">
               <div>
                 <span className="following-home-kicker">SEARCH</span>
-                <h1>{channelInput.trim() ? `Results for “${channelInput.trim()}”` : "Search"}</h1>
+                <h1>
+                  {channelInput.trim()
+                    ? `Results for “${channelInput.trim()}”`
+                    : "Search"}
+                </h1>
                 <p>Channels and categories across the services you choose.</p>
               </div>
-              <div className="top-search-platforms" role="group" aria-label="Services to search">
+              <div
+                className="top-search-platforms"
+                role="group"
+                aria-label="Services to search"
+              >
                 {(["twitch", "kick", "both"] as const).map((option) => (
                   <button
                     aria-pressed={searchPlatformFilter === option}
@@ -5987,7 +6939,11 @@ export function App() {
                     ) : (
                       <ProviderLogo name={option} />
                     )}
-                    {option === "twitch" ? "Twitch" : option === "kick" ? "Kick" : "Both"}
+                    {option === "twitch"
+                      ? "Twitch"
+                      : option === "kick"
+                        ? "Kick"
+                        : "Both"}
                   </button>
                 ))}
               </div>
@@ -6013,147 +6969,196 @@ export function App() {
                           void watchChannel(
                             channelInput,
                             topSearchResults.channels.find(
-                              (channel) => channel.login.toLowerCase() === channelInput.trim().toLowerCase(),
+                              (channel) =>
+                                channel.login.toLowerCase() ===
+                                channelInput.trim().toLowerCase(),
                             ),
                           )
                         }
                         type="button"
                       >
-                        <ProviderLogo name="twitch" /> Go to <strong>{channelInput.trim()}</strong> on Twitch
+                        <ProviderLogo name="twitch" /> Go to{" "}
+                        <strong>{channelInput.trim()}</strong> on Twitch
                       </button>
                     )}
                     {searchPlatformFilter !== "twitch" && (
                       <button
                         className="search-direct"
-                        onClick={() => void watchChannel(channelKey("kick", channelInput.trim().toLowerCase()))}
+                        onClick={() =>
+                          void watchChannel(
+                            channelKey(
+                              "kick",
+                              channelInput.trim().toLowerCase(),
+                            ),
+                          )
+                        }
                         type="button"
                       >
-                        <ProviderLogo name="kick" /> Go to <strong>{channelInput.trim()}</strong> on Kick
+                        <ProviderLogo name="kick" /> Go to{" "}
+                        <strong>{channelInput.trim()}</strong> on Kick
                       </button>
                     )}
                   </div>
                 )}
-                {searchPlatformFilter !== "kick" && topSearchResults.categories.length > 0 && (
-                  <section className="search-section">
-                    <span className="search-section-heading">Twitch Categories</span>
-                    <div className="search-category-grid">
-                      {topSearchResults.categories.map((category) => (
-                        <button
-                          className="search-category-card"
-                          key={`search-cat-${category.id}`}
-                          onClick={() => void chooseSearchCategory(category, "twitch")}
-                          title={category.name}
-                          type="button"
-                        >
-                          <img alt="" src={category.boxArtUrl} />
-                          <strong>{category.name}</strong>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {searchPlatformFilter !== "twitch" && kickSearchCategories.length > 0 && (
-                  <section className="search-section">
-                    <span className="search-section-heading">Kick Categories</span>
-                    <div className="search-category-grid">
-                      {kickSearchCategories.map((category) => (
-                        <button
-                          className="search-category-card"
-                          key={`search-kick-cat-${category.id}`}
-                          onClick={() => void chooseSearchCategory(category, "kick")}
-                          title={category.name}
-                          type="button"
-                        >
-                          <img alt="" src={category.boxArtUrl} />
-                          <strong>{category.name}</strong>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {searchPlatformFilter !== "kick" && topSearchResults.channels.length > 0 && (
-                  <section className="search-section">
-                    <span className="search-section-heading">
-                      <ProviderLogo name="twitch" /> Twitch
-                    </span>
-                    <div className="search-channel-grid">
-                      {topSearchResults.channels.map((channel) => (
-                        <button
-                          className="search-channel-card"
-                          key={`search-tw-${channel.id}`}
-                          onClick={() => chooseSearchChannel(channel)}
-                          onMouseEnter={channel.isLive ? () => schedulePreresolve(channel.login) : undefined}
-                          onMouseLeave={cancelPreresolve}
-                          type="button"
-                        >
-                          {channel.profileImageUrl ? (
-                            <img className="search-channel-avatar" alt="" src={channel.profileImageUrl} />
-                          ) : (
-                            <span className="search-channel-avatar search-channel-fallback">
-                              {channel.displayName.slice(0, 1).toUpperCase()}
+                {searchPlatformFilter !== "kick" &&
+                  topSearchResults.categories.length > 0 && (
+                    <section className="search-section">
+                      <span className="search-section-heading">
+                        Twitch Categories
+                      </span>
+                      <div className="search-category-grid">
+                        {topSearchResults.categories.map((category) => (
+                          <button
+                            className="search-category-card"
+                            key={`search-cat-${category.id}`}
+                            onClick={() =>
+                              void chooseSearchCategory(category, "twitch")
+                            }
+                            title={category.name}
+                            type="button"
+                          >
+                            <img alt="" src={category.boxArtUrl} />
+                            <strong>{category.name}</strong>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                {searchPlatformFilter !== "twitch" &&
+                  kickSearchCategories.length > 0 && (
+                    <section className="search-section">
+                      <span className="search-section-heading">
+                        Kick Categories
+                      </span>
+                      <div className="search-category-grid">
+                        {kickSearchCategories.map((category) => (
+                          <button
+                            className="search-category-card"
+                            key={`search-kick-cat-${category.id}`}
+                            onClick={() =>
+                              void chooseSearchCategory(category, "kick")
+                            }
+                            title={category.name}
+                            type="button"
+                          >
+                            <img alt="" src={category.boxArtUrl} />
+                            <strong>{category.name}</strong>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                {searchPlatformFilter !== "kick" &&
+                  topSearchResults.channels.length > 0 && (
+                    <section className="search-section">
+                      <span className="search-section-heading">
+                        <ProviderLogo name="twitch" /> Twitch
+                      </span>
+                      <div className="search-channel-grid">
+                        {topSearchResults.channels.map((channel) => (
+                          <button
+                            className="search-channel-card"
+                            key={`search-tw-${channel.id}`}
+                            onClick={() => chooseSearchChannel(channel)}
+                            onMouseEnter={
+                              channel.isLive
+                                ? () => schedulePreresolve(channel.login)
+                                : undefined
+                            }
+                            onMouseLeave={cancelPreresolve}
+                            type="button"
+                          >
+                            {channel.profileImageUrl ? (
+                              <img
+                                className="search-channel-avatar"
+                                alt=""
+                                src={channel.profileImageUrl}
+                              />
+                            ) : (
+                              <span className="search-channel-avatar search-channel-fallback">
+                                {channel.displayName.slice(0, 1).toUpperCase()}
+                              </span>
+                            )}
+                            <span className="search-channel-copy">
+                              <strong>
+                                {channel.displayName}
+                                {channel.isLive && (
+                                  <i className="search-live">LIVE</i>
+                                )}
+                              </strong>
+                              <small>
+                                {channel.isLive
+                                  ? [
+                                      channel.category || "Live channel",
+                                      channel.viewerCount !== undefined
+                                        ? `${Intl.NumberFormat("en-US").format(channel.viewerCount)} viewers`
+                                        : undefined,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")
+                                  : "Offline"}
+                              </small>
                             </span>
-                          )}
-                          <span className="search-channel-copy">
-                            <strong>
-                              {channel.displayName}
-                              {channel.isLive && <i className="search-live">LIVE</i>}
-                            </strong>
-                            <small>
-                              {channel.isLive
-                                ? [
-                                    channel.category || "Live channel",
-                                    channel.viewerCount !== undefined
-                                      ? `${Intl.NumberFormat("en-US").format(channel.viewerCount)} viewers`
-                                      : undefined,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" · ")
-                                : "Offline"}
-                            </small>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {searchPlatformFilter !== "twitch" && kickSearchResults.length > 0 && (
-                  <section className="search-section">
-                    <span className="search-section-heading">
-                      <ProviderLogo name="kick" /> Kick
-                    </span>
-                    <div className="search-channel-grid">
-                      {kickSearchResults.map((channel) => (
-                        <button
-                          className="search-channel-card"
-                          key={`search-kick-${channel.id}`}
-                          onClick={() => void watchChannel(channelKey("kick", channel.slug))}
-                          type="button"
-                        >
-                          {channel.profileImageUrl ? (
-                            <img className="search-channel-avatar" alt="" src={channel.profileImageUrl} />
-                          ) : (
-                            <span className="search-channel-avatar search-channel-fallback">
-                              {channel.displayName.slice(0, 1).toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                {searchPlatformFilter !== "twitch" &&
+                  kickSearchResults.length > 0 && (
+                    <section className="search-section">
+                      <span className="search-section-heading">
+                        <ProviderLogo name="kick" /> Kick
+                      </span>
+                      <div className="search-channel-grid">
+                        {kickSearchResults.map((channel) => (
+                          <button
+                            className="search-channel-card"
+                            key={`search-kick-${channel.id}`}
+                            onClick={() =>
+                              void watchChannel(
+                                channelKey("kick", channel.slug),
+                              )
+                            }
+                            type="button"
+                          >
+                            {channel.profileImageUrl ? (
+                              <img
+                                className="search-channel-avatar"
+                                alt=""
+                                src={channel.profileImageUrl}
+                              />
+                            ) : (
+                              <span className="search-channel-avatar search-channel-fallback">
+                                {channel.displayName.slice(0, 1).toUpperCase()}
+                              </span>
+                            )}
+                            <span className="search-channel-copy">
+                              <strong>
+                                {channel.displayName}
+                                {channel.isLive && (
+                                  <i className="search-live">LIVE</i>
+                                )}
+                              </strong>
+                              <small>
+                                {channel.isLive
+                                  ? channel.category || "Live"
+                                  : "Offline"}
+                              </small>
                             </span>
-                          )}
-                          <span className="search-channel-copy">
-                            <strong>
-                              {channel.displayName}
-                              {channel.isLive && <i className="search-live">LIVE</i>}
-                            </strong>
-                            <small>{channel.isLive ? channel.category || "Live" : "Offline"}</small>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 {topSearchResults.categories.length === 0 &&
                   topSearchResults.channels.length === 0 &&
                   kickSearchResults.length === 0 &&
                   kickSearchCategories.length === 0 && (
                     <div className="home-empty-state">
-                      <span><Search size={24} /></span>
+                      <span>
+                        <Search size={24} />
+                      </span>
                       <h2>No results</h2>
                       <p>
                         {channelInput.trim().length < 2
@@ -6174,7 +7179,9 @@ export function App() {
                 <p>
                   {authState.status === "signed-in"
                     ? `${liveFollowedChannels.length} followed ${
-                        liveFollowedChannels.length === 1 ? "channel is" : "channels are"
+                        liveFollowedChannels.length === 1
+                          ? "channel is"
+                          : "channels are"
                       } live`
                     : "Connect Twitch to see the channels you follow"}
                 </p>
@@ -6186,21 +7193,31 @@ export function App() {
                   onClick={() => void refreshFollowedChannels()}
                   type="button"
                 >
-                  <RefreshCw className={followedRefreshing ? "spin" : undefined} size={15} />
+                  <RefreshCw
+                    className={followedRefreshing ? "spin" : undefined}
+                    size={15}
+                  />
                   Refresh
                 </button>
               )}
             </header>
 
-            {error && <p className="home-error" role="alert">{error}</p>}
+            {error && (
+              <p className="home-error" role="alert">
+                {error}
+              </p>
+            )}
 
             {authState.status !== "signed-in" ? (
               <div className="home-empty-state">
-                <span><Users size={24} /></span>
+                <span>
+                  <Users size={24} />
+                </span>
                 <h2>Watch any public stream as a guest</h2>
                 <p>
-                  Use the search bar to open a Twitch or Kick channel — no account is needed to
-                  watch. Sign in only to build your followed-stream feed or use chat.
+                  Use the search bar to open a Twitch or Kick channel — no
+                  account is needed to watch. Sign in only to build your
+                  followed-stream feed or use chat.
                 </p>
                 <button
                   className="primary-button"
@@ -6214,9 +7231,14 @@ export function App() {
               </div>
             ) : liveFollowedChannels.length === 0 ? (
               <div className="home-empty-state">
-                <span><Tv size={24} /></span>
+                <span>
+                  <Tv size={24} />
+                </span>
                 <h2>No followed channels are live</h2>
-                <p>Offline channels are still available in the followed list on the left.</p>
+                <p>
+                  Offline channels are still available in the followed list on
+                  the left.
+                </p>
               </div>
             ) : (
               <div className="stream-grid">
@@ -6238,16 +7260,21 @@ export function App() {
                           src={channel.thumbnailUrl}
                         />
                       ) : (
-                        <span className="stream-card-placeholder"><Tv size={30} /></span>
+                        <span className="stream-card-placeholder">
+                          <Tv size={30} />
+                        </span>
                       )}
                       <span className="stream-live-badge">LIVE</span>
                       <span className="stream-card-viewers">
                         {Intl.NumberFormat("en", {
                           notation: "compact",
                           maximumFractionDigits: 1,
-                        }).format(channel.viewerCount)} viewers
+                        }).format(channel.viewerCount)}{" "}
+                        viewers
                       </span>
-                      <span className="stream-card-uptime">{formatUptime(channel.startedAt, uptimeNow)}</span>
+                      <span className="stream-card-uptime">
+                        {formatUptime(channel.startedAt, uptimeNow)}
+                      </span>
                       <span className="stream-card-play">
                         <Play fill="currentColor" size={21} />
                       </span>
@@ -6266,13 +7293,26 @@ export function App() {
                         </span>
                       )}
                       <span className="stream-card-copy">
-                        <strong>{channel.title || `${channel.displayName} is live`}</strong>
-                        <span className="stream-card-channel">{channel.displayName}</span>
-                        <span className="stream-card-category">{channel.category}</span>
+                        <strong>
+                          {channel.title || `${channel.displayName} is live`}
+                        </strong>
+                        <span className="stream-card-channel">
+                          {channel.displayName}
+                        </span>
+                        <span className="stream-card-category">
+                          {channel.category}
+                        </span>
                         <span className="stream-card-tags">
-                          {channel.language && <i>{channel.language.toUpperCase()}</i>}
-                          {visibleStreamTags(channel.tags, channel.language).map((tag) => (
-                            <i key={tag} title={tag}>{tag}</i>
+                          {channel.language && (
+                            <i>{channel.language.toUpperCase()}</i>
+                          )}
+                          {visibleStreamTags(
+                            channel.tags,
+                            channel.language,
+                          ).map((tag) => (
+                            <i key={tag} title={tag}>
+                              {tag}
+                            </i>
                           ))}
                           {channel.isMature && <i>Mature</i>}
                         </span>
@@ -6338,11 +7378,22 @@ export function App() {
                 </button>
               </header>
               <div className="settings-modal-body">
-                <nav aria-label="Settings sections" className="settings-modal-nav">
+                <nav
+                  aria-label="Settings sections"
+                  className="settings-modal-nav"
+                >
                   {settingsSections.map(({ id, label, icon: Icon }) => (
                     <button
-                      aria-current={!hasSettingsSearch && settingsSection === id ? "page" : undefined}
-                      className={!hasSettingsSearch && settingsSection === id ? "active" : ""}
+                      aria-current={
+                        !hasSettingsSearch && settingsSection === id
+                          ? "page"
+                          : undefined
+                      }
+                      className={
+                        !hasSettingsSearch && settingsSection === id
+                          ? "active"
+                          : ""
+                      }
                       key={id}
                       onClick={() => {
                         setSettingsSection(id);
@@ -6356,8 +7407,16 @@ export function App() {
                   ))}
                   <div className="settings-modal-nav-footer">
                     <button
-                      aria-current={!hasSettingsSearch && settingsSection === "about" ? "page" : undefined}
-                      className={!hasSettingsSearch && settingsSection === "about" ? "settings-nav-about active" : "settings-nav-about"}
+                      aria-current={
+                        !hasSettingsSearch && settingsSection === "about"
+                          ? "page"
+                          : undefined
+                      }
+                      className={
+                        !hasSettingsSearch && settingsSection === "about"
+                          ? "settings-nav-about active"
+                          : "settings-nav-about"
+                      }
                       onClick={() => {
                         setSettingsSection("about");
                         setSettingsSearch("");
@@ -6380,7 +7439,10 @@ export function App() {
                         updateStatus.state === "downloading"
                       }
                       onClick={runUpdateAction}
-                      title={updateStatus.message ?? "Check GitHub Releases for a Cyber Wire update"}
+                      title={
+                        updateStatus.message ??
+                        "Check GitHub Releases for a Cyber Wire update"
+                      }
                       type="button"
                     >
                       <RefreshCw
@@ -6396,672 +7458,910 @@ export function App() {
                   </div>
                 </nav>
                 <div className="settings-modal-content">
-                {hasSettingsSearch && (
-                  <section className="settings-section-panel settings-search-results">
-                    <header className="settings-section-heading">
-                      <span>SEARCH</span>
-                      <h3>Settings results</h3>
-                      <p>
-                        {settingsSearchResults.length === 1
-                          ? "1 matching setting"
-                          : `${settingsSearchResults.length} matching settings`}
-                      </p>
-                    </header>
-                    {settingsSearchResults.length > 0 ? (
-                      <div className="settings-search-result-list">
-                        {settingsSearchResults.map((entry) => (
+                  {hasSettingsSearch && (
+                    <section className="settings-section-panel settings-search-results">
+                      <header className="settings-section-heading">
+                        <span>SEARCH</span>
+                        <h3>Settings results</h3>
+                        <p>
+                          {settingsSearchResults.length === 1
+                            ? "1 matching setting"
+                            : `${settingsSearchResults.length} matching settings`}
+                        </p>
+                      </header>
+                      {settingsSearchResults.length > 0 ? (
+                        <div className="settings-search-result-list">
+                          {settingsSearchResults.map((entry) => (
+                            <button
+                              key={`${entry.section}:${entry.title}`}
+                              onClick={() => {
+                                setSettingsSection(entry.section);
+                                setSettingsSearch("");
+                              }}
+                              type="button"
+                            >
+                              <span>
+                                <strong>{entry.title}</strong>
+                                <small>{entry.description}</small>
+                              </span>
+                              <em>
+                                {entry.section.charAt(0).toUpperCase() +
+                                  entry.section.slice(1)}
+                              </em>
+                              <ChevronRight size={16} />
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="settings-search-empty">
+                          <Search size={22} />
+                          <strong>No settings found</strong>
+                          <span>
+                            Try a feature name such as OLED, emotes, or
+                            timestamps.
+                          </span>
+                        </div>
+                      )}
+                    </section>
+                  )}
+                  {!hasSettingsSearch && settingsSection === "account" && (
+                    <section className="settings-section-panel">
+                      <header className="settings-section-heading">
+                        <span>ACCOUNT</span>
+                        <h3>Connections</h3>
+                        <p>
+                          Manage the accounts and website session Cyber Wire
+                          uses.
+                        </p>
+                      </header>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Twitch API account</strong>
+                          <span>
+                            {authState.status === "signed-in"
+                              ? `Connected as ${authState.account.displayName}`
+                              : "Not signed in"}
+                          </span>
+                        </div>
+                        {authState.status === "signed-in" ? (
+                          <div className="settings-card-actions">
+                            <button
+                              className="secondary-button"
+                              disabled={authBusy}
+                              onClick={() => void beginSignIn()}
+                              title="Authorize again to pick up newly added Twitch permissions"
+                              type="button"
+                            >
+                              <RefreshCw size={14} /> Refresh access
+                            </button>
+                            <button
+                              className="secondary-button"
+                              disabled={authBusy}
+                              onClick={() => void signOut()}
+                              type="button"
+                            >
+                              Sign out
+                            </button>
+                          </div>
+                        ) : authState.status === "signed-out" ? (
                           <button
-                            key={`${entry.section}:${entry.title}`}
-                            onClick={() => {
-                              setSettingsSection(entry.section);
-                              setSettingsSearch("");
-                            }}
+                            className="primary-button"
+                            onClick={() => void beginSignIn()}
                             type="button"
                           >
-                            <span>
-                              <strong>{entry.title}</strong>
-                              <small>{entry.description}</small>
-                            </span>
-                            <em>
-                              {entry.section.charAt(0).toUpperCase() +
-                                entry.section.slice(1)}
-                            </em>
-                            <ChevronRight size={16} />
+                            <LogIn size={15} /> Sign in
                           </button>
-                        ))}
+                        ) : null}
                       </div>
-                    ) : (
-                      <div className="settings-search-empty">
-                        <Search size={22} />
-                        <strong>No settings found</strong>
-                        <span>Try a feature name such as OLED, emotes, or timestamps.</span>
-                      </div>
-                    )}
-                  </section>
-                )}
-                {!hasSettingsSearch && settingsSection === "account" && (
-                  <section className="settings-section-panel">
-                    <header className="settings-section-heading">
-                      <span>ACCOUNT</span>
-                      <h3>Connections</h3>
-                      <p>Manage the accounts and website session Cyber Wire uses.</p>
-                    </header>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Twitch API account</strong>
-                      <span>
-                        {authState.status === "signed-in"
-                          ? `Connected as ${authState.account.displayName}`
-                          : "Not signed in"}
-                      </span>
-                    </div>
-                    {authState.status === "signed-in" ? (
-                      <div className="settings-card-actions">
-                        <button
-                          className="secondary-button"
-                          disabled={authBusy}
-                          onClick={() => void beginSignIn()}
-                          title="Authorize again to pick up newly added Twitch permissions"
-                          type="button"
-                        >
-                          <RefreshCw size={14} /> Refresh access
-                        </button>
-                        <button
-                          className="secondary-button"
-                          disabled={authBusy}
-                          onClick={() => void signOut()}
-                          type="button"
-                        >
-                          Sign out
-                        </button>
-                      </div>
-                    ) : authState.status === "signed-out" ? (
-                      <button className="primary-button" onClick={() => void beginSignIn()} type="button">
-                        <LogIn size={15} /> Sign in
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Kick account</strong>
-                      <span>
-                        {kickAccount
-                          ? `Connected as ${kickAccount.username}`
-                          : "Not signed in. Sign in to see the channels you follow on Kick."}
-                      </span>
-                    </div>
-                    {kickAccount ? (
-                      <button
-                        className="secondary-button"
-                        disabled={kickAuthBusy}
-                        onClick={() => void signOutOfKick()}
-                        type="button"
-                      >
-                        Sign out
-                      </button>
-                    ) : (
-                      <button
-                        className="primary-button"
-                        disabled={kickAuthBusy}
-                        onClick={() => void signInToKick()}
-                        type="button"
-                      >
-                        <LogIn size={15} /> Sign in
-                      </button>
-                    )}
-                  </div>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Twitch website session</strong>
-                      <span>
-                        {playbackSession.linked
-                          ? `Linked${playbackSession.login ? ` as ${playbackSession.login}` : ""}. Used for higher Twitch playback qualities when available (such as Source or 1440p).`
-                          : "Optional session used for higher Twitch playback qualities when available (such as Source or 1440p)."}
-                      </span>
-                    </div>
-                    <button
-                      className="secondary-button"
-                      disabled={playbackSessionBusy}
-                      onClick={() =>
-                        playbackSession.linked
-                          ? void unlinkPlaybackSession()
-                          : void linkPlaybackSession()
-                      }
-                      type="button"
-                    >
-                      {playbackSession.linked ? <Unlink size={14} /> : <ExternalLink size={14} />}
-                      {playbackSession.linked ? "Remove" : "Link session"}
-                    </button>
-                  </div>
-                  </section>
-                )}
-                {!hasSettingsSearch && settingsSection === "playback" && (
-                  <section className="settings-section-panel">
-                    <header className="settings-section-heading">
-                      <span>PLAYBACK</span>
-                      <h3>Video and controls</h3>
-                      <p>Choose how streams play and how the player behaves.</p>
-                    </header>
-                  <div className="settings-preview">
-                    <span>
-                      <strong>Default playback engine</strong>
-                      <small>
-                        {preferredMode === "native"
-                          ? nativeAvailability?.available
-                            ? "Cyber Wire Native is ready"
-                            : nativeAvailability?.reason ?? "Checking Native availability…"
-                          : "Twitch’s official player and controls"}
-                      </small>
-                    </span>
-                    <div className="mode-switch">
-                      <button
-                        aria-pressed={preferredMode === "native"}
-                        className={preferredMode === "native" ? "active experimental" : "experimental"}
-                        onClick={() => void choosePreferredMode("native")}
-                        type="button"
-                      >
-                        Native
-                      </button>
-                      <button
-                        aria-pressed={preferredMode === "official"}
-                        className={preferredMode === "official" ? "active" : ""}
-                        onClick={() => void choosePreferredMode("official")}
-                        type="button"
-                      >
-                        Standard
-                      </button>
-                    </div>
-                  </div>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Low latency</strong>
-                      <span>
-                        Play completed Twitch fragments close to the live edge. Turn this
-                        off to keep a larger cushion for unstable connections.
-                        Twitch&apos;s proprietary in-progress fragments are not used because
-                        hls.js cannot play them reliably at high bitrates.
-                      </span>
-                    </div>
-                    <button
-                      aria-pressed={playbackLatencyMode === "ultra-low"}
-                      className={
-                        playbackLatencyMode === "ultra-low"
-                          ? "settings-switch active"
-                          : "settings-switch"
-                      }
-                      onClick={() =>
-                        setPlaybackLatencyMode((current) =>
-                          current === "ultra-low" ? "balanced" : "ultra-low",
-                        )
-                      }
-                      type="button"
-                    >
-                      <span />
-                    </button>
-                  </div>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Controls auto-hide delay</strong>
-                      <span>
-                        How long the player controls and cursor stay visible before hiding
-                        while a stream is playing.
-                      </span>
-                    </div>
-                    <label className="settings-slider">
-                      <span>{Math.round(controlsHideDelay / 1000)}s</span>
-                      <input
-                        aria-label="Controls auto-hide delay in seconds"
-                        max="10"
-                        min="1"
-                        onChange={(event) =>
-                          setControlsHideDelay(Number(event.target.value) * 1000)
-                        }
-                        type="range"
-                        value={Math.round(controlsHideDelay / 1000)}
-                      />
-                    </label>
-                  </div>
-                  </section>
-                )}
-                {!hasSettingsSearch && settingsSection === "chat" && (
-                  <section className="settings-section-panel">
-                    <header className="settings-section-heading">
-                      <span>CHAT</span>
-                      <h3>Chat behavior</h3>
-                      <p>These settings also apply to the quick chat menu and chat overlay.</p>
-                    </header>
-                    <div className="settings-card settings-card-stack settings-chat-color-card">
-                      <TwitchChatColorControls platform={activeChatPlatform} />
-                    </div>
-                    <div className="settings-card">
-                      <div>
-                        <strong>Show timestamps</strong>
-                        <span>Display the sent time before every chat message.</span>
-                      </div>
-                      <button
-                        aria-pressed={chatTimestamps}
-                        className={chatTimestamps ? "settings-switch active" : "settings-switch"}
-                        onClick={() => setChatTimestamps((current) => !current)}
-                        type="button"
-                      >
-                        <span />
-                      </button>
-                    </div>
-                    <div className="settings-card">
-                      <div>
-                        <strong>Subscriber GIFs</strong>
-                        <span>
-                          Draw the GIFs higher-tier subscribers send. Turned off,
-                          a message shows the description Twitch sends in the
-                          GIF's place instead.
-                        </span>
-                      </div>
-                      <button
-                        aria-pressed={chatShowGifs}
-                        className={chatShowGifs ? "settings-switch active" : "settings-switch"}
-                        onClick={() => {
-                          void window.desktop.preferences
-                            .update({ chatShowGifs: !chatShowGifs })
-                            .catch(() => undefined);
-                        }}
-                        type="button"
-                      >
-                        <span />
-                      </button>
-                    </div>
-                    <div className="settings-card settings-card-stack settings-mention-card">
-                      <div className="settings-card-row">
+                      <div className="settings-card">
                         <div>
-                          <strong>Mention sound</strong>
-                          <span>Play a sound when somebody mentions your username.</span>
-                        </div>
-                        <button
-                          aria-pressed={mentionSoundEnabled}
-                          className={mentionSoundEnabled ? "settings-switch active" : "settings-switch"}
-                          onClick={() => setMentionSoundEnabled((current) => !current)}
-                          type="button"
-                        >
-                          <span />
-                        </button>
-                      </div>
-                      <MentionSoundControls
-                        onSoundChange={setMentionSoundId}
-                        onVolumeChange={setMentionSoundVolume}
-                        soundId={mentionSoundId}
-                        volume={mentionSoundVolume}
-                      />
-                    </div>
-                    <div className="settings-card settings-card-stack settings-link-preview-card">
-                      <div className="settings-card-row">
-                        <div>
-                          <strong>Generic link previews</strong>
+                          <strong>Kick account</strong>
                           <span>
-                            Show titles, descriptions, and preview images from public websites.
+                            {kickAccount
+                              ? `Connected as ${kickAccount.username}`
+                              : "Not signed in. Sign in to see the channels you follow on Kick."}
+                          </span>
+                        </div>
+                        {kickAccount ? (
+                          <button
+                            className="secondary-button"
+                            disabled={kickAuthBusy}
+                            onClick={() => void signOutOfKick()}
+                            type="button"
+                          >
+                            Sign out
+                          </button>
+                        ) : (
+                          <button
+                            className="primary-button"
+                            disabled={kickAuthBusy}
+                            onClick={() => void signInToKick()}
+                            type="button"
+                          >
+                            <LogIn size={15} /> Sign in
+                          </button>
+                        )}
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Twitch website session</strong>
+                          <span>
+                            {playbackSession.linked
+                              ? `Linked${playbackSession.login ? ` as ${playbackSession.login}` : ""}. Used for higher Twitch playback qualities when available (such as Source or 1440p).`
+                              : "Optional session used for higher Twitch playback qualities when available (such as Source or 1440p)."}
                           </span>
                         </div>
                         <button
-                          aria-pressed={genericLinkPreviewsEnabled}
+                          className="secondary-button"
+                          disabled={playbackSessionBusy}
+                          onClick={() =>
+                            playbackSession.linked
+                              ? void unlinkPlaybackSession()
+                              : void linkPlaybackSession()
+                          }
+                          type="button"
+                        >
+                          {playbackSession.linked ? (
+                            <Unlink size={14} />
+                          ) : (
+                            <ExternalLink size={14} />
+                          )}
+                          {playbackSession.linked ? "Remove" : "Link session"}
+                        </button>
+                      </div>
+                    </section>
+                  )}
+                  {!hasSettingsSearch && settingsSection === "playback" && (
+                    <section className="settings-section-panel">
+                      <header className="settings-section-heading">
+                        <span>PLAYBACK</span>
+                        <h3>Video and controls</h3>
+                        <p>
+                          Choose how streams play and how the player behaves.
+                        </p>
+                      </header>
+                      <div className="settings-preview">
+                        <span>
+                          <strong>Default playback engine</strong>
+                          <small>
+                            {preferredMode === "native"
+                              ? nativeAvailability?.available
+                                ? "Cyber Wire Native is ready"
+                                : (nativeAvailability?.reason ??
+                                  "Checking Native availability…")
+                              : "Twitch’s official player and controls"}
+                          </small>
+                        </span>
+                        <div className="mode-switch">
+                          <button
+                            aria-pressed={preferredMode === "native"}
+                            className={
+                              preferredMode === "native"
+                                ? "active experimental"
+                                : "experimental"
+                            }
+                            onClick={() => void choosePreferredMode("native")}
+                            type="button"
+                          >
+                            Native
+                          </button>
+                          <button
+                            aria-pressed={preferredMode === "official"}
+                            className={
+                              preferredMode === "official" ? "active" : ""
+                            }
+                            onClick={() => void choosePreferredMode("official")}
+                            type="button"
+                          >
+                            Standard
+                          </button>
+                        </div>
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Low latency</strong>
+                          <span>
+                            Play completed Twitch fragments close to the live
+                            edge. Turn this off to keep a larger cushion for
+                            unstable connections. Twitch&apos;s proprietary
+                            in-progress fragments are not used because hls.js
+                            cannot play them reliably at high bitrates.
+                          </span>
+                        </div>
+                        <button
+                          aria-pressed={playbackLatencyMode === "ultra-low"}
                           className={
-                            genericLinkPreviewsEnabled
+                            playbackLatencyMode === "ultra-low"
                               ? "settings-switch active"
                               : "settings-switch"
                           }
                           onClick={() =>
-                            setGenericLinkPreviewsEnabled((current) => !current)
+                            setPlaybackLatencyMode((current) =>
+                              current === "ultra-low"
+                                ? "balanced"
+                                : "ultra-low",
+                            )
                           }
                           type="button"
                         >
                           <span />
                         </button>
                       </div>
-                      <div className="settings-link-preview-options">
-                        <label>
-                          <span>Show generic previews</span>
-                          <select
-                            disabled={!genericLinkPreviewsEnabled}
-                            onChange={(event) =>
-                              setGenericLinkPreviewActivation(
-                                event.target.value as AppPreferences["genericLinkPreviewActivation"],
-                              )
-                            }
-                            value={genericLinkPreviewActivation}
-                          >
-                            <option value="ctrl">While holding Ctrl</option>
-                            <option value="alt">While holding Alt</option>
-                            <option value="hover">Whenever a link is hovered</option>
-                          </select>
-                        </label>
-                        <div className="settings-privacy-warning">
-                          <ShieldAlert size={17} />
-                          <span>
-                            Generic previews contact the linked website directly from your
-                            computer. The website can see your IP address. Cyber Wire limits
-                            downloads and never executes the page&apos;s scripts, but only
-                            preview links you trust.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="settings-card">
-                      <div>
-                        <strong>Dim deleted messages</strong>
-                        <span>Keep deleted text visible but subdued instead of replacing it.</span>
-                      </div>
-                      <button
-                        aria-pressed={chatDeletedMessageStyle === "dimmed"}
-                        className={chatDeletedMessageStyle === "dimmed" ? "settings-switch active" : "settings-switch"}
-                        onClick={() =>
-                          setChatDeletedMessageStyle((current) =>
-                            current === "dimmed" ? "placeholder" : "dimmed",
-                          )
-                        }
-                        type="button"
-                      >
-                        <span />
-                      </button>
-                    </div>
-                    <div className="settings-card settings-card-stack settings-link-preview-card">
-                      <div className="settings-card-row">
+                      <div className="settings-card">
                         <div>
-                          <strong>Emote autocomplete</strong>
+                          <strong>Controls auto-hide delay</strong>
                           <span>
-                            How a typed word is matched against emote names while
-                            completing with Tab.
+                            How long the player controls and cursor stay visible
+                            before hiding while a stream is playing.
                           </span>
                         </div>
-                      </div>
-                      <div className="settings-link-preview-options">
-                        <label>
-                          <span>Match emotes that</span>
-                          <select
+                        <label className="settings-slider">
+                          <span>{Math.round(controlsHideDelay / 1000)}s</span>
+                          <input
+                            aria-label="Controls auto-hide delay in seconds"
+                            max="10"
+                            min="1"
                             onChange={(event) =>
-                              setEmoteAutocompleteMatch(
-                                event.target.value as AppPreferences["emoteAutocompleteMatch"],
+                              setControlsHideDelay(
+                                Number(event.target.value) * 1000,
                               )
                             }
-                            value={emoteAutocompleteMatch}
-                          >
-                            <option value="prefix">Start with what you type</option>
-                            <option value="substring">Contain what you type</option>
-                          </select>
+                            type="range"
+                            value={Math.round(controlsHideDelay / 1000)}
+                          />
                         </label>
-                        <p className="settings-hint">
-                          {emoteAutocompleteMatch === "substring"
-                            ? "Typing ek also finds kekw."
-                            : "Typing kek finds kekw; ek does not."}
+                      </div>
+                    </section>
+                  )}
+                  {!hasSettingsSearch && settingsSection === "chat" && (
+                    <section className="settings-section-panel">
+                      <header className="settings-section-heading">
+                        <span>CHAT</span>
+                        <h3>Chat behavior</h3>
+                        <p>
+                          These settings also apply to the quick chat menu and
+                          chat overlay.
                         </p>
+                      </header>
+                      <div className="settings-card settings-card-stack settings-chat-color-card">
+                        <TwitchChatColorControls
+                          platform={activeChatPlatform}
+                        />
                       </div>
-                    </div>
-                    <div className="settings-card settings-card-stack">
-                      <div className="settings-card-row">
+                      <div className="settings-card">
                         <div>
-                          <strong>Tab while naming someone</strong>
+                          <strong>Show timestamps</strong>
                           <span>
-                            What Tab does to the highlighted name after typing @.
-                            Enter always takes the highlighted one, and does not
-                            send the message.
+                            Display the sent time before every chat message.
                           </span>
                         </div>
-                      </div>
-                      <div className="settings-link-preview-options">
-                        <label>
-                          <span>Pressing Tab</span>
-                          <select
-                            onChange={(event) =>
-                              setMentionTabBehavior(
-                                event.target.value as AppPreferences["mentionTabBehavior"],
-                              )
-                            }
-                            value={mentionTabBehavior}
-                          >
-                            <option value="complete">Fills in the name</option>
-                            <option value="cycle">Moves through the names</option>
-                          </select>
-                        </label>
-                        <p className="settings-hint">
-                          {mentionTabBehavior === "cycle"
-                            ? "Tab steps through the list; Enter fills in the one highlighted."
-                            : "Tab fills in the highlighted name; the arrow keys move the highlight."}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="settings-card">
-                      <div>
-                        <strong>Chat on left</strong>
-                        <span>Swap the chat panel and followed-channel sidebar positions.</span>
-                      </div>
-                      <button
-                        aria-pressed={chatOnLeft}
-                        className={chatOnLeft ? "settings-switch active" : "settings-switch"}
-                        onClick={() => setChatOnLeft((current) => !current)}
-                        type="button"
-                      >
-                        <span />
-                      </button>
-                    </div>
-                    <div className="settings-card settings-card-stack settings-range-list">
-                      <label>
-                        <span><strong>Font size</strong><small>Message text in chat</small></span>
-                        <span className="settings-range-control">
-                          <output>{chatFontSize}px</output>
-                          <input aria-label="Chat font size" max="25" min="14" onChange={(event) => setChatFontSize(Number(event.target.value))} type="range" value={chatFontSize} />
-                        </span>
-                      </label>
-                      <label>
-                        <span><strong>Emote size</strong><small>Rendered emotes in chat messages</small></span>
-                        <span className="settings-range-control">
-                          <output>{chatEmoteSize}px</output>
-                          <input aria-label="Chat emote size" max="48" min="18" onChange={(event) => setChatEmoteSize(Number(event.target.value))} type="range" value={chatEmoteSize} />
-                        </span>
-                      </label>
-                      <label>
-                        <span><strong>History</strong><small>Messages loaded when joining a channel</small></span>
-                        <span className="settings-range-control">
-                          <output>{chatHistoryLimit}</output>
-                          <input aria-label="Chat history message count" max="100" min="20" onChange={(event) => setChatHistoryLimit(Number(event.target.value))} step="10" type="range" value={chatHistoryLimit} />
-                        </span>
-                      </label>
-                      <label>
-                        <span><strong>Overlay opacity</strong><small>Background opacity while chat overlays video</small></span>
-                        <span className="settings-range-control">
-                          <output>{chatOpacity}%</output>
-                          <input aria-label="Chat overlay opacity" max="100" min="25" onChange={(event) => setChatOpacity(Number(event.target.value))} type="range" value={chatOpacity} />
-                        </span>
-                      </label>
-                    </div>
-                    <div className="settings-card settings-card-stack">
-                      <div className="settings-card-row">
-                        <div>
-                          <strong>Blocked chatters</strong>
-                          <span>
-                            Their messages are hidden everywhere chat appears.
-                            This list is Cyber Wire's own — it changes nothing on
-                            your Twitch or Kick account.
-                          </span>
-                        </div>
-                        <span className="status-pill">
-                          {blockedChatters.size === 0
-                            ? "None blocked"
-                            : `${blockedChatters.size} blocked`}
-                        </span>
-                      </div>
-                      <BlockedChattersSettings />
-                    </div>
-                  </section>
-                )}
-                {!hasSettingsSearch && settingsSection === "emotes" && (
-                  <section className="settings-section-panel">
-                    <header className="settings-section-heading">
-                      <span>EMOTES</span>
-                      <h3>Emote providers</h3>
-                      <p>Provider sets are cached and refreshed as channels change.</p>
-                    </header>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Emote Cache</strong>
-                      <span>
-                        Emotes are saved after the first download so they appear
-                        instantly — empty this if one still shows an old picture.
-                      </span>
-                    </div>
-                    <div className="settings-card-actions">
-                      <span className="status-pill">{emoteStoreLabel}</span>
-                      <button
-                        className="secondary-button"
-                        disabled={clearingEmoteCache}
-                        onClick={() => {
-                          setClearingEmoteCache(true);
-                          forgetWarmedEmoteImages();
-                          void window.desktop.chat
-                            .clearEmoteCache()
-                            .then(() => window.desktop.chat.getCacheSize())
-                            .then(setEmoteStoreUsage)
-                            .catch(() => undefined)
-                            .finally(() => setClearingEmoteCache(false));
-                        }}
-                        type="button"
-                      >
-                        {clearingEmoteCache ? "Emptying…" : "Empty cache"}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="settings-card">
-                    <div>
-                      <strong>Third-party emotes</strong>
-                      <span>7TV, FrankerFaceZ, and BetterTTV global and channel sets are enabled and cached.</span>
-                    </div>
-                    <span className="status-pill">Enabled</span>
-                  </div>
-                    <div className="settings-card settings-provider-list">
-                      <ProviderLogo name="7tv" />
-                      <div><strong>7TV</strong><span>Global and channel emotes</span></div>
-                      <span className="status-pill">On</span>
-                      <ProviderLogo name="ffz" />
-                      <div><strong>FrankerFaceZ</strong><span>Global and channel emotes</span></div>
-                      <span className="status-pill">On</span>
-                      <ProviderLogo name="bttv" />
-                      <div><strong>BetterTTV</strong><span>Global and channel emotes</span></div>
-                      <span className="status-pill">On</span>
-                    </div>
-                  </section>
-                )}
-                {!hasSettingsSearch && settingsSection === "appearance" && (
-                  <section className="settings-section-panel">
-                    <header className="settings-section-heading">
-                      <span>APPEARANCE</span>
-                      <h3>Interface</h3>
-                      <p>Adjust Cyber Wire&apos;s window and visual presentation.</p>
-                    </header>
-                  <div className="settings-card">
-                    <div><strong>Clean View when watching</strong><span>Hide the interface during playback. Hover the top edge to reveal it; pin to lock it hidden.</span></div>
-                    <button className={cleanViewOnWatch ? "settings-switch active" : "settings-switch"} aria-pressed={cleanViewOnWatch} onClick={() => { const next = !cleanViewOnWatch; setCleanViewOnWatch(next); localStorage.setItem("cyberwire.cleanViewOnWatch", String(next)); }} type="button"><span /></button>
-                  </div>
-                  <div className="settings-card">
-                    <div>
-                      <strong>OLED mode</strong>
-                      <span>Use true black backgrounds throughout Cyber Wire.</span>
-                    </div>
-                    <button
-                      aria-pressed={oledMode}
-                      className={oledMode ? "settings-switch active" : "settings-switch"}
-                      onClick={toggleOledMode}
-                      type="button"
-                    >
-                      <span />
-                    </button>
-                  </div>
-                  </section>
-                )}
-                {!hasSettingsSearch && settingsSection === "obs" && <ObsSettings />}
-                {!hasSettingsSearch && settingsSection === "about" && (
-                  <section className="settings-section-panel settings-about">
-                    <header className="settings-section-heading">
-                      <span>ABOUT</span>
-                      <h3>Cyber Wire</h3>
-                      <p>Project details, support links, credits, and version history.</p>
-                    </header>
-                    <div className="settings-about-hero">
-                      <img alt="" src={wiredScytheIcon} />
-                      <div className="settings-about-copy">
-                        <strong>Cyber Wire</strong>
-                        <span>Local Windows streaming companion</span>
-                        <small>
-                          {updateStatus.currentVersion
-                            ? `Version ${updateStatus.currentVersion}`
-                            : "Version unavailable"}{" "}
-                          · GPL-3.0-or-later
-                        </small>
-                      </div>
-                      <div className="settings-about-actions">
                         <button
-                          className="secondary-button"
-                          disabled={
-                            updateStatus.state === "disabled" ||
-                            updateStatus.state === "checking" ||
-                            updateStatus.state === "downloading"
+                          aria-pressed={chatTimestamps}
+                          className={
+                            chatTimestamps
+                              ? "settings-switch active"
+                              : "settings-switch"
                           }
-                          onClick={runUpdateAction}
+                          onClick={() =>
+                            setChatTimestamps((current) => !current)
+                          }
                           type="button"
                         >
-                          <RefreshCw
+                          <span />
+                        </button>
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Subscriber GIFs</strong>
+                          <span>
+                            Draw the GIFs higher-tier subscribers send. Turned
+                            off, a message shows the description Twitch sends in
+                            the GIF's place instead.
+                          </span>
+                        </div>
+                        <button
+                          aria-pressed={chatShowGifs}
+                          className={
+                            chatShowGifs
+                              ? "settings-switch active"
+                              : "settings-switch"
+                          }
+                          onClick={() => {
+                            void window.desktop.preferences
+                              .update({ chatShowGifs: !chatShowGifs })
+                              .catch(() => undefined);
+                          }}
+                          type="button"
+                        >
+                          <span />
+                        </button>
+                      </div>
+                      <div className="settings-card settings-card-stack settings-mention-card">
+                        <div className="settings-card-row">
+                          <div>
+                            <strong>Mention sound</strong>
+                            <span>
+                              Play a sound when somebody mentions your username.
+                            </span>
+                          </div>
+                          <button
+                            aria-pressed={mentionSoundEnabled}
                             className={
+                              mentionSoundEnabled
+                                ? "settings-switch active"
+                                : "settings-switch"
+                            }
+                            onClick={() =>
+                              setMentionSoundEnabled((current) => !current)
+                            }
+                            type="button"
+                          >
+                            <span />
+                          </button>
+                        </div>
+                        <MentionSoundControls
+                          onSoundChange={setMentionSoundId}
+                          onVolumeChange={setMentionSoundVolume}
+                          soundId={mentionSoundId}
+                          volume={mentionSoundVolume}
+                        />
+                      </div>
+                      <div className="settings-card settings-card-stack settings-link-preview-card">
+                        <div className="settings-card-row">
+                          <div>
+                            <strong>Generic link previews</strong>
+                            <span>
+                              Show titles, descriptions, and preview images from
+                              public websites.
+                            </span>
+                          </div>
+                          <button
+                            aria-pressed={genericLinkPreviewsEnabled}
+                            className={
+                              genericLinkPreviewsEnabled
+                                ? "settings-switch active"
+                                : "settings-switch"
+                            }
+                            onClick={() =>
+                              setGenericLinkPreviewsEnabled(
+                                (current) => !current,
+                              )
+                            }
+                            type="button"
+                          >
+                            <span />
+                          </button>
+                        </div>
+                        <div className="settings-link-preview-options">
+                          <label>
+                            <span>Show generic previews</span>
+                            <select
+                              disabled={!genericLinkPreviewsEnabled}
+                              onChange={(event) =>
+                                setGenericLinkPreviewActivation(
+                                  event.target
+                                    .value as AppPreferences["genericLinkPreviewActivation"],
+                                )
+                              }
+                              value={genericLinkPreviewActivation}
+                            >
+                              <option value="ctrl">While holding Ctrl</option>
+                              <option value="alt">While holding Alt</option>
+                              <option value="hover">
+                                Whenever a link is hovered
+                              </option>
+                            </select>
+                          </label>
+                          <div className="settings-privacy-warning">
+                            <ShieldAlert size={17} />
+                            <span>
+                              Generic previews contact the linked website
+                              directly from your computer. The website can see
+                              your IP address. Cyber Wire limits downloads and
+                              never executes the page&apos;s scripts, but only
+                              preview links you trust.
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Dim deleted messages</strong>
+                          <span>
+                            Keep deleted text visible but subdued instead of
+                            replacing it.
+                          </span>
+                        </div>
+                        <button
+                          aria-pressed={chatDeletedMessageStyle === "dimmed"}
+                          className={
+                            chatDeletedMessageStyle === "dimmed"
+                              ? "settings-switch active"
+                              : "settings-switch"
+                          }
+                          onClick={() =>
+                            setChatDeletedMessageStyle((current) =>
+                              current === "dimmed" ? "placeholder" : "dimmed",
+                            )
+                          }
+                          type="button"
+                        >
+                          <span />
+                        </button>
+                      </div>
+                      <div className="settings-card settings-card-stack settings-link-preview-card">
+                        <div className="settings-card-row">
+                          <div>
+                            <strong>Emote autocomplete</strong>
+                            <span>
+                              How a typed word is matched against emote names
+                              while completing with Tab.
+                            </span>
+                          </div>
+                        </div>
+                        <div className="settings-link-preview-options">
+                          <label>
+                            <span>Match emotes that</span>
+                            <select
+                              onChange={(event) =>
+                                setEmoteAutocompleteMatch(
+                                  event.target
+                                    .value as AppPreferences["emoteAutocompleteMatch"],
+                                )
+                              }
+                              value={emoteAutocompleteMatch}
+                            >
+                              <option value="prefix">
+                                Start with what you type
+                              </option>
+                              <option value="substring">
+                                Contain what you type
+                              </option>
+                            </select>
+                          </label>
+                          <p className="settings-hint">
+                            {emoteAutocompleteMatch === "substring"
+                              ? "Typing ek also finds kekw."
+                              : "Typing kek finds kekw; ek does not."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="settings-card settings-card-stack">
+                        <div className="settings-card-row">
+                          <div>
+                            <strong>Tab while naming someone</strong>
+                            <span>
+                              What Tab does to the highlighted name after typing
+                              @. Enter always takes the highlighted one, and
+                              does not send the message.
+                            </span>
+                          </div>
+                        </div>
+                        <div className="settings-link-preview-options">
+                          <label>
+                            <span>Pressing Tab</span>
+                            <select
+                              onChange={(event) =>
+                                setMentionTabBehavior(
+                                  event.target
+                                    .value as AppPreferences["mentionTabBehavior"],
+                                )
+                              }
+                              value={mentionTabBehavior}
+                            >
+                              <option value="complete">
+                                Fills in the name
+                              </option>
+                              <option value="cycle">
+                                Moves through the names
+                              </option>
+                            </select>
+                          </label>
+                          <p className="settings-hint">
+                            {mentionTabBehavior === "cycle"
+                              ? "Tab steps through the list; Enter fills in the one highlighted."
+                              : "Tab fills in the highlighted name; the arrow keys move the highlight."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Chat on left</strong>
+                          <span>
+                            Swap the chat panel and followed-channel sidebar
+                            positions.
+                          </span>
+                        </div>
+                        <button
+                          aria-pressed={chatOnLeft}
+                          className={
+                            chatOnLeft
+                              ? "settings-switch active"
+                              : "settings-switch"
+                          }
+                          onClick={() => setChatOnLeft((current) => !current)}
+                          type="button"
+                        >
+                          <span />
+                        </button>
+                      </div>
+                      <div className="settings-card settings-card-stack settings-range-list">
+                        <label>
+                          <span>
+                            <strong>Font size</strong>
+                            <small>Message text in chat</small>
+                          </span>
+                          <span className="settings-range-control">
+                            <output>{chatFontSize}px</output>
+                            <input
+                              aria-label="Chat font size"
+                              max="25"
+                              min="14"
+                              onChange={(event) =>
+                                setChatFontSize(Number(event.target.value))
+                              }
+                              type="range"
+                              value={chatFontSize}
+                            />
+                          </span>
+                        </label>
+                        <label>
+                          <span>
+                            <strong>Emote size</strong>
+                            <small>Rendered emotes in chat messages</small>
+                          </span>
+                          <span className="settings-range-control">
+                            <output>{chatEmoteSize}px</output>
+                            <input
+                              aria-label="Chat emote size"
+                              max="48"
+                              min="18"
+                              onChange={(event) =>
+                                setChatEmoteSize(Number(event.target.value))
+                              }
+                              type="range"
+                              value={chatEmoteSize}
+                            />
+                          </span>
+                        </label>
+                        <label>
+                          <span>
+                            <strong>History</strong>
+                            <small>
+                              Messages loaded when joining a channel
+                            </small>
+                          </span>
+                          <span className="settings-range-control">
+                            <output>{chatHistoryLimit}</output>
+                            <input
+                              aria-label="Chat history message count"
+                              max="100"
+                              min="20"
+                              onChange={(event) =>
+                                setChatHistoryLimit(Number(event.target.value))
+                              }
+                              step="10"
+                              type="range"
+                              value={chatHistoryLimit}
+                            />
+                          </span>
+                        </label>
+                        <label>
+                          <span>
+                            <strong>Overlay opacity</strong>
+                            <small>
+                              Background opacity while chat overlays video
+                            </small>
+                          </span>
+                          <span className="settings-range-control">
+                            <output>{chatOpacity}%</output>
+                            <input
+                              aria-label="Chat overlay opacity"
+                              max="100"
+                              min="25"
+                              onChange={(event) =>
+                                setChatOpacity(Number(event.target.value))
+                              }
+                              type="range"
+                              value={chatOpacity}
+                            />
+                          </span>
+                        </label>
+                      </div>
+                      <div className="settings-card settings-card-stack">
+                        <div className="settings-card-row">
+                          <div>
+                            <strong>Blocked chatters</strong>
+                            <span>
+                              Their messages are hidden everywhere chat appears.
+                              This list is Cyber Wire's own — it changes nothing
+                              on your Twitch or Kick account.
+                            </span>
+                          </div>
+                          <span className="status-pill">
+                            {blockedChatters.size === 0
+                              ? "None blocked"
+                              : `${blockedChatters.size} blocked`}
+                          </span>
+                        </div>
+                        <BlockedChattersSettings />
+                      </div>
+                    </section>
+                  )}
+                  {!hasSettingsSearch && settingsSection === "emotes" && (
+                    <section className="settings-section-panel">
+                      <header className="settings-section-heading">
+                        <span>EMOTES</span>
+                        <h3>Emote providers</h3>
+                        <p>
+                          Provider sets are cached and refreshed as channels
+                          change.
+                        </p>
+                      </header>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Emote Cache</strong>
+                          <span>
+                            Emotes are saved after the first download so they
+                            appear instantly — empty this if one still shows an
+                            old picture.
+                          </span>
+                        </div>
+                        <div className="settings-card-actions">
+                          <span className="status-pill">{emoteStoreLabel}</span>
+                          <button
+                            className="secondary-button"
+                            disabled={clearingEmoteCache}
+                            onClick={() => {
+                              setClearingEmoteCache(true);
+                              forgetWarmedEmoteImages();
+                              void window.desktop.chat
+                                .clearEmoteCache()
+                                .then(() => window.desktop.chat.getCacheSize())
+                                .then(setEmoteStoreUsage)
+                                .catch(() => undefined)
+                                .finally(() => setClearingEmoteCache(false));
+                            }}
+                            type="button"
+                          >
+                            {clearingEmoteCache ? "Emptying…" : "Empty cache"}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Third-party emotes</strong>
+                          <span>
+                            7TV, FrankerFaceZ, and BetterTTV global and channel
+                            sets are enabled and cached.
+                          </span>
+                        </div>
+                        <span className="status-pill">Enabled</span>
+                      </div>
+                      <div className="settings-card settings-provider-list">
+                        <ProviderLogo name="7tv" />
+                        <div>
+                          <strong>7TV</strong>
+                          <span>Global and channel emotes</span>
+                        </div>
+                        <span className="status-pill">On</span>
+                        <ProviderLogo name="ffz" />
+                        <div>
+                          <strong>FrankerFaceZ</strong>
+                          <span>Global and channel emotes</span>
+                        </div>
+                        <span className="status-pill">On</span>
+                        <ProviderLogo name="bttv" />
+                        <div>
+                          <strong>BetterTTV</strong>
+                          <span>Global and channel emotes</span>
+                        </div>
+                        <span className="status-pill">On</span>
+                      </div>
+                    </section>
+                  )}
+                  {!hasSettingsSearch && settingsSection === "appearance" && (
+                    <section className="settings-section-panel">
+                      <header className="settings-section-heading">
+                        <span>APPEARANCE</span>
+                        <h3>Interface</h3>
+                        <p>
+                          Adjust Cyber Wire&apos;s window and visual
+                          presentation.
+                        </p>
+                      </header>
+                      <div
+                        className="settings-card"
+                        style={{ display: "grid", gap: 10 }}
+                      >
+                        <strong>Interface panels</strong>
+                        <span>
+                          Hover panels overlay the video. Ctrl+Shift+U restores
+                          the default interface.
+                        </span>
+                        {(
+                          ["sidebar", "navigation", "chat", "controls"] as const
+                        ).map((panel) => (
+                          <label key={panel}>
+                            {panel}{" "}
+                            <select
+                              aria-label={`${panel} visibility`}
+                              value={panelModes[panel]}
+                              onChange={(event) => {
+                                const mode = event.target.value as PanelMode;
+                                setPanelModes((previous) => ({
+                                  ...previous,
+                                  [panel]: mode,
+                                }));
+                                if (panel === "sidebar") {
+                                  setSidebarHidden(false);
+                                  setSidebarCollapsed(mode === "hover");
+                                }
+                                if (panel === "chat" && mode !== "hidden") {
+                                  setChatVisible(true);
+                                  setMultiChatVisible(true);
+                                }
+                              }}
+                            >
+                              <option value="always">Always visible</option>
+                              <option value="hover">Reveal on hover</option>
+                              <option value="hidden">Hidden</option>
+                            </select>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>Clean View when watching</strong>
+                          <span>
+                            Hide the interface during playback. Hover the top
+                            edge to reveal it; pin to lock it hidden.
+                          </span>
+                        </div>
+                        <button
+                          className={
+                            cleanViewOnWatch
+                              ? "settings-switch active"
+                              : "settings-switch"
+                          }
+                          aria-pressed={cleanViewOnWatch}
+                          onClick={() => {
+                            const next = !cleanViewOnWatch;
+                            setCleanViewOnWatch(next);
+                            localStorage.setItem(
+                              "cyberwire.cleanViewOnWatch",
+                              String(next),
+                            );
+                          }}
+                          type="button"
+                        >
+                          <span />
+                        </button>
+                      </div>
+                      <div className="settings-card">
+                        <div>
+                          <strong>OLED mode</strong>
+                          <span>
+                            Use true black backgrounds throughout Cyber Wire.
+                          </span>
+                        </div>
+                        <button
+                          aria-pressed={oledMode}
+                          className={
+                            oledMode
+                              ? "settings-switch active"
+                              : "settings-switch"
+                          }
+                          onClick={toggleOledMode}
+                          type="button"
+                        >
+                          <span />
+                        </button>
+                      </div>
+                    </section>
+                  )}
+                  {!hasSettingsSearch && settingsSection === "obs" && (
+                    <ObsSettings />
+                  )}
+                  {!hasSettingsSearch && settingsSection === "about" && (
+                    <section className="settings-section-panel settings-about">
+                      <header className="settings-section-heading">
+                        <span>ABOUT</span>
+                        <h3>Cyber Wire</h3>
+                        <p>
+                          Project details, support links, credits, and version
+                          history.
+                        </p>
+                      </header>
+                      <div className="settings-about-hero">
+                        <img alt="" src={wiredScytheIcon} />
+                        <div className="settings-about-copy">
+                          <strong>Cyber Wire</strong>
+                          <span>Local Windows streaming companion</span>
+                          <small>
+                            {updateStatus.currentVersion
+                              ? `Version ${updateStatus.currentVersion}`
+                              : "Version unavailable"}{" "}
+                            · GPL-3.0-or-later
+                          </small>
+                        </div>
+                        <div className="settings-about-actions">
+                          <button
+                            className="secondary-button"
+                            disabled={
+                              updateStatus.state === "disabled" ||
                               updateStatus.state === "checking" ||
                               updateStatus.state === "downloading"
-                                ? "spin"
-                                : undefined
                             }
-                            size={15}
-                          />
-                          {updateStatus.state === "downloaded"
-                            ? "Restart to update"
-                            : updateStatus.state === "checking"
-                              ? "Checking…"
-                              : updateStatus.state === "downloading"
-                                ? "Downloading…"
-                                : "Check for updates"}
-                        </button>
-                        <button
-                          aria-label="View version history"
-                          className="secondary-button icon-button"
-                          onClick={() => openChangelog(true)}
-                          title="Version history"
-                          type="button"
-                        >
-                          <History size={16} />
-                        </button>
+                            onClick={runUpdateAction}
+                            type="button"
+                          >
+                            <RefreshCw
+                              className={
+                                updateStatus.state === "checking" ||
+                                updateStatus.state === "downloading"
+                                  ? "spin"
+                                  : undefined
+                              }
+                              size={15}
+                            />
+                            {updateStatus.state === "downloaded"
+                              ? "Restart to update"
+                              : updateStatus.state === "checking"
+                                ? "Checking…"
+                                : updateStatus.state === "downloading"
+                                  ? "Downloading…"
+                                  : "Check for updates"}
+                          </button>
+                          <button
+                            aria-label="View version history"
+                            className="secondary-button icon-button"
+                            onClick={() => openChangelog(true)}
+                            title="Version history"
+                            type="button"
+                          >
+                            <History size={16} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="settings-card settings-card-stack">
-                      <strong>Cyber Wire</strong>
-                      <span>Your local streaming workspace.</span>
-                    </div>
-                    <div className="settings-card settings-card-stack settings-dependencies">
-                      <header>
-                        <strong>Core dependencies</strong>
-                        <span>Software and services that make Cyber Wire possible.</span>
-                      </header>
-                      <dl>
-                        <div>
-                          <dt>Desktop</dt>
-                          <dd>Electron · React · TypeScript</dd>
-                        </div>
-                        <div>
-                          <dt>Bundled resolver</dt>
-                          <dd>Streamlink portable runtime</dd>
-                        </div>
-                        <div>
-                          <dt>Video playback</dt>
-                          <dd>hls.js · Chromium Media Source Extensions</dd>
-                        </div>
-                        <div>
-                          <dt>Chat and emotes</dt>
-                          <dd>Twitch · Kick · 7TV · FrankerFaceZ · BetterTTV</dd>
-                        </div>
-                      </dl>
-                      <span>License and third-party notices are included with this app.</span>
-                    </div>
-                  </section>
-                )}
+                      <div className="settings-card settings-card-stack">
+                        <strong>Cyber Wire</strong>
+                        <span>Your local streaming workspace.</span>
+                      </div>
+                      <div className="settings-card settings-card-stack settings-dependencies">
+                        <header>
+                          <strong>Core dependencies</strong>
+                          <span>
+                            Software and services that make Cyber Wire possible.
+                          </span>
+                        </header>
+                        <dl>
+                          <div>
+                            <dt>Desktop</dt>
+                            <dd>Electron · React · TypeScript</dd>
+                          </div>
+                          <div>
+                            <dt>Bundled resolver</dt>
+                            <dd>Streamlink portable runtime</dd>
+                          </div>
+                          <div>
+                            <dt>Video playback</dt>
+                            <dd>hls.js · Chromium Media Source Extensions</dd>
+                          </div>
+                          <div>
+                            <dt>Chat and emotes</dt>
+                            <dd>
+                              Twitch · Kick · 7TV · FrankerFaceZ · BetterTTV
+                            </dd>
+                          </div>
+                        </dl>
+                        <span>
+                          License and third-party notices are included with this
+                          app.
+                        </span>
+                      </div>
+                    </section>
+                  )}
                 </div>
               </div>
             </section>
@@ -7170,7 +8470,10 @@ export function App() {
             style={{ ...(miniPlayerPosition ?? {}), width: miniPlayerWidth }}
             onAuxClick={(event) => {
               if (activeMode !== "native" || event.button !== 1) return;
-              if (event.target instanceof Element && event.target.closest("button, input")) {
+              if (
+                event.target instanceof Element &&
+                event.target.closest("button, input")
+              ) {
                 return;
               }
               event.preventDefault();
@@ -7180,14 +8483,21 @@ export function App() {
               if (
                 activeMode === "native" &&
                 event.button === 1 &&
-                !(event.target instanceof Element && event.target.closest("button, input"))
+                !(
+                  event.target instanceof Element &&
+                  event.target.closest("button, input")
+                )
               ) {
                 event.preventDefault();
               }
             }}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
-              if (event.target instanceof Element && event.target.closest("button")) return;
+              if (
+                event.target instanceof Element &&
+                event.target.closest("button")
+              )
+                return;
               const host = miniPlayerRef.current;
               if (!host) return;
               const rect = host.getBoundingClientRect();
@@ -7223,7 +8533,10 @@ export function App() {
                 ),
                 top: Math.max(
                   margin,
-                  Math.min(window.innerHeight - host.offsetHeight - margin, top),
+                  Math.min(
+                    window.innerHeight - host.offsetHeight - margin,
+                    top,
+                  ),
                 ),
               });
             }}
@@ -7285,7 +8598,9 @@ export function App() {
               <button
                 aria-label={nativeState.paused ? "Play" : "Pause"}
                 onClick={() =>
-                  window.desktop.player.controlNative({ command: "toggle-pause" })
+                  window.desktop.player.controlNative({
+                    command: "toggle-pause",
+                  })
                 }
                 title={nativeState.paused ? "Play" : "Pause"}
                 type="button"
@@ -7295,12 +8610,18 @@ export function App() {
               <button
                 aria-label={nativeState.muted ? "Unmute" : "Mute"}
                 onClick={() =>
-                  window.desktop.player.controlNative({ command: "toggle-mute" })
+                  window.desktop.player.controlNative({
+                    command: "toggle-mute",
+                  })
                 }
                 title={nativeState.muted ? "Unmute" : "Mute"}
                 type="button"
               >
-                {nativeState.muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                {nativeState.muted ? (
+                  <VolumeX size={15} />
+                ) : (
+                  <Volume2 size={15} />
+                )}
               </button>
               <span className="mini-player-title">
                 {streamMetadata?.displayName ?? activeChannel}
@@ -7318,7 +8639,12 @@ export function App() {
         )}
         {deviceAuthorization && (
           <div className="modal-backdrop" role="presentation">
-            <section className="app-modal" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+            <section
+              className="app-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="signin-title"
+            >
               <button
                 className="modal-close"
                 onClick={() => void cancelSignIn()}
@@ -7327,16 +8653,21 @@ export function App() {
               >
                 <X size={18} />
               </button>
-              <div className="modal-icon"><LogIn size={22} /></div>
+              <div className="modal-icon">
+                <LogIn size={22} />
+              </div>
               <h3 id="signin-title">Finish signing in on Twitch</h3>
               <p>
-                Your browser has opened Twitch’s official activation page. Confirm the permissions and
-                enter this one-time code if Twitch asks for it.
+                Your browser has opened Twitch’s official activation page.
+                Confirm the permissions and enter this one-time code if Twitch
+                asks for it.
               </p>
               <button
                 className="device-code"
                 onClick={() => {
-                  void navigator.clipboard.writeText(deviceAuthorization.userCode);
+                  void navigator.clipboard.writeText(
+                    deviceAuthorization.userCode,
+                  );
                   setCopiedCode(true);
                 }}
                 type="button"
@@ -7344,8 +8675,14 @@ export function App() {
                 <strong>{deviceAuthorization.userCode}</strong>
                 {copiedCode ? <Check size={17} /> : <Copy size={17} />}
               </button>
-              <span className="waiting-label"><i /> Waiting for Twitch authorization…</span>
-              <button className="secondary-button" onClick={() => void cancelSignIn()} type="button">
+              <span className="waiting-label">
+                <i /> Waiting for Twitch authorization…
+              </span>
+              <button
+                className="secondary-button"
+                onClick={() => void cancelSignIn()}
+                type="button"
+              >
                 Cancel
               </button>
             </section>

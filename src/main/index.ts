@@ -31,7 +31,11 @@ import {
 } from "../shared/player";
 import { z } from "zod";
 import { twitchChatColorInputSchema } from "../shared/twitch";
-import { channelKeySchema, parseChannelKey, type Platform } from "../shared/platform";
+import {
+  channelKeySchema,
+  parseChannelKey,
+  type Platform,
+} from "../shared/platform";
 import { HlsNativePlayer } from "./hls-native-player";
 import { StreamPlaybackResolver } from "./stream-playback-resolver";
 import { MultiStreamManager } from "./multi-stream-manager";
@@ -68,7 +72,11 @@ import {
   emoteStoreUsage,
   readEmoteImage,
 } from "./emote-image-store";
-import { APP_ORIGIN, appProtocolPrivileges, registerAppProtocol } from "./app-protocol";
+import {
+  APP_ORIGIN,
+  appProtocolPrivileges,
+  registerAppProtocol,
+} from "./app-protocol";
 import { readCachedKickBadge } from "./kick-badge-cache";
 
 // Electron's development console can outlive the shell that launched it. A
@@ -85,7 +93,11 @@ for (const stream of [process.stdout, process.stderr]) {
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 // Cyber Wire keeps its own isolated application data, credentials, and
 // website sessions rather than inheriting another application's profile.
-app.setPath("userData", process.env.CYBERWIRE_TEST_USER_DATA ?? path.join(app.getPath("appData"), "WiredScythe"));
+app.setPath(
+  "userData",
+  process.env.CYBERWIRE_TEST_USER_DATA ??
+    path.join(app.getPath("appData"), "WiredScythe"),
+);
 // Twitch's official embedded player is created inside a dedicated local page.
 // Allow that trusted player to honor its autoplay option when a channel opens.
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
@@ -129,8 +141,7 @@ type ThumbarGlyph = "play" | "pause" | "speaker" | "speaker-muted";
 // React controls. A raw 16px bitmap looked jagged in Windows' thumbnail
 // toolbar, especially when its preview crossed monitors with different DPI.
 const thumbarGlyphPng: Record<ThumbarGlyph, string> = {
-  play:
-    "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEPSURBVFhH7ZS9DcIwEIUTfiToGICKDRiBDRiAjp4JmAAxAnvABjSUUCJRIlFQI0UJn+EiQDrInx0af9Ip5uy893RGCTweTx6SJAll+R/iOO5Sc4IMpFUvGDcIcKauURTNzG/ZqgcJsOf5gPWWGsm2e/A0AQ5P+xf0VlRfjrkDLzWAgf7F+bUY8W8BUth3dy3oZwZI4Zz9a0E3dwADZ+1eixEqEuCNHTWmmiJVDgTKBjDTWPJoi1Q5ECgcgPNraigS1UCvyJ/wyP1P5FU7oJsZgP0btWDZk9fsgejPAOzZG7cGHmoAevbHrYHXRwDW7satgVGI4UnM3Y5bA98OphtqKq16IUCLqvYx8Xg8KkFwByXmot5AxK36AAAAAElFTkSuQmCC",
+  play: "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEPSURBVFhH7ZS9DcIwEIUTfiToGICKDRiBDRiAjp4JmAAxAnvABjSUUCJRIlFQI0UJn+EiQDrInx0af9Ip5uy893RGCTweTx6SJAll+R/iOO5Sc4IMpFUvGDcIcKauURTNzG/ZqgcJsOf5gPWWGsm2e/A0AQ5P+xf0VlRfjrkDLzWAgf7F+bUY8W8BUth3dy3oZwZI4Zz9a0E3dwADZ+1eixEqEuCNHTWmmiJVDgTKBjDTWPJoi1Q5ECgcgPNraigS1UCvyJ/wyP1P5FU7oJsZgP0btWDZk9fsgejPAOzZG7cGHmoAevbHrYHXRwDW7satgVGI4UnM3Y5bA98OphtqKq16IUCLqvYx8Xg8KkFwByXmot5AxK36AAAAAElFTkSuQmCC",
   pause:
     "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACmSURBVFhH7ZZBCsJAFEMHXXiRrrRe3qtIxVUvUpwx/0+wFIT+78pFHoShmRDSrlqEEBFaawfoyNPFqw3RXAorqbXeoAc0UXdoYMSJ5tKweMa5Ad6VEQdWKJcGHVY89boOnl/QhREHdiiXBj0aoAEaoAEaoAF/MeDZK1fgjYw4sEK5NOiwYvuxMOyNTAv07Qvs5n4CJQM0Whl1hk68/gAvlBNCrJTyBrKL5R7QmxMSAAAAAElFTkSuQmCC",
   speaker:
@@ -163,13 +174,16 @@ const thumbarIcons =
       }
     : null;
 
-function controlActiveNativePlayer(command: Parameters<HlsNativePlayer["control"]>[0]): void {
+function controlActiveNativePlayer(
+  command: Parameters<HlsNativePlayer["control"]>[0],
+): void {
   if (activePlayerMode !== "native") return;
   hlsNativePlayer.control(command);
 }
 
 function updateThumbnailToolbar(state = latestNativePlayerState): void {
-  if (process.platform !== "win32" || !mainWindow || mainWindow.isDestroyed()) return;
+  if (process.platform !== "win32" || !mainWindow || mainWindow.isDestroyed())
+    return;
   if (
     !thumbarIcons ||
     activePlayerMode !== "native" ||
@@ -185,7 +199,9 @@ function updateThumbnailToolbar(state = latestNativePlayerState): void {
       icon: state.paused ? thumbarIcons.play : thumbarIcons.pause,
       tooltip: state.paused ? "Play and return to live" : "Pause",
       click: () =>
-        controlActiveNativePlayer({ command: state.paused ? "go-live" : "toggle-pause" }),
+        controlActiveNativePlayer({
+          command: state.paused ? "go-live" : "toggle-pause",
+        }),
     },
     {
       icon: state.muted ? thumbarIcons.speakerMuted : thumbarIcons.speaker,
@@ -206,11 +222,15 @@ const playbackSessionService = new PlaybackSessionService(
 );
 const sevenTvService = new SevenTvService();
 const thirdPartyEmoteService = new ThirdPartyEmoteService();
-function sendToWindow(window: BrowserWindow | null, channel: string, ...args: unknown[]): void {
-  if (!window || window.isDestroyed() || window.webContents.isDestroyed()) return;
+function sendToWindow(
+  window: BrowserWindow | null,
+  channel: string,
+  ...args: unknown[]
+): void {
+  if (!window || window.isDestroyed() || window.webContents.isDestroyed())
+    return;
   window.webContents.send(channel, ...args);
 }
-
 
 /**
  * Windows that render chat. The main window always does, and the pop-out
@@ -262,7 +282,9 @@ function isTrustedIpcSender(event: IpcMainEvent | IpcMainInvokeEvent): boolean {
   return false;
 }
 
-function assertTrustedIpcSender(event: IpcMainEvent | IpcMainInvokeEvent): void {
+function assertTrustedIpcSender(
+  event: IpcMainEvent | IpcMainInvokeEvent,
+): void {
   if (!isTrustedIpcSender(event)) {
     throw new Error("Blocked IPC request from an untrusted renderer.");
   }
@@ -287,7 +309,6 @@ function onTrusted<Arguments extends unknown[]>(
     listener(event, ...(args as Arguments));
   });
 }
-
 
 /**
  * Stands the chat window against the side of a display, filling its working
@@ -315,7 +336,9 @@ function standChatWindowAt(
   const content = window.getContentBounds();
   const edge = Math.max(0, content.x - frame.x);
   const bounds = {
-    x: (side === "right" ? workArea.x + workArea.width - width : workArea.x) - edge,
+    x:
+      (side === "right" ? workArea.x + workArea.width - width : workArea.x) -
+      edge,
     y: workArea.y,
     width: width + edge * 2,
     height: workArea.height + edge,
@@ -334,10 +357,13 @@ function standChatWindowAt(
 
 function standChatWindowAtDisplayEdge(window: BrowserWindow): void {
   const anchor =
-    mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : window.getBounds();
+    mainWindow && !mainWindow.isDestroyed()
+      ? mainWindow.getBounds()
+      : window.getBounds();
   const workArea = screen.getDisplayMatching(anchor).workArea;
   const anchorCentre = anchor.x + anchor.width / 2;
-  const side = anchorCentre <= workArea.x + workArea.width / 2 ? "right" : "left";
+  const side =
+    anchorCentre <= workArea.x + workArea.width / 2 ? "right" : "left";
   standChatWindowAt(window, workArea, side);
 }
 
@@ -356,24 +382,31 @@ function enableDevToolsShortcut(window: BrowserWindow): void {
     }
   });
 }
-function lockLocalRendererNavigation(
-  window: BrowserWindow,
-): void {
+function lockLocalRendererNavigation(window: BrowserWindow): void {
   window.webContents.setWindowOpenHandler(({ frameName, url }) => {
     // Chat and stream pop-outs render into blank local windows. Anything with
     // a destination is still refused.
     const streamWindow = frameName.startsWith(STREAM_WINDOW_PREFIX);
-    if ((frameName === CHAT_WINDOW_NAME || streamWindow) && (url === "" || url === "about:blank")) {
+    if (
+      (frameName === CHAT_WINDOW_NAME || streamWindow) &&
+      (url === "" || url === "about:blank")
+    ) {
       const streamId = streamWindow
         ? Number.parseInt(frameName.slice(STREAM_WINDOW_PREFIX.length), 10) || 0
         : 0;
       const anchor = window.getBounds();
       const workArea = screen.getDisplayMatching(anchor).workArea;
       const streamWidth = Math.min(960, Math.max(480, workArea.width - 80));
-      const streamHeight = Math.round(streamWidth * 9 / 16);
+      const streamHeight = Math.round((streamWidth * 9) / 16);
       const cascade = (streamId % 6) * 30;
-      const streamX = Math.min(workArea.x + workArea.width - streamWidth, workArea.x + 30 + cascade);
-      const streamY = Math.min(workArea.y + workArea.height - streamHeight, workArea.y + 30 + cascade);
+      const streamX = Math.min(
+        workArea.x + workArea.width - streamWidth,
+        workArea.x + 30 + cascade,
+      );
+      const streamY = Math.min(
+        workArea.y + workArea.height - streamHeight,
+        workArea.y + 30 + cascade,
+      );
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
@@ -406,14 +439,29 @@ function lockLocalRendererNavigation(
         const area = screen.getDisplayMatching(saved).workArea;
         const width = Math.min(saved.width, area.width);
         const height = Math.min(saved.height, area.height);
-        created.setBounds({ width, height, x: Math.max(area.x, Math.min(saved.x, area.x + area.width - width)), y: Math.max(area.y, Math.min(saved.y, area.y + area.height - height)) });
+        created.setBounds({
+          width,
+          height,
+          x: Math.max(area.x, Math.min(saved.x, area.x + area.width - width)),
+          y: Math.max(area.y, Math.min(saved.y, area.y + area.height - height)),
+        });
       }
       let saveTimer: ReturnType<typeof setTimeout> | undefined;
       const save = () => {
         if (created.isDestroyed()) return;
-        void preferencesService.update({ streamWindowBounds: { ...preferencesService.get().streamWindowBounds, [frameName]: created.getBounds() } }).catch(() => undefined);
+        void preferencesService
+          .update({
+            streamWindowBounds: {
+              ...preferencesService.get().streamWindowBounds,
+              [frameName]: created.getBounds(),
+            },
+          })
+          .catch(() => undefined);
       };
-      const scheduleSave = () => { clearTimeout(saveTimer); saveTimer = setTimeout(save, 300); };
+      const scheduleSave = () => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(save, 300);
+      };
       created.on("move", scheduleSave);
       created.on("resize", scheduleSave);
       created.on("close", save);
@@ -475,12 +523,15 @@ const multiStreamManager = new MultiStreamManager(
   (tile) => sendToWindow(mainWindow, "native-multi:tile-state", tile),
   (id) => sendToWindow(mainWindow, "native-multi:tile-removed", id),
   hlsMediaProtocol,
-  (channel) => preferencesService.get().channelQualityOverrides?.[channel.toLowerCase()] ?? "720p",
+  (channel) =>
+    preferencesService.get().channelQualityOverrides?.[channel.toLowerCase()] ??
+    "720p",
 );
 const multiChatService = new MultiChatService(
   (channel, message) =>
     sendToChatSurfaces("native-multi:chat-message", { channel, message }),
-  (channel, state) => sendToChatSurfaces("native-multi:chat-state", { channel, state }),
+  (channel, state) =>
+    sendToChatSurfaces("native-multi:chat-state", { channel, state }),
   () => kickService,
 );
 const twitchService = new TwitchService();
@@ -500,7 +551,10 @@ const hlsNativePlayer = new HlsNativePlayer(
 function isAllowedTwitchNavigation(rawUrl: string): boolean {
   try {
     const url = new URL(rawUrl);
-    return url.protocol === "https:" && (url.hostname === "twitch.tv" || url.hostname.endsWith(".twitch.tv"));
+    return (
+      url.protocol === "https:" &&
+      (url.hostname === "twitch.tv" || url.hostname.endsWith(".twitch.tv"))
+    );
   } catch {
     return false;
   }
@@ -509,7 +563,10 @@ function isAllowedTwitchNavigation(rawUrl: string): boolean {
 function isAllowedKickNavigation(rawUrl: string): boolean {
   try {
     const url = new URL(rawUrl);
-    return url.protocol === "https:" && (url.hostname === "kick.com" || url.hostname.endsWith(".kick.com"));
+    return (
+      url.protocol === "https:" &&
+      (url.hostname === "kick.com" || url.hostname.endsWith(".kick.com"))
+    );
   } catch {
     return false;
   }
@@ -583,7 +640,10 @@ async function openChannelActionWindow(
     height: 760,
     minWidth: 720,
     minHeight: 560,
-    title: action === "channel" ? `Follow ${channel} on Twitch` : `Clip ${channel} on Twitch`,
+    title:
+      action === "channel"
+        ? `Follow ${channel} on Twitch`
+        : `Clip ${channel} on Twitch`,
     autoHideMenuBar: true,
     backgroundColor: "#0e0e10",
     hasShadow: true,
@@ -597,7 +657,9 @@ async function openChannelActionWindow(
     },
   });
   channelActionWindow = actionWindow;
-  const closed = new Promise<void>((resolve) => actionWindow.once("closed", resolve));
+  const closed = new Promise<void>((resolve) =>
+    actionWindow.once("closed", resolve),
+  );
   actionWindow.webContents.setUserAgent(
     actionWindow.webContents.getUserAgent().replace(/\sElectron\/[^\s]+/, ""),
   );
@@ -616,7 +678,8 @@ async function openChannelActionWindow(
     (_contents, _permission, callback) => callback(false),
   );
   actionWindow.webContents.on("before-input-event", (_event, input) => {
-    if (input.key === "Escape" && !actionWindow.isDestroyed()) actionWindow.close();
+    if (input.key === "Escape" && !actionWindow.isDestroyed())
+      actionWindow.close();
   });
   actionWindow.on("closed", () => {
     if (channelActionWindow === actionWindow) channelActionWindow = null;
@@ -709,16 +772,22 @@ async function openSubscriptionModal(
   const width = 560;
   const height = Math.min(940, workArea.height - 40);
   const x = Math.round(
-    Math.max(workArea.x, Math.min(
-      parentBounds.x + (parentBounds.width - width) / 2,
-      workArea.x + workArea.width - width,
-    )),
+    Math.max(
+      workArea.x,
+      Math.min(
+        parentBounds.x + (parentBounds.width - width) / 2,
+        workArea.x + workArea.width - width,
+      ),
+    ),
   );
   const y = Math.round(
-    Math.max(workArea.y, Math.min(
-      parentBounds.y + (parentBounds.height - height) / 2,
-      workArea.y + workArea.height - height,
-    )),
+    Math.max(
+      workArea.y,
+      Math.min(
+        parentBounds.y + (parentBounds.height - height) / 2,
+        workArea.y + workArea.height - height,
+      ),
+    ),
   );
   const win = new BrowserWindow({
     parent: mainWindow,
@@ -758,7 +827,12 @@ async function openSubscriptionModal(
   const layoutView = () => {
     if (win.isDestroyed()) return;
     const { width, height } = win.getContentBounds();
-    view.setBounds({ x: 0, y: headerHeight, width, height: Math.max(0, height - headerHeight) });
+    view.setBounds({
+      x: 0,
+      y: headerHeight,
+      width,
+      height: Math.max(0, height - headerHeight),
+    });
   };
   layoutView();
   win.on("resize", layoutView);
@@ -775,13 +849,16 @@ async function openSubscriptionModal(
   };
   page.on("will-navigate", blockNavigation);
   page.on("will-redirect", blockNavigation);
-  page.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  page.session.setPermissionRequestHandler((_contents, _permission, callback) =>
+    callback(false),
+  );
 
   // The header is the window's own page. Its close button navigates to a
   // sentinel we intercept here, and Escape closes too.
   win.webContents.on("will-navigate", (event, url) => {
     event.preventDefault();
-    if (url.startsWith(SUBSCRIPTION_CLOSE_URL) && !win.isDestroyed()) win.close();
+    if (url.startsWith(SUBSCRIPTION_CLOSE_URL) && !win.isDestroyed())
+      win.close();
   });
   win.webContents.on("before-input-event", (_event, input) => {
     if (input.key === "Escape" && !win.isDestroyed()) win.close();
@@ -799,9 +876,11 @@ async function openSubscriptionModal(
 
 function destroyPlayer(invalidatePendingOpen = true): void {
   if (invalidatePendingOpen) playerOpenGeneration += 1;
-  if (channelActionWindow && !channelActionWindow.isDestroyed()) channelActionWindow.close();
+  if (channelActionWindow && !channelActionWindow.isDestroyed())
+    channelActionWindow.close();
   channelActionWindow = null;
-  if (subscriptionWindow && !subscriptionWindow.isDestroyed()) subscriptionWindow.close();
+  if (subscriptionWindow && !subscriptionWindow.isDestroyed())
+    subscriptionWindow.close();
   subscriptionWindow = null;
   hlsNativePlayer.destroy();
   twitchChatService.disconnect();
@@ -875,20 +954,30 @@ function restoredMainWindowBounds(): Rectangle | null {
   const width = Math.min(saved.width, workArea.width);
   const height = Math.min(saved.height, workArea.height);
   return {
-    x: Math.min(Math.max(saved.x, workArea.x), workArea.x + workArea.width - width),
-    y: Math.min(Math.max(saved.y, workArea.y), workArea.y + workArea.height - height),
+    x: Math.min(
+      Math.max(saved.x, workArea.x),
+      workArea.x + workArea.width - width,
+    ),
+    y: Math.min(
+      Math.max(saved.y, workArea.y),
+      workArea.y + workArea.height - height,
+    ),
     width,
     height,
   };
 }
 
-
 /** The URL the trusted renderer is served from, with an optional view. */
-async function loadRendererView(window: BrowserWindow, view?: string): Promise<void> {
+async function loadRendererView(
+  window: BrowserWindow,
+  view?: string,
+): Promise<void> {
   const query = view ? `?view=${encodeURIComponent(view)}` : "";
   // electron-vite supplies this only while developing. Never let an inherited
   // environment variable replace the packaged app's trusted renderer.
-  const rendererUrl = app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL;
+  const rendererUrl = app.isPackaged
+    ? undefined
+    : process.env.ELECTRON_RENDERER_URL;
   if (rendererUrl) {
     trustedRendererOrigin = rendererOriginOf(new URL(rendererUrl));
     lockLocalRendererNavigation(window);
@@ -1025,17 +1114,10 @@ async function createWindow(): Promise<void> {
   await loadRendererView(mainWindow);
 }
 
-
-
-
-
-
-
 const chatWindowPlacementSchema = z.object({
   displayId: z.number(),
   side: z.enum(["left", "right"]),
 });
-
 
 // The figure chat settings shows is the emote store, which is what the setting
 // is about. Chromium's own cache is reported nowhere: it is bounded by
@@ -1063,72 +1145,90 @@ handleTrusted("chat-window:place", (_event, input: unknown) => {
   const { displayId, side } = chatWindowPlacementSchema.parse(input);
   const window = chatPopoutWindow;
   if (!window || window.isDestroyed()) return;
-  const display = screen.getAllDisplays().find((candidate) => candidate.id === displayId);
+  const display = screen
+    .getAllDisplays()
+    .find((candidate) => candidate.id === displayId);
   if (!display) return;
   standChatWindowAt(window, display.workArea, side);
 });
 
 handleTrusted(
   "player:open",
-  async (_event, input: unknown, requestedModeInput: unknown, requestedQualityInput: unknown) => {
-  const channel = channelKeySchema.parse(input);
-  const requestedMode = playerModeSchema.parse(requestedModeInput);
-  // The embedded Standard player is unreliable without a signed-in browser
-  // session. Native is the dependable guest-capable route for both services.
-  const effectiveMode: PlayerMode = "native";
-  const requestedQuality =
-    requestedQualityInput === undefined
-      ? preferencesService.get().channelQualityOverrides?.[channel.toLowerCase()] ?? "720p"
-      : nativeQualitySchema.parse(requestedQualityInput);
-  // Opening a single stream leaves multistream mode; free those tiles first.
-  if (multiStreamManager.isActive()) multiStreamManager.stop();
-  const openGeneration = ++playerOpenGeneration;
-  destroyPlayer(false);
-  activeChannelName = channel;
+  async (
+    _event,
+    input: unknown,
+    requestedModeInput: unknown,
+    requestedQualityInput: unknown,
+  ) => {
+    const channel = channelKeySchema.parse(input);
+    const requestedMode = playerModeSchema.parse(requestedModeInput);
+    // The embedded Standard player is unreliable without a signed-in browser
+    // session. Native is the dependable guest-capable route for both services.
+    const effectiveMode: PlayerMode = "native";
+    const requestedQuality =
+      requestedQualityInput === undefined
+        ? (preferencesService.get().channelQualityOverrides?.[
+            channel.toLowerCase()
+          ] ?? "720p")
+        : nativeQualitySchema.parse(requestedQualityInput);
+    // Opening a single stream leaves multistream mode; free those tiles first.
+    if (multiStreamManager.isActive()) multiStreamManager.stop();
+    const openGeneration = ++playerOpenGeneration;
+    destroyPlayer(false);
+    activeChannelName = channel;
 
-  let fallbackReason: string | undefined;
-  if (effectiveMode === "native") {
-    const nativeResult = await hlsNativePlayer.start(channel, requestedQuality, {
-      kind: "channel",
-      detail: channel,
-    });
-    if (openGeneration !== playerOpenGeneration || activeChannelName !== channel) {
-      // A newer request intentionally cancelled this startup.
-      return { channel, mode: effectiveMode };
+    let fallbackReason: string | undefined;
+    if (effectiveMode === "native") {
+      const nativeResult = await hlsNativePlayer.start(
+        channel,
+        requestedQuality,
+        {
+          kind: "channel",
+          detail: channel,
+        },
+      );
+      if (
+        openGeneration !== playerOpenGeneration ||
+        activeChannelName !== channel
+      ) {
+        // A newer request intentionally cancelled this startup.
+        return { channel, mode: effectiveMode };
+      }
+      if (!nativeResult.ok) fallbackReason = nativeResult.reason;
     }
-    if (!nativeResult.ok) fallbackReason = nativeResult.reason;
-  }
 
-  activePlayerMode = effectiveMode;
-  latestNativePlayerState =
-    effectiveMode === "native" ? hlsNativePlayer.getState() : null;
-  updateThumbnailToolbar();
+    activePlayerMode = effectiveMode;
+    latestNativePlayerState =
+      effectiveMode === "native" ? hlsNativePlayer.getState() : null;
+    updateThumbnailToolbar();
 
-  // Each service has its own chat transport, and only one is ever live.
-  const chatTarget = parseChannelKey(channel);
-  if (chatTarget.platform === "kick") {
-    twitchChatService.disconnect();
-    void kickChatService.connect(chatTarget.login);
-  } else {
-    kickChatService.disconnect();
-    twitchChatService.connect(channel);
-  }
+    // Each service has its own chat transport, and only one is ever live.
+    const chatTarget = parseChannelKey(channel);
+    if (chatTarget.platform === "kick") {
+      twitchChatService.disconnect();
+      void kickChatService.connect(chatTarget.login);
+    } else {
+      kickChatService.disconnect();
+      twitchChatService.connect(channel);
+    }
 
-  return {
-    channel,
-    mode: effectiveMode,
-    fallbackReason:
-      fallbackReason ??
-      (requestedMode === "official"
-        ? "Standard playback fell back to Cyber Wire Native so the public stream can play."
-        : undefined),
-  };
+    return {
+      channel,
+      mode: effectiveMode,
+      fallbackReason:
+        fallbackReason ??
+        (requestedMode === "official"
+          ? "Standard playback fell back to Cyber Wire Native so the public stream can play."
+          : undefined),
+    };
   },
 );
 
 handleTrusted("player:close", () => destroyPlayer());
 
-handleTrusted("native-player:get-availability", () => streamPlaybackResolver.getAvailability());
+handleTrusted("native-player:get-availability", () =>
+  streamPlaybackResolver.getAvailability(),
+);
 
 handleTrusted("native-player:get-qualities", (_event, input: unknown) => {
   const channel = channelKeySchema.parse(input);
@@ -1146,10 +1246,12 @@ handleTrusted(
       detail: quality,
     });
     if (!result.ok) throw new Error(result.reason);
-    await preferencesService.update({ channelQualityOverrides: {
-      ...preferencesService.get().channelQualityOverrides,
-      [channel.toLowerCase()]: quality,
-    } });
+    await preferencesService.update({
+      channelQualityOverrides: {
+        ...preferencesService.get().channelQualityOverrides,
+        [channel.toLowerCase()]: quality,
+      },
+    });
   },
 );
 
@@ -1170,27 +1272,31 @@ handleTrusted("native-player:stats", () => {
   const stats = hlsNativePlayer.getStats();
   if (!stats) return null;
   const metrics = app.getAppMetrics();
-  return { ...stats,
+  return {
+    ...stats,
     "App CPU": `${metrics.reduce((total, process) => total + process.cpu.percentCPUUsage, 0).toFixed(1)}%`,
     "App memory": `${Math.round(metrics.reduce((total, process) => total + process.memory.workingSetSize, 0) / 1024)} MB`,
-    "GPU video decode support": String(app.getGPUFeatureStatus().video_decode ?? "unknown"),
+    "GPU video decode support": String(
+      app.getGPUFeatureStatus().video_decode ?? "unknown",
+    ),
   };
 });
 onTrusted("native-player:control", (_event, input: unknown) => {
   const result = nativePlayerCommandSchema.safeParse(input);
   if (!result.success || activePlayerMode !== "native") return;
-  if (result.data.command === "set-volume") persistPlayerVolume(result.data.value);
+  if (result.data.command === "set-volume")
+    persistPlayerVolume(result.data.value);
   hlsNativePlayer.control(result.data);
 });
 onTrusted("native-hls:state", (_event, input: unknown) => {
   const result = nativeHlsStateReportSchema.safeParse(input);
   if (!result.success) return;
-  if (
-    result.data.target === "main" &&
-    activePlayerMode === "native"
-  ) {
+  if (result.data.target === "main" && activePlayerMode === "native") {
     hlsNativePlayer.report(result.data);
-  } else if (result.data.target.startsWith("multi-") && multiStreamManager.isActive()) {
+  } else if (
+    result.data.target.startsWith("multi-") &&
+    multiStreamManager.isActive()
+  ) {
     multiStreamManager.reportHlsState(result.data);
   }
 });
@@ -1244,22 +1350,38 @@ onTrusted("native-multi:set-active", (_event, input: unknown) => {
   if (isMultiTileId(input)) multiStreamManager.setActive(input);
 });
 
-onTrusted("native-multi:control", (_event, idInput: unknown, commandInput: unknown) => {
-  if (!isMultiTileId(idInput)) return;
-  const result = nativePlayerCommandSchema.safeParse(commandInput);
-  if (result.success) multiStreamManager.control(idInput, result.data);
-});
+onTrusted(
+  "native-multi:control",
+  (_event, idInput: unknown, commandInput: unknown) => {
+    if (!isMultiTileId(idInput)) return;
+    const result = nativePlayerCommandSchema.safeParse(commandInput);
+    if (result.success) multiStreamManager.control(idInput, result.data);
+  },
+);
 
-handleTrusted("native-multi:set-quality", async (_event, idInput: unknown, qualityInput: unknown) => {
-  if (!isMultiTileId(idInput)) return;
-  const quality = nativeQualitySchema.parse(qualityInput);
-  await multiStreamManager.setQuality(idInput, quality);
-  const tile = multiStreamManager.getTiles().find((entry) => entry.id === idInput);
-  if (tile) await preferencesService.update({ channelQualityOverrides: {
-    ...preferencesService.get().channelQualityOverrides,
-    [tile.channel.toLowerCase()]: quality,
-  } });
-});
+handleTrusted(
+  "native-multi:set-quality",
+  async (
+    _event,
+    idInput: unknown,
+    qualityInput: unknown,
+    rememberInput: unknown,
+  ) => {
+    if (!isMultiTileId(idInput)) return;
+    const quality = nativeQualitySchema.parse(qualityInput);
+    await multiStreamManager.setQuality(idInput, quality);
+    const tile = multiStreamManager
+      .getTiles()
+      .find((entry) => entry.id === idInput);
+    if (tile && rememberInput !== false)
+      await preferencesService.update({
+        channelQualityOverrides: {
+          ...preferencesService.get().channelQualityOverrides,
+          [tile.channel.toLowerCase()]: quality,
+        },
+      });
+  },
+);
 
 onTrusted("player:preresolve", (_event, input: unknown) => {
   const result = channelKeySchema.safeParse(input);
@@ -1302,32 +1424,48 @@ handleTrusted("system:open-external", async (_event, input: unknown) => {
   });
 });
 
-handleTrusted("channel:open-action", async (_event, rawChannel: unknown, rawAction: unknown) => {
-  const channel = channelNameSchema.parse(rawChannel);
-  const action = channelActionSchema.parse(rawAction);
-  await openChannelActionWindow(channel, action);
-});
+handleTrusted(
+  "channel:open-action",
+  async (_event, rawChannel: unknown, rawAction: unknown) => {
+    const channel = channelNameSchema.parse(rawChannel);
+    const action = channelActionSchema.parse(rawAction);
+    await openChannelActionWindow(channel, action);
+  },
+);
 
-handleTrusted("subscription:open", async (_event, rawChannel: unknown, rawTitle: unknown) => {
-  const { platform, login } = parseChannelKey(channelKeySchema.parse(rawChannel));
-  const title = z.string().trim().min(1).max(80).parse(rawTitle);
-  await openSubscriptionModal(platform, login, title);
-});
+handleTrusted(
+  "subscription:open",
+  async (_event, rawChannel: unknown, rawTitle: unknown) => {
+    const { platform, login } = parseChannelKey(
+      channelKeySchema.parse(rawChannel),
+    );
+    const title = z.string().trim().min(1).max(80).parse(rawTitle);
+    await openSubscriptionModal(platform, login, title);
+  },
+);
 
 handleTrusted("twitch:get-auth-state", () => twitchService.getAuthState());
 handleTrusted("twitch:begin-sign-in", () => twitchService.beginSignIn());
 handleTrusted("twitch:complete-sign-in", () => twitchService.completeSignIn());
 handleTrusted("twitch:cancel-sign-in", () => twitchService.cancelSignIn());
 handleTrusted("twitch:sign-out", () => twitchService.signOut());
-handleTrusted("twitch-playback:get-state", () => playbackSessionService.getState());
+handleTrusted("twitch-playback:get-state", () =>
+  playbackSessionService.getState(),
+);
 handleTrusted("twitch-playback:link", () => playbackSessionService.link());
 handleTrusted("twitch-playback:unlink", () => playbackSessionService.unlink());
-handleTrusted("twitch:get-followed-channels", () => twitchService.getFollowedChannels());
-handleTrusted("twitch:set-following", async (_event, rawChannel: unknown, rawFollow: unknown) => {
-  const channel = channelNameSchema.parse(rawChannel);
-  if (typeof rawFollow !== "boolean") throw new Error("Invalid follow state.");
-  await twitchService.setFollowing(channel, rawFollow);
-});
+handleTrusted("twitch:get-followed-channels", () =>
+  twitchService.getFollowedChannels(),
+);
+handleTrusted(
+  "twitch:set-following",
+  async (_event, rawChannel: unknown, rawFollow: unknown) => {
+    const channel = channelNameSchema.parse(rawChannel);
+    if (typeof rawFollow !== "boolean")
+      throw new Error("Invalid follow state.");
+    await twitchService.setFollowing(channel, rawFollow);
+  },
+);
 handleTrusted("twitch:get-chat-color", () => twitchService.getChatColor());
 handleTrusted("twitch:update-chat-color", (_event, rawColor: unknown) =>
   twitchService.updateChatColor(twitchChatColorInputSchema.parse(rawColor)),
@@ -1336,7 +1474,8 @@ handleTrusted(
   "twitch:get-browse-categories",
   (_event, rawQuery: unknown, rawAfter: unknown) => {
     const query = typeof rawQuery === "string" ? rawQuery.slice(0, 100) : "";
-    const after = typeof rawAfter === "string" ? rawAfter.slice(0, 500) : undefined;
+    const after =
+      typeof rawAfter === "string" ? rawAfter.slice(0, 500) : undefined;
     return twitchService.getBrowseCategories(query, after);
   },
 );
@@ -1346,7 +1485,8 @@ handleTrusted(
     if (typeof rawGameId !== "string" || !/^\d+$/.test(rawGameId)) {
       throw new Error("Invalid Twitch category.");
     }
-    const after = typeof rawAfter === "string" ? rawAfter.slice(0, 500) : undefined;
+    const after =
+      typeof rawAfter === "string" ? rawAfter.slice(0, 500) : undefined;
     return twitchService.getCategoryStreams(rawGameId, after);
   },
 );
@@ -1356,23 +1496,30 @@ handleTrusted("kick:sign-in", () => kickService.signIn());
 handleTrusted("kick:sign-out", () => kickService.signOut());
 handleTrusted("kick:get-followed", () => kickService.getFollowedChannels());
 handleTrusted("kick:open-window", (_event, rawSlug: unknown) => {
-  const slug = typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
+  const slug =
+    typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
   if (!/^[a-z0-9_-]+$/.test(slug)) throw new Error("A channel is required.");
   return openKickWindow(slug, `${slug} on Kick`);
 });
-handleTrusted("kick:set-following", (_event, rawSlug: unknown, rawFollow: unknown) => {
-  const slug = typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
-  if (slug.length === 0) throw new Error("A channel is required.");
-  return kickService.setFollowing(slug, rawFollow === true);
-});
+handleTrusted(
+  "kick:set-following",
+  (_event, rawSlug: unknown, rawFollow: unknown) => {
+    const slug =
+      typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
+    if (slug.length === 0) throw new Error("A channel is required.");
+    return kickService.setFollowing(slug, rawFollow === true);
+  },
+);
 
 handleTrusted("kick:get-emote-sets", (_event, rawSlug: unknown) => {
-  const slug = typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
+  const slug =
+    typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
   return slug.length === 0 ? [] : kickService.getEmoteSets(slug);
 });
 
 handleTrusted("kick:get-channel", (_event, rawSlug: unknown) => {
-  const slug = typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
+  const slug =
+    typeof rawSlug === "string" ? rawSlug.slice(0, 40).toLowerCase() : "";
   return slug.length === 0 ? null : kickService.getChannel(slug);
 });
 
@@ -1383,22 +1530,32 @@ handleTrusted("kick:search", (_event, rawQuery: unknown) => {
   return kickService.search(query);
 });
 
-handleTrusted("kick:get-categories", (_event, rawQuery: unknown, rawCursor: unknown) => {
-  const query = typeof rawQuery === "string" ? rawQuery.slice(0, 100) : "";
-  const cursor = typeof rawCursor === "string" ? rawCursor.slice(0, 12) : undefined;
-  return kickService.getCategories(query, cursor);
-});
+handleTrusted(
+  "kick:get-categories",
+  (_event, rawQuery: unknown, rawCursor: unknown) => {
+    const query = typeof rawQuery === "string" ? rawQuery.slice(0, 100) : "";
+    const cursor =
+      typeof rawCursor === "string" ? rawCursor.slice(0, 12) : undefined;
+    return kickService.getCategories(query, cursor);
+  },
+);
 
-handleTrusted("kick:get-category-streams", (_event, rawCategoryId: unknown, rawCursor: unknown) => {
-  const categoryId = typeof rawCategoryId === "string" ? rawCategoryId.slice(0, 20) : "";
-  const cursor = typeof rawCursor === "string" ? rawCursor.slice(0, 200) : undefined;
-  return categoryId.length === 0
-    ? { items: [] }
-    : kickService.getCategoryStreams(categoryId, cursor);
-});
+handleTrusted(
+  "kick:get-category-streams",
+  (_event, rawCategoryId: unknown, rawCursor: unknown) => {
+    const categoryId =
+      typeof rawCategoryId === "string" ? rawCategoryId.slice(0, 20) : "";
+    const cursor =
+      typeof rawCursor === "string" ? rawCursor.slice(0, 200) : undefined;
+    return categoryId.length === 0
+      ? { items: [] }
+      : kickService.getCategoryStreams(categoryId, cursor);
+  },
+);
 
 handleTrusted("twitch:search", (_event, rawQuery: unknown) => {
-  if (typeof rawQuery !== "string") throw new Error("Search text must be a string.");
+  if (typeof rawQuery !== "string")
+    throw new Error("Search text must be a string.");
   return twitchService.search(rawQuery.slice(0, 100));
 });
 handleTrusted("twitch:get-stream-metadata", (_event, rawChannel: unknown) => {
@@ -1415,22 +1572,24 @@ handleTrusted(
       channelNameSchema.parse(rawLogin),
     ),
 );
-handleTrusted("twitch:get-pinned-chat-message", (_event, rawBroadcasterId: unknown) => {
-  const broadcasterId = z
-    .string()
-    .regex(/^\d+$/)
-    .max(32)
-    .parse(rawBroadcasterId);
-  return twitchService.getPinnedChatMessage(broadcasterId);
-});
-handleTrusted("kick:get-pinned-chat-message", (_event, rawChannelId: unknown) => {
-  const channelId = z
-    .string()
-    .regex(/^\d+$/)
-    .max(32)
-    .parse(rawChannelId);
-  return kickService.getPinnedChatMessage(channelId);
-});
+handleTrusted(
+  "twitch:get-pinned-chat-message",
+  (_event, rawBroadcasterId: unknown) => {
+    const broadcasterId = z
+      .string()
+      .regex(/^\d+$/)
+      .max(32)
+      .parse(rawBroadcasterId);
+    return twitchService.getPinnedChatMessage(broadcasterId);
+  },
+);
+handleTrusted(
+  "kick:get-pinned-chat-message",
+  (_event, rawChannelId: unknown) => {
+    const channelId = z.string().regex(/^\d+$/).max(32).parse(rawChannelId);
+    return kickService.getPinnedChatMessage(channelId);
+  },
+);
 
 handleTrusted(
   "kick:get-chat-user-profile",
@@ -1467,75 +1626,92 @@ handleTrusted("twitch:open-channel", (_event, rawChannel: unknown) =>
   twitchService.openChannel(channelNameSchema.parse(rawChannel)),
 );
 handleTrusted("emotes:7tv-global", () => sevenTvService.getGlobal());
-handleTrusted("emotes:7tv-channel", (_event, broadcasterId: unknown, rawPlatform: unknown) => {
-  if (typeof broadcasterId !== "string") throw new Error("Broadcaster ID must be text.");
-  // 7TV indexes users per service, so Kick channels resolve under their Kick id.
-  const platform = rawPlatform === "kick" ? "kick" : "twitch";
-  return sevenTvService.getChannel(broadcasterId, platform);
-});
+handleTrusted(
+  "emotes:7tv-channel",
+  (_event, broadcasterId: unknown, rawPlatform: unknown) => {
+    if (typeof broadcasterId !== "string")
+      throw new Error("Broadcaster ID must be text.");
+    // 7TV indexes users per service, so Kick channels resolve under their Kick id.
+    const platform = rawPlatform === "kick" ? "kick" : "twitch";
+    return sevenTvService.getChannel(broadcasterId, platform);
+  },
+);
 handleTrusted("emotes:ffz-global", () => thirdPartyEmoteService.getFfzGlobal());
 handleTrusted("emotes:ffz-channel", (_event, broadcasterId: unknown) => {
-  if (typeof broadcasterId !== "string") throw new Error("Broadcaster ID must be text.");
+  if (typeof broadcasterId !== "string")
+    throw new Error("Broadcaster ID must be text.");
   return thirdPartyEmoteService.getFfzChannel(broadcasterId);
 });
-handleTrusted("emotes:bttv-global", () => thirdPartyEmoteService.getBttvGlobal());
+handleTrusted("emotes:bttv-global", () =>
+  thirdPartyEmoteService.getBttvGlobal(),
+);
 handleTrusted("emotes:bttv-channel", (_event, broadcasterId: unknown) => {
-  if (typeof broadcasterId !== "string") throw new Error("Broadcaster ID must be text.");
+  if (typeof broadcasterId !== "string")
+    throw new Error("Broadcaster ID must be text.");
   return thirdPartyEmoteService.getBttvChannel(broadcasterId);
 });
 handleTrusted("emotes:clear-cache", async () => {
   await Promise.all([sevenTvService.clear(), thirdPartyEmoteService.clear()]);
 });
-handleTrusted("chat:send", async (
-  _event,
-  rawChannel: unknown,
-  rawMessage: unknown,
-  rawReplyParentMessageId: unknown,
-) => {
-  const target = channelKeySchema.safeParse(rawChannel);
-  if (target.success && parseChannelKey(target.data).platform === "kick") {
-    // The room is whatever the live chat connection is subscribed to, so a
-    // message cannot be posted to a channel that is not the one on screen.
-    const chatroomId = kickChatService.getChatroomId();
-    if (chatroomId === null) throw new Error("Kick chat is not connected.");
+handleTrusted(
+  "chat:send",
+  async (
+    _event,
+    rawChannel: unknown,
+    rawMessage: unknown,
+    rawReplyParentMessageId: unknown,
+  ) => {
+    const target = channelKeySchema.safeParse(rawChannel);
+    if (target.success && parseChannelKey(target.data).platform === "kick") {
+      // The room is whatever the live chat connection is subscribed to, so a
+      // message cannot be posted to a channel that is not the one on screen.
+      const chatroomId = kickChatService.getChatroomId();
+      if (chatroomId === null) throw new Error("Kick chat is not connected.");
+      const replyParentMessageId =
+        rawReplyParentMessageId === undefined
+          ? undefined
+          : chatReplyParentIdSchema.parse(rawReplyParentMessageId);
+      const replyTarget =
+        replyParentMessageId === undefined
+          ? undefined
+          : kickChatService.getReplyTarget(replyParentMessageId);
+      if (replyParentMessageId !== undefined && replyTarget === undefined) {
+        throw new Error(
+          "The Kick message being replied to is no longer available.",
+        );
+      }
+      return kickService.sendMessage(
+        chatroomId,
+        outgoingChatMessageSchema.parse(rawMessage),
+        replyTarget,
+      );
+    }
+    const channel = channelNameSchema.parse(rawChannel);
+    const message = outgoingChatMessageSchema.parse(rawMessage);
     const replyParentMessageId =
       rawReplyParentMessageId === undefined
         ? undefined
         : chatReplyParentIdSchema.parse(rawReplyParentMessageId);
-    const replyTarget =
-      replyParentMessageId === undefined
-        ? undefined
-        : kickChatService.getReplyTarget(replyParentMessageId);
-    if (replyParentMessageId !== undefined && replyTarget === undefined) {
-      throw new Error("The Kick message being replied to is no longer available.");
-    }
-    return kickService.sendMessage(
-      chatroomId,
-      outgoingChatMessageSchema.parse(rawMessage),
-      replyTarget,
+    const sentMessage = await twitchService.sendChatMessage(
+      channel,
+      message,
+      replyParentMessageId,
     );
-  }
-  const channel = channelNameSchema.parse(rawChannel);
-  const message = outgoingChatMessageSchema.parse(rawMessage);
-  const replyParentMessageId =
-    rawReplyParentMessageId === undefined
-      ? undefined
-      : chatReplyParentIdSchema.parse(rawReplyParentMessageId);
-  const sentMessage = await twitchService.sendChatMessage(
-    channel,
-    message,
-    replyParentMessageId,
-  );
-  if (!sentMessage) return;
-  sendToChatSurfaces("chat:message", sentMessage);
-  multiChatService.publishSentMessage(channel, sentMessage);
-});
+    if (!sentMessage) return;
+    sendToChatSurfaces("chat:message", sentMessage);
+    multiChatService.publishSentMessage(channel, sentMessage);
+  },
+);
 handleTrusted("chat:get-assets", (_event, rawChannel: unknown) => {
   // These come from Helix and are keyed by a Twitch login. A channel on another
   // service has none, and parsing it as a Twitch name would throw.
   const channel = channelKeySchema.safeParse(rawChannel);
   if (!channel.success || parseChannelKey(channel.data).platform !== "twitch") {
-    const empty: TwitchChatAssets = { broadcasterId: "", badges: [], emotes: [] };
+    const empty: TwitchChatAssets = {
+      broadcasterId: "",
+      badges: [],
+      emotes: [],
+    };
     return empty;
   }
   return twitchService.getChatAssets(channel.data);
@@ -1551,23 +1727,78 @@ onTrusted("chat:set-history-limit", (_event, rawLimit: unknown) => {
 const obsService = new ObsService();
 let obsHotkey = "";
 let obsScene = "";
-handleTrusted("obs:status", async () => ({ connected: obsService.isConnected(), scenes: await obsService.sceneNames(), scene: obsScene, hotkey: obsHotkey }));
+handleTrusted("obs:status", async () => ({
+  connected: obsService.isConnected(),
+  scenes: await obsService.sceneNames(),
+  scene: obsScene,
+  hotkey: obsHotkey,
+}));
 handleTrusted("obs:connect", async (_event, input: unknown) => {
-  const config = z.object({ port: z.number().int().min(1024).max(65535), password: z.string().max(1024), hotkey: z.string().max(100).regex(/^(?:(?:Control|Ctrl|Alt|Shift|Super|CommandOrControl|Command)\+)+(?:F(?:[1-9]|1[0-9]|2[0-4])|[A-Z0-9])$/i, "Use a shortcut such as Control+Shift+F9.") }).parse(input);
+  const config = z
+    .object({
+      port: z.number().int().min(1024).max(65535),
+      password: z.string().max(1024),
+      hotkey: z
+        .string()
+        .max(100)
+        .regex(
+          /^(?:(?:Control|Ctrl|Alt|Shift|Super|CommandOrControl|Command)\+)+(?:F(?:[1-9]|1[0-9]|2[0-4])|[A-Z0-9])$/i,
+          "Use a shortcut such as Control+Shift+F9.",
+        ),
+    })
+    .parse(input);
   const scenes = await obsService.connect(config.port, config.password);
   if (obsHotkey) globalShortcut.unregister(obsHotkey);
   obsHotkey = "";
-  if (!globalShortcut.register(config.hotkey, () => {
-    if (obsScene) void obsService.toggle(obsScene).catch(() => sendToWindow(mainWindow, "obs:error", "Unable to switch OBS scene. Reconnect in OBS settings."));
-  })) { obsService.disconnect(); throw new Error("That hotkey is unavailable. Choose another shortcut."); }
+  if (
+    !globalShortcut.register(config.hotkey, () => {
+      if (obsScene)
+        void obsService
+          .toggle(obsScene)
+          .catch(() =>
+            sendToWindow(
+              mainWindow,
+              "obs:error",
+              "Unable to switch OBS scene. Reconnect in OBS settings.",
+            ),
+          );
+    })
+  ) {
+    obsService.disconnect();
+    throw new Error("That hotkey is unavailable. Choose another shortcut.");
+  }
   obsHotkey = config.hotkey;
   return scenes;
 });
-handleTrusted("obs:arm", (_event, input: unknown) => { obsScene = z.string().min(1).max(200).parse(input); });
+handleTrusted("obs:arm", (_event, input: unknown) => {
+  obsScene = z.string().min(1).max(200).parse(input);
+});
 handleTrusted("obs:sources", () => obsService.sources());
-handleTrusted("obs:layout", (_event, input: unknown) => obsService.layout(z.object({ scene: z.string().min(1).max(200), preset: z.enum(["two", "four", "main"]), sources: z.array(z.string().min(1).max(200)).min(1).max(9).refine((entries) => new Set(entries).size === entries.length), audible: z.string().max(200).nullable() }).parse(input)));
-handleTrusted("obs:toggle", (_event, input: unknown) => obsService.toggle(z.string().min(1).max(200).parse(input)));
-handleTrusted("obs:disconnect", () => { obsService.disconnect(); if (obsHotkey) globalShortcut.unregister(obsHotkey); obsHotkey = ""; obsScene = ""; });
+handleTrusted("obs:layout", (_event, input: unknown) =>
+  obsService.layout(
+    z
+      .object({
+        scene: z.string().min(1).max(200),
+        preset: z.enum(["two", "four", "main"]),
+        sources: z
+          .array(z.string().min(1).max(200))
+          .min(1)
+          .max(9)
+          .refine((entries) => new Set(entries).size === entries.length),
+        audible: z.string().max(200).nullable(),
+      })
+      .parse(input),
+  ),
+);
+handleTrusted("obs:toggle", (_event, input: unknown) =>
+  obsService.toggle(z.string().min(1).max(200).parse(input)),
+);
+handleTrusted("obs:disconnect", () => {
+  obsService.disconnect();
+  if (obsHotkey) globalShortcut.unregister(obsHotkey);
+  obsHotkey = "";
+  obsScene = "";
+});
 handleTrusted("updates:get-status", () => updateService.getStatus());
 handleTrusted("updates:get-release-notes", (_event, forceRefresh: unknown) => {
   if (forceRefresh !== undefined && typeof forceRefresh !== "boolean") {
@@ -1592,8 +1823,10 @@ handleTrusted("system:get-link-preview", (_event, input: unknown) => {
 });
 handleTrusted("updates:check", () => updateService.check());
 onTrusted("updates:install", () => updateService.install());
-handleTrusted("preferences:get-or-migrate", (_event, legacyPreferences: unknown) =>
-  preferencesService.getOrMigrate(legacyPreferences),
+handleTrusted(
+  "preferences:get-or-migrate",
+  (_event, legacyPreferences: unknown) =>
+    preferencesService.getOrMigrate(legacyPreferences),
 );
 handleTrusted("preferences:update", async (_event, patch: unknown) => {
   const preferences = await preferencesService.update(patch);
