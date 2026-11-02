@@ -1,12 +1,18 @@
-import { app } from "electron";
+import { app, ipcMain } from "electron";
 import process from "node:process";
 import { setTimeout, clearTimeout } from "node:timers";
 import console from "node:console";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-if (!process.env.CYBERWIRE_TEST_USER_DATA) throw new Error("Smoke test requires a separate CYBERWIRE_TEST_USER_DATA profile.");
-const timeout = setTimeout(() => { console.error("Smoke test timed out"); app.exit(1); }, 30000);
+if (!process.env.CYBERWIRE_TEST_USER_DATA)
+  throw new Error(
+    "Smoke test requires a separate CYBERWIRE_TEST_USER_DATA profile.",
+  );
+const timeout = setTimeout(() => {
+  console.error("Smoke test timed out");
+  app.exit(1);
+}, 30000);
 app.on("browser-window-created", (_event, window) => {
   window.webContents.once("did-finish-load", async () => {
     try {
@@ -38,11 +44,48 @@ app.on("browser-window-created", (_event, window) => {
         document.querySelector('[aria-label="Settings"]').click(); await wait();
         [...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'OBS Spectator').click(); await wait();
         check(Boolean(document.querySelector('[aria-label="OBS password"]')), 'OBS setup panel opens');
+        document.querySelector('[aria-label="Close settings"]').click(); await wait();
+        [...document.querySelectorAll('.top-actions button')].find(button => button.textContent.trim() === 'Multistream').click(); await wait();
+        for (let attempt = 0; attempt < 30 && document.querySelectorAll('.multi-tile').length !== 2; attempt++) await wait();
+        check(document.querySelectorAll('.multi-tile').length === 2, 'Multistream fixture renders two independent video tiles: ' + document.querySelectorAll('.multi-tile').length + ' / ' + document.querySelector('main')?.textContent.slice(0, 400));
+        const layout = document.querySelector('[aria-label="Stream layout"]');
+        layout.value = 'free'; layout.dispatchEvent(new Event('change', { bubbles: true })); await wait();
+        check(document.querySelector('.multi-grid').classList.contains('layout-free'), 'Custom canvas activates');
+        const tile = document.querySelector('.multi-tile');
+        tile.style.width = '35%'; tile.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+        await new Promise(resolve => setTimeout(resolve, 350));
+        const saved = JSON.parse(localStorage.getItem('cyberwire.layout.placements'));
+        check(saved.camera_a.width > 30 && saved.camera_a.width < 40, 'Resized tile position persists');
+        [...document.querySelectorAll('.multi-stream-bar button')].find(button => button.textContent.trim() === 'Lock layout').click(); await wait();
+        check(getComputedStyle(document.querySelector('.multi-tile')).resize === 'none', 'Layout lock prevents resizing');
         return results;
       })()`);
       console.log(JSON.stringify({ smokeTests: result }));
-      clearTimeout(timeout); app.exit(0);
-    } catch (error) { console.error(error); clearTimeout(timeout); app.exit(1); }
+      clearTimeout(timeout);
+      app.exit(0);
+    } catch (error) {
+      console.error(error);
+      clearTimeout(timeout);
+      app.exit(1);
+    }
   });
 });
 await import(pathToFileURL(path.resolve("dist-electron/main/index.js")).href);
+// Network-free UI fixture: only this test entry replaces playback IPC.
+ipcMain.removeHandler("native-multi:start");
+ipcMain.handle("native-multi:start", () =>
+  ["camera_a", "camera_b"].map((channel, id) => ({
+    id,
+    channel,
+    active: id === 0,
+    state: {
+      status: "idle",
+      quality: "720p",
+      muted: true,
+      paused: false,
+      volume: 0,
+      compressorEnabled: false,
+      behindLive: false,
+    },
+  })),
+);

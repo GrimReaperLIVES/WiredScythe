@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added grid, main-camera and custom multistream canvases with draggable/resizable tiles, saved positions and layout locking.
+- Added optional lower-quality secondary streams with restoration of previous choices and manual quality overrides.
+- Added independent always-visible, hover and hidden panel preferences with Ctrl+Shift+U interface recovery.
+- Documented 50 prioritized follow-up work items in AUDIT.md, distinguishing source gaps from live verification needs.
+- Expanded isolated desktop smoke checks for custom layouts. Director remains excluded.
+
 ## [0.3.4-alpha.42] - 2026-11-01
 
 ### Additions

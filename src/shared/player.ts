@@ -12,9 +12,15 @@ function normalizeChannelInput(input: string): string {
   const value = input.trim().toLowerCase();
   if (!value.includes("/") && !value.includes(".")) return value;
 
-  const candidate = value.startsWith("http://") || value.startsWith("https://") ? value : "https://" + value;
+  const candidate =
+    value.startsWith("http://") || value.startsWith("https://")
+      ? value
+      : "https://" + value;
   const url = new URL(candidate);
-  if (url.protocol !== "https:" || !["twitch.tv", "www.twitch.tv", "m.twitch.tv"].includes(url.hostname)) {
+  if (
+    url.protocol !== "https:" ||
+    !["twitch.tv", "www.twitch.tv", "m.twitch.tv"].includes(url.hostname)
+  ) {
     throw new Error("Only Twitch channel URLs are supported.");
   }
 
@@ -29,11 +35,20 @@ export const channelNameSchema = z
     try {
       return normalizeChannelInput(input);
     } catch {
-      context.addIssue({ code: "custom", message: "Enter a valid Twitch channel name or URL." });
+      context.addIssue({
+        code: "custom",
+        message: "Enter a valid Twitch channel name or URL.",
+      });
       return z.NEVER;
     }
   })
-  .pipe(z.string().min(1).max(25).regex(/^[a-z0-9_]+$/, "Enter a valid Twitch channel name or URL."));
+  .pipe(
+    z
+      .string()
+      .min(1)
+      .max(25)
+      .regex(/^[a-z0-9_]+$/, "Enter a valid Twitch channel name or URL."),
+  );
 
 // Subscribing has its own window (a modal showing Twitch's subscribe page), so
 // it is no longer one of these isolated-window actions.
@@ -52,13 +67,21 @@ export const nativeControlsContextSchema = z.object({
   // A channel key, not a Twitch login: this context carries whichever service
   // is playing, and the Twitch pattern rejected every Kick channel, so the
   // controls never learned which channel they were showing.
-  channel: z.string().min(1).max(40).regex(/^(?:[a-z0-9_-]+:)?[a-z0-9_-]+$/),
+  channel: z
+    .string()
+    .min(1)
+    .max(40)
+    .regex(/^(?:[a-z0-9_-]+:)?[a-z0-9_-]+$/),
   fullscreen: z.boolean(),
   theaterMode: z.boolean(),
   chatVisible: z.boolean(),
   chatPresentation: chatPresentationSchema,
   channelDisplayName: z.string().min(1).max(50).optional(),
-  viewerLogin: z.string().max(25).regex(/^[a-z0-9_]*$/).optional(),
+  viewerLogin: z
+    .string()
+    .max(25)
+    .regex(/^[a-z0-9_]*$/)
+    .optional(),
   // Whether the viewer follows the channel, so the overlay composer can block a
   // followers-only chat it is certain the viewer cannot post to.
   isFollowed: z.boolean().optional(),
@@ -125,7 +148,10 @@ export function parseStreamlinkQualityOutput(output: string): NativeQuality[] {
     .slice(availableLine.indexOf(":") + 1)
     .split(",")
     .map((entry) => entry.trim().replace(/\s+\([^)]*\)\s*$/, ""))
-    .filter((entry): entry is NativeQualityValue => nativeQualitySchema.safeParse(entry).success)
+    .filter(
+      (entry): entry is NativeQualityValue =>
+        nativeQualitySchema.safeParse(entry).success,
+    )
     .filter((entry) => entry !== "best" && entry !== "worst");
 
   const uniqueQualities = [...new Set(qualities)].sort((left, right) => {
@@ -138,7 +164,9 @@ export function parseStreamlinkQualityOutput(output: string): NativeQuality[] {
     if (leftPixels !== rightPixels) return rightPixels - leftPixels;
     return right.localeCompare(left);
   });
-  const automaticQuality = uniqueQualities.find((value) => value !== "audio_only");
+  const automaticQuality = uniqueQualities.find(
+    (value) => value !== "audio_only",
+  );
   const automaticLabel =
     automaticQuality === "source"
       ? "Auto (Source)"
@@ -148,7 +176,10 @@ export function parseStreamlinkQualityOutput(output: string): NativeQuality[] {
 
   return [
     { value: "best", label: automaticLabel },
-    ...uniqueQualities.map((value) => ({ value, label: formatQualityLabel(value) })),
+    ...uniqueQualities.map((value) => ({
+      value,
+      label: formatQualityLabel(value),
+    })),
   ];
 }
 
@@ -159,7 +190,9 @@ export function presentNativePlaybackError(message: string): string {
 
 /** A normal channel state, not a failure of Native playback. */
 export function isNativeStreamUnavailable(message: string): boolean {
-  return /no playable streams|stream is offline|channel is offline/i.test(message);
+  return /no playable streams|stream is offline|channel is offline/i.test(
+    message,
+  );
 }
 
 export interface NativePlayerAvailability {
@@ -194,10 +227,7 @@ export interface NativePlayerState {
 }
 
 export const nativeHlsStateReportSchema = z.object({
-  target: z.union([
-    z.literal("main"),
-    z.string().regex(/^multi-[0-8]$/),
-  ]),
+  target: z.union([z.literal("main"), z.string().regex(/^multi-[0-8]$/)]),
   sessionId: z.string().uuid(),
   status: z.enum(["playing", "stopped", "error"]),
   paused: z.boolean(),
@@ -228,7 +258,10 @@ export interface DesktopApi {
   obs: import("./obs").ObsApi;
   system: {
     openExternal(url: string): Promise<void>;
-    getLinkPreview(url: string, allowGeneric?: boolean): Promise<LinkPreview | null>;
+    getLinkPreview(
+      url: string,
+      allowGeneric?: boolean,
+    ): Promise<LinkPreview | null>;
   };
   twitch: TwitchApi;
   kick: KickApi;
@@ -237,7 +270,11 @@ export interface DesktopApi {
   updates: UpdateApi;
   preferences: PreferencesApi;
   player: {
-    open(channel: string, mode: PlayerMode, quality?: NativeQualityValue): Promise<{
+    open(
+      channel: string,
+      mode: PlayerMode,
+      quality?: NativeQualityValue,
+    ): Promise<{
       channel: string;
       mode: PlayerMode;
       fallbackReason?: string;
@@ -251,7 +288,10 @@ export interface DesktopApi {
     openSubscription(channel: string, title: string): Promise<void>;
     getNativeAvailability(): Promise<NativePlayerAvailability>;
     getNativeQualities(channel: string): Promise<NativeQuality[]>;
-    setNativeQuality(channel: string, quality: NativeQualityValue): Promise<void>;
+    setNativeQuality(
+      channel: string,
+      quality: NativeQualityValue,
+    ): Promise<void>;
     controlNative(command: NativePlayerCommand): void;
     reportNativeHlsState(report: NativeHlsStateReport): void;
     onNativeHlsCommand(
@@ -262,11 +302,15 @@ export interface DesktopApi {
     getNativeStats(): Promise<Record<string, string> | null>;
     onNativeState(listener: (state: NativePlayerState) => void): () => void;
     sendNativeControlAction(action: NativeControlAction): void;
-    onNativeControlAction(listener: (action: NativeControlAction) => void): () => void;
+    onNativeControlAction(
+      listener: (action: NativeControlAction) => void,
+    ): () => void;
     // Multistream: up to MAX_MULTISTREAM_TILES native players in a grid.
     multiStart(channels: string[]): Promise<MultiStreamTileState[]>;
     multiStop(): void;
-    onMultiChatMessage(listener: (channel: string, message: ChatMessage) => void): () => void;
+    onMultiChatMessage(
+      listener: (channel: string, message: ChatMessage) => void,
+    ): () => void;
     onMultiChatState(
       listener: (channel: string, state: ChatConnectionState) => void,
     ): () => void;
@@ -274,8 +318,14 @@ export interface DesktopApi {
     multiRemoveTile(id: number): void;
     multiSetActive(id: number): void;
     multiControl(id: number, command: NativePlayerCommand): void;
-    multiSetQuality(id: number, quality: NativeQualityValue): Promise<void>;
-    onMultiTileState(listener: (tile: MultiStreamTileState) => void): () => void;
+    multiSetQuality(
+      id: number,
+      quality: NativeQualityValue,
+      remember?: boolean,
+    ): Promise<void>;
+    onMultiTileState(
+      listener: (tile: MultiStreamTileState) => void,
+    ): () => void;
     onMultiTileRemoved(listener: (id: number) => void): () => void;
   };
 }

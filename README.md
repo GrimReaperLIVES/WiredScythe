@@ -23,6 +23,8 @@
 
 ## Watch your way
 
+Current source changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the 50-item follow-up audit](AUDIT.md) for remaining gaps and checks. Unreleased changes are not yet included in the downloadable alpha.42 installer.
+
 - Watch public Twitch and Kick streams without signing in
 - Search either service from Browse or Multistream
 - Watch up to nine complete, uncropped streams together
