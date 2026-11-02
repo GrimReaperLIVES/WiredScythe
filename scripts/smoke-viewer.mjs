@@ -1,6 +1,6 @@
 import { app, ipcMain } from "electron";
 import process from "node:process";
-import { setTimeout, clearTimeout } from "node:timers";
+import { setTimeout, clearTimeout, setInterval, clearInterval } from "node:timers";
 import console from "node:console";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,6 +14,10 @@ const timeout = setTimeout(() => {
   app.exit(1);
 }, 30000);
 app.on("browser-window-created", (_event, window) => {
+  const chatFixture = setInterval(() => {
+    if (!window.isDestroyed()) window.webContents.send("chat:message", { id: "overlay-smoke-message", channel: "overlay_fixture", login: "viewer_fixture", displayName: "Viewer", color: "#ff4444", text: "Overlay message check", badges: [], sentAt: Date.now(), twitchEmotes: [] });
+  }, 200);
+  window.once("closed", () => clearInterval(chatFixture));
   window.webContents.once("did-finish-load", async () => {
     try {
       const result = await window.webContents.executeJavaScript(`(async () => {
@@ -71,6 +75,27 @@ app.on("browser-window-created", (_event, window) => {
         check(shell.classList.contains('panel-chat-hidden'), 'Recovery control hides chat');
         recovery.click(); await wait();
         check(!shell.classList.contains('clean-view') && shell.classList.contains('panel-navigation-always'), 'Exit view restores navigation');
+        document.querySelector('[aria-label="Exit multistream"]').click(); await new Promise(resolve => setTimeout(resolve, 250));
+        const search = document.querySelector('[aria-label="Channel search"]');
+        search.focus();
+        // Set up component state directly; this check targets overlay behavior, not keyboard input.
+        search[Object.keys(search).find(key => key.startsWith('__reactProps'))].onChange({ target: { value: 'twitch:overlay_fixture' } }); await wait();
+        search.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        for (let attempt = 0; attempt < 30 && !document.querySelector('[aria-label="Overlay chat on the video"]'); attempt++) await wait();
+        check(Boolean(document.querySelector('[aria-label="Close stream"]')), 'Single stream exposes an explicit close action');
+        document.querySelector('[aria-label="Overlay chat on the video"]').click(); await wait();
+        const overlay = document.querySelector('.native-video-chat');
+        check(Boolean(overlay) && getComputedStyle(overlay).display !== 'none', 'Native chat overlay appears even after chat was hidden');
+        await new Promise(resolve => setTimeout(resolve, 350));
+        check(overlay.textContent.includes('Overlay message check'), 'Incoming Twitch-shaped chat messages render in the overlay');
+        shell.classList.add('panel-chat-hover', 'panel-chat-revealed'); shell.classList.remove('panel-chat-always');
+        check(getComputedStyle(overlay).display !== 'none', 'Hover reveal restores native chat overlay');
+        shell.classList.remove('panel-chat-hover', 'panel-chat-revealed'); shell.classList.add('panel-chat-always');
+        check(getComputedStyle(overlay.querySelector('.native-video-chat-tools')).opacity === '1', 'Overlay hide and dock controls stay visible');
+        window.desktop.player.sendNativeControlAction('side-chat'); await wait();
+        check(!document.querySelector('.native-video-chat') && getComputedStyle(document.querySelector('.chat-panel')).display !== 'none', 'Overlay docks back beside the video');
+        document.querySelector('[aria-label="Close stream"]').click(); await wait();
+        check(!document.querySelector('.player-page'), 'Close stream returns to browsing');
         return results;
       })()`);
       console.log(JSON.stringify({ smokeTests: result }));
@@ -84,6 +109,8 @@ app.on("browser-window-created", (_event, window) => {
   });
 });
 await import(pathToFileURL(path.resolve("dist-electron/main/index.js")).href);
+ipcMain.removeHandler("player:open");
+ipcMain.handle("player:open", (_event, channel) => ({ channel, mode: "native" }));
 // Network-free UI fixture: only this test entry replaces playback IPC.
 ipcMain.removeHandler("native-multi:start");
 ipcMain.handle("native-multi:start", () =>

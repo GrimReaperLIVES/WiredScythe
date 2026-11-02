@@ -60,4 +60,4 @@ Reviewed November 1, 2026. Director remains excluded. This is a work queue, not 
 - Production build succeeded; 38 test files / 346 tests passed.
 - Isolated Electron smoke checks covered sidebar hide/restore, Clean View reveal/pin/Escape, OBS settings opening, two fixture tiles, custom canvas, persisted resizing and layout locking.
 - Fixtures have no live video. Real playback/audio, monitor removal, installed updates, OBS capture and Mac behavior remain unverified where listed above.
-- These source changes do not publish a new installer by themselves. The existing installer release is alpha.42.
+- The initial audit accompanied source-only changes. Alpha.43 packages the subsequent chat-overlay, stream-close, layout and sidebar fixes. Live service and installed-upgrade checks remain separate from fixture validation.

@@ -1178,7 +1178,7 @@ input {
   height: 42px;
   padding: 6px 6px 0 26px;
   cursor: move;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 120ms ease;
 }
 

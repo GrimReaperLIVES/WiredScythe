@@ -6270,6 +6270,9 @@ h1 em {
 .panel-chat-hover .multi-stream-layout {
   position: relative;
 }
+.panel-chat-hover.panel-chat-revealed:not(.clean-view) .native-video-chat {
+  display: flex;
+}
 .panel-chat-hover.panel-chat-revealed:not(.clean-view) .chat-panel,
 .panel-chat-hover.panel-chat-revealed:not(.clean-view) .multi-chat {
   display: flex;

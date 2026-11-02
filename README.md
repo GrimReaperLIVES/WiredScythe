@@ -23,7 +23,7 @@
 
 ## Watch your way
 
-Current source changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the 50-item follow-up audit](AUDIT.md) for remaining gaps and checks. Unreleased changes are not yet included in the downloadable alpha.42 installer.
+Current changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the 50-item follow-up audit](AUDIT.md) for remaining gaps and checks. Version alpha.43 includes the stream close, sidebar visibility and chat overlay fixes.
 
 - Watch public Twitch and Kick streams without signing in
 - Search either service from Browse or Multistream
@@ -35,6 +35,12 @@ Current source changes and their validation are recorded in [the changelog](CHAN
 - Receive future releases through automatic updates
 
 ## Latest updates
+
+### v0.3.4-alpha.43
+
+- Explicit Close stream and Exit view controls, visible followed channels with manual minimize, and saved custom layouts.
+- Chat overlay show/dock and hover recovery fixes, with visible overlay hide/dock controls.
+- Build, 346 unit tests and isolated desktop UI checks passed; live service behavior still needs verification where noted in the audit.
 
 ### v0.3.4-alpha.42
 

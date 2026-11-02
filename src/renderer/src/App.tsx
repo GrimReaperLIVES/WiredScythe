@@ -3126,6 +3126,8 @@ export function App() {
 
     setChatPresentation(layout);
     setChatVisible(true);
+    // An explicit show/dock action must override a previously hidden panel.
+    setPanelModes((previous) => ({ ...previous, chat: "always" }));
   }
 
   function selectSearchPlatform(option: "twitch" | "kick" | "both") {
