@@ -23,6 +23,11 @@ app.on("browser-window-created", (_event, window) => {
         await wait();
         const shell = document.querySelector('.app-shell');
         check(Boolean(shell), 'Renderer mounted');
+        check(!shell.classList.contains('sidebar-hidden') && !shell.classList.contains('sidebar-collapsed'), 'Followed channels start expanded');
+        document.querySelector('[aria-label="Collapse followed channels"]').click(); await wait();
+        check(shell.classList.contains('sidebar-collapsed'), 'Followed channels minimize on request');
+        document.querySelector('[aria-label="Expand followed channels"]').click(); await wait();
+        check(!shell.classList.contains('sidebar-collapsed'), 'Followed channels expand on request');
         document.querySelector('[aria-label="Hide followed channels sidebar"]').click(); await wait();
         check(shell.classList.contains('sidebar-hidden') && document.querySelector('main').getBoundingClientRect().width > 600, 'Sidebar hide keeps main content visible');
         document.querySelector('[aria-label="Show followed channels sidebar"]').click(); await wait();
