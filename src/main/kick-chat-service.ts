@@ -31,8 +31,9 @@ const PUSHER_URL =
 
 // Pusher sends its own pings; treat a long silence as a dead connection the way
 // the Twitch service does, rather than trusting close events to always arrive.
-const WATCHDOG_INTERVAL = 30_000;
-const DEAD_AFTER_SILENCE = 180_000;
+const WATCHDOG_INTERVAL = 5_000;
+const DEFAULT_ACTIVITY_TIMEOUT = 120_000;
+const RESPONSE_TIMEOUT = 30_000;
 const MAX_RECONNECT_DELAY = 30_000;
 const MAX_REPLY_TARGETS = 500;
 
@@ -376,6 +377,10 @@ export class KickChatService {
   private reconnectAttempt = 0;
   private manuallyClosed = false;
   private lastActivityAt = 0;
+  private activityTimeout = DEFAULT_ACTIVITY_TIMEOUT;
+  private awaitingPongAt: number | null = null;
+  private subscriptionStartedAt = 0;
+  private subscribed = false;
   private watchdogTimer: NodeJS.Timeout | null = null;
   // Guards against a slow chatroom lookup completing after the user has already
   // moved to another channel.
@@ -416,7 +421,7 @@ export class KickChatService {
     // Load recent chat once the socket is opening, so history and live messages
     // both flow to the same buffer. The channel id, not the chatroom id, keys
     // the message route.
-    void this.loadHistory(channel.id, generation);
+    void this.loadHistory(channel.id, generation).catch(() => undefined);
   }
 
   setHistoryLimit(limit: number): void {
@@ -509,23 +514,22 @@ export class KickChatService {
     const socket = new WebSocket(PUSHER_URL);
     this.socket = socket;
     this.lastActivityAt = Date.now();
+    this.subscriptionStartedAt = Date.now();
+    this.subscribed = false;
+    this.awaitingPongAt = null;
+    this.activityTimeout = DEFAULT_ACTIVITY_TIMEOUT;
+    this.startWatchdog();
 
     socket.onopen = () => {
       if (this.socket !== socket || this.chatroomId === null) return;
       this.lastActivityAt = Date.now();
-      // v2 carries the identity fields (colour and badges) that v1 omits.
-      this.send(socket, {
-        event: "pusher:subscribe",
-        data: { auth: "", channel: `chatrooms.${this.chatroomId}.v2` },
-      });
-      this.reconnectAttempt = 0;
-      this.onState("connected");
-      this.startWatchdog();
+      // Wait for Pusher's connection-established event before subscribing.
     };
 
     socket.onmessage = (event) => {
       if (this.socket !== socket) return;
       this.lastActivityAt = Date.now();
+      this.awaitingPongAt = null;
       this.handleFrame(typeof event.data === "string" ? event.data : "");
     };
 
@@ -540,16 +544,44 @@ export class KickChatService {
 
   private handleFrame(raw: string): void {
     if (raw.length === 0) return;
-    let frame: { event?: string; data?: unknown };
+    let frame: { event?: string; data?: unknown; channel?: string };
     try {
-      frame = JSON.parse(raw) as { event?: string; data?: unknown };
+      const parsed = record(JSON.parse(raw));
+      if (!parsed) return;
+      frame = parsed as typeof frame;
     } catch {
       return;
     }
 
+    if (frame.event === "pusher:ping") {
+      if (this.socket) this.send(this.socket, { event: "pusher:pong", data: {} });
+      return;
+    }
+    if (frame.event === "pusher:pong") return;
+    if (frame.event === "pusher:error" || frame.event === "pusher:subscription_error") {
+      this.scheduleReconnect();
+      return;
+    }
     // Pusher nests the payload as a JSON string inside the frame.
     const payload = this.parseNestedData(frame.data);
     if (payload === null) return;
+
+    if (frame.event === "pusher:connection_established") {
+      const seconds = numberValue(payload.activity_timeout);
+      if (seconds !== undefined && seconds > 0) this.activityTimeout = Math.min(DEFAULT_ACTIVITY_TIMEOUT, Math.max(1_000, seconds * 1_000));
+      if (this.socket && this.chatroomId) this.send(this.socket, {
+        event: "pusher:subscribe",
+        data: { auth: "", channel: `chatrooms.${this.chatroomId}.v2` },
+      });
+      return;
+    }
+    if (frame.event === "pusher_internal:subscription_succeeded") {
+      if (frame.channel !== `chatrooms.${this.chatroomId}.v2`) return;
+      this.subscribed = true;
+      this.reconnectAttempt = 0;
+      this.onState("connected");
+      return;
+    }
 
     if (frame.event === "App\\Events\\ChatMessageEvent") {
       const message = this.toChatMessage(payload);
@@ -631,10 +663,16 @@ export class KickChatService {
   private startWatchdog(): void {
     this.stopWatchdog();
     this.watchdogTimer = setInterval(() => {
-      if (Date.now() - this.lastActivityAt < DEAD_AFTER_SILENCE) return;
-      // Silent far longer than Pusher's own ping interval: the socket is up as
-      // far as the OS is concerned but is delivering nothing.
-      this.scheduleReconnect();
+      const now = Date.now();
+      if ((!this.subscribed && now - this.subscriptionStartedAt >= RESPONSE_TIMEOUT) ||
+        (this.awaitingPongAt !== null && now - this.awaitingPongAt >= RESPONSE_TIMEOUT)) {
+        this.scheduleReconnect();
+        return;
+      }
+      if (this.subscribed && this.awaitingPongAt === null && now - this.lastActivityAt >= this.activityTimeout && this.socket) {
+        this.awaitingPongAt = now;
+        this.send(this.socket, { event: "pusher:ping", data: {} });
+      }
     }, WATCHDOG_INTERVAL);
     this.watchdogTimer.unref();
   }

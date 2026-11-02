@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4-alpha.45] - 2026-11-02
+
+- Fixed missing Kick chat keepalive responses that could leave chat appearing connected after messages stopped.
+- Wait for the chat transport handshake and matching subscription confirmation before reporting connected.
+- Honor the server activity timeout, probe idle connections, and automatically reconnect/resubscribe when heartbeat or subscription confirmation times out.
+- Ignore failed history loads without interrupting the live connection. Added six connection lifecycle regression tests.
+
 ## [0.3.4-alpha.44] - 2026-11-01
 
 - Fixed local favorites leaking between Twitch/Kick followed filters, misleading Twitch-only empty states and cross-service row identity collisions.

@@ -36,6 +36,11 @@ Current changes and their validation are recorded in [the changelog](CHANGELOG.m
 
 ## Latest updates
 
+### v0.3.4-alpha.45
+
+- Kick chat answers keepalive pings, confirms subscriptions and reconnects automatically when its connection stops responding.
+- Added connection lifecycle regression checks; this does not establish long-duration live service reliability.
+
 ### v0.3.4-alpha.44
 
 - Correct Twitch/Kick/Both favorite filtering, per-service empty states, separate row identities and service labels.
