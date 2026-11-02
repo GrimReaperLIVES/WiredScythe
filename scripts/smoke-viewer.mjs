@@ -19,6 +19,7 @@ app.on("browser-window-created", (_event, window) => {
   }, 200);
   window.once("closed", () => clearInterval(chatFixture));
   window.webContents.once("did-finish-load", async () => {
+    if (window.webContents.getURL() === "about:blank") return;
     try {
       const result = await window.webContents.executeJavaScript(`(async () => {
         const wait = () => new Promise(resolve => setTimeout(resolve, 100));
@@ -67,6 +68,17 @@ app.on("browser-window-created", (_event, window) => {
         check(saved.camera_a.width > 30 && saved.camera_a.width < 40, 'Resized tile position persists');
         [...document.querySelectorAll('.multi-stream-bar button')].find(button => button.textContent.trim() === 'Lock layout').click(); await wait();
         check(getComputedStyle(document.querySelector('.multi-tile')).resize === 'none', 'Layout lock prevents resizing');
+        [...document.querySelectorAll('.multi-stream-bar button')].find(button => button.textContent.trim() === 'Pop out all').click(); await wait();
+        check(document.querySelectorAll('.multi-grid > .multi-tile').length === 0, 'Pop out all moves both tiles out of the main grid');
+        const firstPopout = window.open('', 'wiredscythe-stream-0');
+        const secondPopout = window.open('', 'wiredscythe-stream-1'); await wait();
+        check(firstPopout.document.querySelectorAll('.multi-tile').length === 1 && secondPopout.document.querySelectorAll('.multi-tile').length === 1, 'Each pop-out contains its own stream');
+        const popBounds = firstPopout.document.querySelector('.multi-tile').getBoundingClientRect();
+        check(Math.abs(popBounds.width - firstPopout.innerWidth) < 3 && Math.abs(popBounds.height - firstPopout.innerHeight) < 3, 'Pop-out tile fills its window');
+        firstPopout.close(); await new Promise(resolve => setTimeout(resolve, 600));
+        check(document.querySelectorAll('.multi-grid > .multi-tile').length === 1, 'Closing one pop-out docks only its own tile');
+        secondPopout.document.querySelector('[title="Dock stream"]').click(); await wait();
+        check(document.querySelectorAll('.multi-grid > .multi-tile').length === 2, 'Dock control restores the remaining tile');
         [...document.querySelectorAll('.top-actions button')].find(button => button.textContent.includes('Clean View')).click(); await wait();
         const recovery = document.querySelector('[aria-label="Exit viewing mode"]');
         const bounds = recovery.getBoundingClientRect();

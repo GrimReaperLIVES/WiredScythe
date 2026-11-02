@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4-alpha.44] - 2026-11-01
+
+- Fixed local favorites leaking between Twitch/Kick followed filters, misleading Twitch-only empty states and cross-service row identity collisions.
+- Both mode labels each channel's service, and changing service resets sidebar scroll so the new list starts at the top.
+- Updated pop-out window bookkeeping immediately on open/close to avoid stale window references.
+- Added desktop checks for opening two independent pop-outs, filling window bounds, closing one to dock and docking the remaining tile; 349 regression tests pass. Live video continuity is not established by fixture checks.
+
 ## [0.3.4-alpha.43] - 2026-11-01
 
 - Fixed explicit chat show/dock commands after hiding the panel, and fixed native chat overlay reveal in hover mode.

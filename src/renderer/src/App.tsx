@@ -122,6 +122,7 @@ import {
   type KickUserAccount,
 } from "../../shared/platform";
 import { NativeControls } from "./NativeControls";
+import { visibleLocalFavorites } from "../../shared/followed-filter";
 import { ChatMessageRow } from "./ChatMessageRow";
 import { ChatWindowPlacer } from "./ChatWindowPlacer";
 import { ChatWindowPortal } from "./ChatWindowPortal";
@@ -239,7 +240,7 @@ const FollowedChannelRow = memo(function FollowedChannelRow({
         <strong>
           {channel.displayName || parseChannelKey(channel.login).login}
         </strong>
-        <small>{channel.category}</small>
+        <small>{showServiceRing ? `${platform === "kick" ? "Kick" : "Twitch"} · ` : ""}{channel.category}</small>
       </span>
       {channel.isLive && (
         <span className="viewer-count">
@@ -343,7 +344,7 @@ const VirtualizedOfflineChannelRows = memo(
           return (
             <div
               className="virtual-followed-row"
-              key={channel.id}
+              key={channel.login}
               style={{
                 transform: `translateY(${index * followedChannelRowHeight}px)`,
               }}
@@ -3811,12 +3812,8 @@ export function App() {
     [offlineFollowedChannels, sortFavoritesFirst],
   );
   const localOnlyFavorites = useMemo(
-    () =>
-      [...favoriteChannels].filter(
-        (channel) =>
-          !combinedFollowedChannels.some((entry) => entry.login === channel),
-      ),
-    [combinedFollowedChannels, favoriteChannels],
+    () => visibleLocalFavorites(favoriteChannels, combinedFollowedChannels, platformFilter),
+    [combinedFollowedChannels, favoriteChannels, platformFilter],
   );
 
   function toggleFavoriteChannel(login: string) {
@@ -4115,7 +4112,7 @@ export function App() {
               </button>
             ))}
           </div>
-          <div className="followed-list">
+          <div className="followed-list" key={platformFilter}>
             {localOnlyFavorites.length > 0 && (
               <>
                 <div className="followed-group-label">
@@ -4161,16 +4158,6 @@ export function App() {
                 })}
               </>
             )}
-            {sidebarLiveChannels.length + sidebarOfflineChannels.length === 0 &&
-              platformFilter === "kick" &&
-              kickAccount === null && (
-                <div className="followed-empty">
-                  <strong>Not signed in to Kick</strong>
-                  <span>
-                    Sign in from Settings to see the channels you follow.
-                  </span>
-                </div>
-              )}
             {sidebarLiveChannels.length > 0 && (
               <>
                 <div className="followed-group-label">
@@ -4182,7 +4169,7 @@ export function App() {
                     channel={channel}
                     collapsed={sidebarCollapsed}
                     favorite={favoriteChannels.has(channel.login)}
-                    key={channel.id}
+                    key={channel.login}
                     onActivate={activateFollowedChannel}
                     onCancelPreresolve={cancelPreresolve}
                     onOpenMenu={openFollowedChannelMenu}
@@ -4210,13 +4197,17 @@ export function App() {
                 />
               </>
             )}
-            {followedChannels.length === 0 && (
+            {combinedFollowedChannels.length === 0 && localOnlyFavorites.length === 0 && (
               <div className="followed-empty">
                 <div className="empty-orbit">
                   <Heart size={16} />
                 </div>
-                <strong>Your channels will live here</strong>
-                <span>Sign in to see followed channels and who is live.</span>
+                <strong>{platformFilter === "kick" ? "Kick followed channels" : platformFilter === "twitch" ? "Twitch followed channels" : "Followed channels"}</strong>
+                <span>{platformFilter === "kick"
+                  ? kickAccount ? "No Kick followed channels are available yet." : "Sign in to Kick from Settings to see your follows."
+                  : platformFilter === "twitch"
+                    ? authState.status === "signed-in" ? "No Twitch followed channels are available yet." : "Sign in to Twitch to see your follows."
+                    : authState.status === "signed-in" || kickAccount ? "No followed channels are available for your connected accounts yet." : "Sign in to Twitch or Kick to see followed channels."}</span>
               </div>
             )}
           </div>
