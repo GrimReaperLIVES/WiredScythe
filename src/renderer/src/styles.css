@@ -6832,3 +6832,30 @@ h1 em {
 .oled-mode .chat-window-placer-screen {
   background: #000;
 }
+
+/* Recovery lives outside player/chat stacking contexts and never auto-hides. */
+.viewer-recovery-controls {
+  position: fixed;
+  z-index: 940;
+  top: calc(var(--titlebar-height, 30px) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+.fullscreen-mode .viewer-recovery-controls { top: 8px; }
+.viewer-recovery-controls button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #dc2626;
+  border-radius: 7px;
+  background: #190708;
+  color: #fff;
+  cursor: pointer;
+}
+.viewer-recovery-controls button:hover,
+.viewer-recovery-controls button:focus-visible { background: #991b1b; }
