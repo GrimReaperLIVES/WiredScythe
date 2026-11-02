@@ -70,18 +70,18 @@ export function useStreamWindows(): StreamWindows {
         return next;
       });
     }, { once: true });
-    setTargets((previous) => new Map(previous).set(id, opened));
+    const next = new Map(targetsRef.current).set(id, opened);
+    targetsRef.current = next;
+    setTargets(next);
   }, []);
 
   const close = useCallback((id: StreamWindowId) => {
     const target = targetsRef.current.get(id);
+    const next = new Map(targetsRef.current);
+    next.delete(id);
+    targetsRef.current = next;
+    setTargets(next);
     if (target && !target.closed) target.close();
-    setTargets((previous) => {
-      if (!previous.has(id)) return previous;
-      const next = new Map(previous);
-      next.delete(id);
-      return next;
-    });
   }, []);
 
   useEffect(() => {

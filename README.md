@@ -23,7 +23,7 @@
 
 ## Watch your way
 
-Current changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the 50-item follow-up audit](AUDIT.md) for remaining gaps and checks. Version alpha.43 includes the stream close, sidebar visibility and chat overlay fixes.
+Current changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the 50-item follow-up audit](AUDIT.md) for remaining gaps and checks. Version alpha.44 adds followed-service filter and pop-out window fixes to the stream close, sidebar visibility and chat overlay improvements.
 
 - Watch public Twitch and Kick streams without signing in
 - Search either service from Browse or Multistream
@@ -35,6 +35,12 @@ Current changes and their validation are recorded in [the changelog](CHANGELOG.m
 - Receive future releases through automatic updates
 
 ## Latest updates
+
+### v0.3.4-alpha.44
+
+- Correct Twitch/Kick/Both favorite filtering, per-service empty states, separate row identities and service labels.
+- Sidebar scroll resets when switching service; pop-out open/close bookkeeping updates immediately.
+- Desktop checks cover two pop-outs, tile sizing and docking. 349 regression tests pass.
 
 ### v0.3.4-alpha.43
 
