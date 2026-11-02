@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added persistent Exit view and Hide chat controls above chat in immersive modes, so hidden navigation cannot trap viewers.
+
 - Added grid, main-camera and custom multistream canvases with draggable/resizable tiles, saved positions and layout locking.
 - Added optional lower-quality secondary streams with restoration of previous choices and manual quality overrides.
 - Added independent always-visible, hover and hidden panel preferences with Ctrl+Shift+U interface recovery.

@@ -30,6 +30,7 @@ import {
   LogIn,
   Maximize,
   Minimize,
+  MessageSquare,
   MoveDiagonal2,
   Pin,
   Play,
@@ -4227,6 +4228,24 @@ export function App() {
         >
           <ChevronRight size={16} />
         </button>
+      )}
+      {(cleanView || fullscreen || theaterMode || multiTheater || panelModes.navigation !== "always") && (
+        <div className="viewer-recovery-controls" aria-label="Viewing mode controls">
+          <button type="button" aria-label="Exit viewing mode" title="Restore navigation and window controls" onClick={() => {
+            setCleanView(false);
+            setCleanViewLocked(false);
+            setCleanViewRevealed(false);
+            setTheaterMode(false);
+            setMultiTheater(false);
+            setPanelModes((previous) => ({ ...previous, navigation: "always" }));
+            if (fullscreen) void setFullscreenMode(false);
+          }}><X size={16} /> Exit view</button>
+          <button type="button" aria-label="Hide viewing chat" onClick={() => {
+            setChatLayout("hidden");
+            setMultiChatVisible(false);
+            setPanelModes((previous) => ({ ...previous, chat: "hidden" }));
+          }}><MessageSquare size={16} /> Hide chat</button>
+        </div>
       )}
       {cleanView && (
         <div

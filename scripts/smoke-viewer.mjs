@@ -58,6 +58,14 @@ app.on("browser-window-created", (_event, window) => {
         check(saved.camera_a.width > 30 && saved.camera_a.width < 40, 'Resized tile position persists');
         [...document.querySelectorAll('.multi-stream-bar button')].find(button => button.textContent.trim() === 'Lock layout').click(); await wait();
         check(getComputedStyle(document.querySelector('.multi-tile')).resize === 'none', 'Layout lock prevents resizing');
+        [...document.querySelectorAll('.top-actions button')].find(button => button.textContent.includes('Clean View')).click(); await wait();
+        const recovery = document.querySelector('[aria-label="Exit viewing mode"]');
+        const bounds = recovery.getBoundingClientRect();
+        check(Boolean(document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)?.closest('[aria-label="Exit viewing mode"]')), 'Exit view stays clickable above the viewing surface');
+        document.querySelector('[aria-label="Hide viewing chat"]').click(); await wait();
+        check(shell.classList.contains('panel-chat-hidden'), 'Recovery control hides chat');
+        recovery.click(); await wait();
+        check(!shell.classList.contains('clean-view') && shell.classList.contains('panel-navigation-always'), 'Exit view restores navigation');
         return results;
       })()`);
       console.log(JSON.stringify({ smokeTests: result }));
