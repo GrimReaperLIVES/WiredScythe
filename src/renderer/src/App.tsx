@@ -3366,6 +3366,9 @@ export function App() {
     // awaiting first repaints the loading surface for the round-trip time.
     setFullscreen(false);
     setTheaterMode(false);
+    setCleanView(false);
+    setCleanViewLocked(false);
+    setCleanViewRevealed(false);
     setActiveChannel(null);
     setActiveMode(null);
     setReplyingTo(null);
@@ -4231,6 +4234,7 @@ export function App() {
       )}
       {(cleanView || fullscreen || theaterMode || multiTheater || panelModes.navigation !== "always") && (
         <div className="viewer-recovery-controls" aria-label="Viewing mode controls">
+          {activeChannel && <button type="button" aria-label="Close stream" title="Stop this stream and return to browsing" onClick={() => void closePlayer()}><X size={16} /> Close stream</button>}
           <button type="button" aria-label="Exit viewing mode" title="Restore navigation and window controls" onClick={() => {
             setCleanView(false);
             setCleanViewLocked(false);
@@ -5355,6 +5359,15 @@ export function App() {
                   className="player-actions"
                   aria-label="Channel and player actions"
                 >
+                  <button
+                    aria-label="Close stream"
+                    className="toolbar-action close-stream-action"
+                    onClick={() => void closePlayer()}
+                    title="Stop this stream and return to browsing"
+                    type="button"
+                  >
+                    <X size={18} /> <span>Close stream</span>
+                  </button>
                   <button
                     aria-label={
                       favoriteChannels.has(activeChannel ?? "")
