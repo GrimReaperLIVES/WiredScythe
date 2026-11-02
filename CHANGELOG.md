@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Followed channels now start visible and expanded. Users can minimize or hide them explicitly, and restoring a hidden sidebar expands the channel list.
+
 - Added an explicit Close stream button to the channel toolbar and immersive recovery controls. Closing stops playback and restores browsing instead of leaving Clean View active.
 
 - Added persistent Exit view and Hide chat controls above chat in immersive modes, so hidden navigation cannot trap viewers.

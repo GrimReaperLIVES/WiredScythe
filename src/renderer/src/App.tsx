@@ -132,6 +132,7 @@ import {
   defaultInterfacePanels,
   loadInterfacePanels,
   type PanelMode,
+  type InterfacePanels,
 } from "../../shared/interface-panels";
 import { renderChatMessageText } from "./chat-message-text";
 import { HlsNativeVideo } from "./HlsNativeVideo";
@@ -690,9 +691,10 @@ export function App() {
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [cleanView, setCleanView] = useState(false);
-  const [panelModes, setPanelModes] = useState(() =>
-    loadInterfacePanels(localStorage.getItem("cyberwire.interface.panels")),
-  );
+  const [panelModes, setPanelModes] = useState<InterfacePanels>(() => ({
+    ...loadInterfacePanels(localStorage.getItem("cyberwire.interface.panels")),
+    sidebar: "always" as const,
+  }));
   const [panelReveal, setPanelReveal] = useState({
     navigation: false,
     chat: false,
@@ -896,9 +898,7 @@ export function App() {
     () => window.localStorage.getItem("wiredscythe.chat.onLeft") === "true",
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarHidden, setSidebarHidden] = useState(
-    () => window.localStorage.getItem("wiredscythe.sidebar.hidden") === "true",
-  );
+  const [sidebarHidden, setSidebarHidden] = useState(false);
   const [chatSidebarWidth, setChatSidebarWidth] = useState(384);
   const playerPageRef = useRef<HTMLElement>(null);
   const chatResizeState = useRef<{
@@ -1600,7 +1600,7 @@ export function App() {
           ? current
           : { ...current, volume: preferences.playerVolume },
       );
-      setSidebarCollapsed(preferences.sidebarCollapsed);
+      // Start with followed channels expanded; minimize is an explicit session choice.
       setChatSidebarWidth(preferences.chatSidebarWidth);
       setChatOpacity(preferences.chatOverlayOpacity);
       setMentionSoundEnabled(preferences.mentionSoundEnabled);
@@ -4050,7 +4050,10 @@ export function App() {
               }
               aria-pressed={sidebarCollapsed}
               className="sidebar-collapse-toggle"
-              onClick={() => setSidebarCollapsed((current) => !current)}
+              onClick={() => {
+                setPanelModes((previous) => ({ ...previous, sidebar: "always" }));
+                setSidebarCollapsed((current) => !current);
+              }}
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               type="button"
             >
@@ -4223,6 +4226,7 @@ export function App() {
           className="sidebar-reveal-toggle"
           onClick={() => {
             setSidebarHidden(false);
+            setSidebarCollapsed(false);
             setPanelModes((previous) => ({ ...previous, sidebar: "always" }));
             window.localStorage.setItem("wiredscythe.sidebar.hidden", "false");
           }}
