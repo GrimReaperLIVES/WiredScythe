@@ -1,4 +1,5 @@
 import type { ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import type {
   NativePlayerAvailability,
   NativeQuality,
@@ -6,6 +7,7 @@ import type {
 } from "../shared/player";
 import { parseStreamlinkQualityOutput } from "../shared/player";
 import { streamQualitySelector } from "../shared/playback-quality";
+import { isMissingRendition } from "../shared/playback-errors";
 import {
   channelUrl,
   parseChannelKey,
@@ -28,6 +30,7 @@ const MAX_CONCURRENT_PRERESOLVES = 2;
  * dependency and can be used independently by every player surface.
  */
 export class StreamPlaybackResolver {
+  private resolutionGeneration = 0;
   private resolverProcess: ChildProcess | null = null;
   private readonly preresolveProcesses = new Set<ChildProcess>();
   private readonly resolveCache = new Map<
@@ -48,10 +51,17 @@ export class StreamPlaybackResolver {
     return getNativeRuntimeAvailability();
   }
 
-  getQualities(channel: string): Promise<NativeQuality[]> {
+  private async sessionKey(channel: string): Promise<string> {
+    const platform = parseChannelKey(channel).platform;
+    const credential = platform === "kick" ? await this.getKickCookie() : this.getTwitchPlaybackToken();
+    return createHash("sha256").update(`${platform}:${credential ?? "anonymous"}`).digest("hex");
+  }
+
+  async getQualities(channel: string): Promise<NativeQuality[]> {
     const target = parseChannelKey(channel);
-    const playbackToken = this.getTwitchPlaybackToken();
-    const cacheKey = `${channel}:${playbackToken ? "authenticated" : "anonymous"}`;
+    const playbackToken = target.platform === "twitch" ? this.getTwitchPlaybackToken() : null;
+    const kickCookie = target.platform === "kick" ? await this.getKickCookie() : null;
+    const cacheKey = `${channel}:${await this.sessionKey(channel)}`;
     const cached = this.qualityCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.result;
 
@@ -68,6 +78,7 @@ export class StreamPlaybackResolver {
           "--loglevel",
           "none",
           ...streamlinkPlatformArguments(target.platform),
+          ...(kickCookie === null ? [] : ["--http-cookie", kickCookie]),
           channelUrl(target.platform, target.login),
         ],
         playbackToken,
@@ -102,26 +113,32 @@ export class StreamPlaybackResolver {
     return result;
   }
 
-  preresolve(channel: string): void {
+  preresolve(channel: string, quality: NativeQualityValue = "720p"): void {
+    void this.prewarm(channel, quality).catch(() => undefined);
+  }
+
+  private async prewarm(channel: string, quality: NativeQualityValue): Promise<void> {
     if (!this.getAvailability().available) return;
-    const key = `${channel.toLowerCase()}:best`;
+    const key = `${channel.toLowerCase()}:${quality}:${await this.sessionKey(channel)}`;
     const cached = this.resolveCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return;
     if (this.preresolveProcesses.size >= MAX_CONCURRENT_PRERESOLVES) return;
-    const url = this.resolveStreamUrl(channel, "best", false);
+    const url = this.resolveStreamUrl(channel, quality, false);
     this.storeResolvedUrl(key, url);
     url.catch(() => undefined);
   }
 
-  resolve(channel: string, quality: NativeQualityValue): Promise<string> {
-    const key = `${channel.toLowerCase()}:${quality}`;
+  async resolve(channel: string, quality: NativeQualityValue): Promise<string> {
+    const generation = this.resolutionGeneration;
+    const key = `${channel.toLowerCase()}:${quality}:${await this.sessionKey(channel)}`;
+    if (generation !== this.resolutionGeneration) throw Object.assign(new Error("Stream resolution cancelled."), { name: "AbortError" });
     const cached = this.resolveCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.url;
     // A channel may be live without publishing the exact requested ladder
     // (for example, no 720p rendition). Fall back to the best available URL
     // instead of incorrectly reporting that the channel is offline.
     const url = this.resolveStreamUrl(channel, quality, true).catch((error) => {
-      if (quality === "best" || quality === "worst" || quality === "audio_only") {
+      if (!isMissingRendition(error) || quality === "best" || quality === "worst" || quality === "audio_only") {
         throw error;
       }
       return this.resolveStreamUrl(channel, "best", true);
@@ -131,6 +148,7 @@ export class StreamPlaybackResolver {
   }
 
   cancelActiveResolution(): void {
+    this.resolutionGeneration += 1;
     if (!this.resolverProcess) return;
     this.resolverProcess.kill();
     this.resolverProcess = null;
@@ -159,9 +177,11 @@ export class StreamPlaybackResolver {
   ): Promise<string> {
     const streamlinkPath = this.getAvailability().streamlinkPath;
     if (!streamlinkPath) throw new Error("Streamlink is unavailable.");
-    const playbackToken = this.getTwitchPlaybackToken();
     const { platform, login } = parseChannelKey(channel);
+    const generation = this.resolutionGeneration;
+    const playbackToken = platform === "twitch" ? this.getTwitchPlaybackToken() : null;
     const kickCookie = platform === "kick" ? await this.getKickCookie() : null;
+    if (trackAsPrimary && generation !== this.resolutionGeneration) throw Object.assign(new Error("Stream resolution cancelled."), { name: "AbortError" });
 
     return new Promise((resolve, reject) => {
       const child = spawnStreamlink(
@@ -209,13 +229,13 @@ export class StreamPlaybackResolver {
         const details = redactSensitivePlaybackText(errorOutput.trim());
         reject(
           new Error(
-            details || "No playable streams found: the channel appears to be offline.",
+            details || "No playable stream URL was returned. Retry or check the service connection.",
           ),
         );
       };
       const timeout = setTimeout(() => {
-        child.kill();
         finish(new Error("Streamlink timed out while resolving the stream."));
+        child.kill();
       }, 20_000);
 
       child.stdout?.on("data", (chunk: Buffer | string) => {
@@ -226,6 +246,12 @@ export class StreamPlaybackResolver {
       });
       child.on("error", (error) => finish(error));
       child.on("close", (code) => {
+        if (child.killed) {
+          const error = new Error("Stream resolution cancelled.");
+          error.name = "AbortError";
+          finish(error);
+          return;
+        }
         if (code === 0) {
           finish();
           return;

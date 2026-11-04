@@ -44,6 +44,7 @@ import {
   type TilePlacement,
 } from "../../shared/tile-layout";
 import { spectatorFrames } from "../../shared/spectator-layout";
+import { isConfirmedOffline } from "../../shared/playback-errors";
 
 interface MultiStreamViewProps {
   tiles: MultiStreamTileState[];
@@ -108,7 +109,8 @@ export function MultiStreamView({
     const saved = localStorage.getItem("cyberwire.layout.mode");
     return saved === "main" || saved === "free" ? saved : "grid";
   });
-  const [layoutLocked, setLayoutLocked] = useState(false);
+  const [layoutLocked, setLayoutLocked] = useState(() => localStorage.getItem("cyberwire.layout.locked") === "true");
+  const [layoutSaveFailed, setLayoutSaveFailed] = useState(false);
   const [resourceMode, setResourceMode] = useState(false);
   const originalQualities = useRef(new Map<number, NativeQualityValue>());
   const manualQualityOverrides = useRef(new Set<number>());
@@ -159,19 +161,19 @@ export function MultiStreamView({
     loadTilePlacements(localStorage.getItem("cyberwire.layout.placements")),
   );
   useEffect(() => {
-    localStorage.setItem("cyberwire.layout.mode", layout);
-  }, [layout]);
-  useEffect(() => {
-    const timer = setTimeout(
-      () =>
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem("cyberwire.layout.mode", layout);
+        localStorage.setItem("cyberwire.layout.locked", String(layoutLocked));
         localStorage.setItem(
           "cyberwire.layout.placements",
           JSON.stringify(placements),
-        ),
-      200,
-    );
+        );
+        setLayoutSaveFailed(false);
+      } catch { setLayoutSaveFailed(true); }
+    }, 200);
     return () => clearTimeout(timer);
-  }, [placements]);
+  }, [placements, layout, layoutLocked]);
   const canAdd = tiles.length < MAX_MULTISTREAM_TILES;
   const usedLogins = useMemo(
     () => new Set(tiles.map((tile) => tile.channel)),
@@ -226,6 +228,7 @@ export function MultiStreamView({
             <ChevronLeft size={24} />
           </button>
           <strong>MultiWired</strong>
+          {layoutSaveFailed && <span role="status">Layout could not be saved. Changes apply for this session.</span>}
           <span>
             {tiles.length}/{MAX_MULTISTREAM_TILES} streams
           </span>
@@ -575,9 +578,7 @@ const MultiTile = memo(function MultiTile({
   }, [qualityMenuOpen, qualities.length, tile.channel]);
 
   const { status, error } = tile.state;
-  const offline =
-    error === "Stream is offline." ||
-    /offline|no playable streams/i.test(error ?? "");
+  const offline = isConfirmedOffline(error);
   const showOverlay = status !== "playing";
 
   return (
@@ -632,6 +633,8 @@ const MultiTile = memo(function MultiTile({
             height: (tileBounds.height / area.height) * 100,
           });
       }}
+      onPointerCancel={() => { dragging.current = null; }}
+      onLostPointerCapture={() => { dragging.current = null; }}
       className={[
         "multi-tile",
         tile.active ? "active" : "",

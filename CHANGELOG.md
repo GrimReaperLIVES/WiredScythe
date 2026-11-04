@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.4-alpha.46] - 2026-11-04
+
+- Addressed 14 audited code gaps; remaining work and verification limits are tracked in the November 4 audit.
+- Marked unsupported Standard controls unavailable and migrated legacy preferences to Native instead of silently pretending to switch engines.
+- Added initial Kick chatroom lookup retries with cancellation and stale-channel protection.
+- Restricted quality fallback to missing-rendition errors; preserved cancellation/authentication failures and stopped inventing offline status for generic resolver failures.
+- Scoped playback/quality caches to service sessions, aligned Kick quality discovery credentials, and prewarmed the selected/default quality.
+- Refresh Streamlink discovery after 30 seconds, persist layout locks, clean up cancelled drags and report failed layout/panel saves.
+- Stop empty pop-out polling and handle OBS disconnect errors.
+
 ## [0.3.4-alpha.45] - 2026-11-02
 
 - Fixed missing Kick chat keepalive responses that could leave chat appearing connected after messages stopped.

@@ -85,6 +85,7 @@ export function useStreamWindows(): StreamWindows {
   }, []);
 
   useEffect(() => {
+    if (targets.size === 0) return;
     const poll = window.setInterval(() => {
       setTargets((previous) => {
         let changed = false;
@@ -98,6 +99,10 @@ export function useStreamWindows(): StreamWindows {
       });
     }, 400);
 
+    return () => window.clearInterval(poll);
+  }, [targets.size]);
+
+  useEffect(() => {
     const closeAll = () => {
       for (const target of targetsRef.current.values()) {
         if (!target.closed) target.close();
@@ -105,7 +110,6 @@ export function useStreamWindows(): StreamWindows {
     };
     window.addEventListener("pagehide", closeAll);
     return () => {
-      window.clearInterval(poll);
       window.removeEventListener("pagehide", closeAll);
       closeAll();
     };
