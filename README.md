@@ -23,7 +23,7 @@
 
 ## Watch your way
 
-Current changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the 50-item follow-up audit](AUDIT.md) for remaining gaps and checks. Version alpha.44 adds followed-service filter and pop-out window fixes to the stream close, sidebar visibility and chat overlay improvements.
+Current changes and their validation are recorded in [the changelog](CHANGELOG.md). See [the November 4 audit of 50 remaining items](AUDIT-2026-11-04.md) for current gaps and checks. Version alpha.45 adds Kick chat heartbeat and reconnect fixes to the earlier filter, pop-out, stream-close and overlay improvements.
 
 - Watch public Twitch and Kick streams without signing in
 - Search either service from Browse or Multistream
