@@ -1,5 +1,7 @@
 # Cyber Wire: 50 follow-up work items
 
+Historical review. See [the November 4 audit](AUDIT-2026-11-04.md) for the current 50-item work list against alpha.45.
+
 Reviewed November 1, 2026. Director remains excluded. This is a work queue, not a claim that 50 bugs were reproduced. **Gap** means the source shows a missing capability or risky behavior; **Verify** means a targeted running-app test is still required. Priority: P1 before wider distribution, P2 usability/reliability, P3 polish. Paths identify the review evidence or the component to test.
 
 | #   | Priority / status | Work item and completion check                                                                                                                                                                    | Evidence / test target                                                       |
