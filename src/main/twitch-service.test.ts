@@ -457,7 +457,10 @@ describe("TwitchService scheduled validation", () => {
 
     expect(internals.account).toBeNull();
     expect(internals.validationTimer).toBeNull();
-    await expect(fs.access(tokenFilePath)).rejects.toThrow();
+    // In-memory invalidation precedes the asynchronous disk cleanup.
+    await vi.waitFor(async () => {
+      await expect(fs.access(tokenFilePath)).rejects.toThrow();
+    });
   });
 });
 

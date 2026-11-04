@@ -120,12 +120,12 @@ describe("parseStreamlinkQualityOutput", () => {
 });
 
 describe("presentNativePlaybackError", () => {
-  it("turns Streamlink's offline failure into a clear message", () => {
+  it("does not invent offline status from an empty Streamlink result", () => {
     expect(
       presentNativePlaybackError(
         "error: No playable streams found on this URL: https://www.twitch.tv/summit1g",
       ),
-    ).toBe("Stream is offline.");
+    ).toBe("error: No playable streams found on this URL: https://www.twitch.tv/summit1g");
   });
 
   it("preserves unrelated native-player errors", () => {

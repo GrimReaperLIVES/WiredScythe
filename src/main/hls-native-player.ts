@@ -57,6 +57,7 @@ export class HlsNativePlayer {
     this.stats = null;
     this.updateState({
       status: "starting",
+      actualResolution: undefined,
       paused: false,
       muted: this.state.muted,
       volume,
@@ -169,6 +170,8 @@ export class HlsNativePlayer {
       return;
     }
     if (report.stats) this.stats = { ...report.stats };
+    const resolution = report.stats?.Resolution;
+    const actualResolution = resolution && /^[1-9]\d*\s*[×x]\s*[1-9]\d*$/.test(resolution) ? resolution : this.state.actualResolution;
     const nextVolume = Math.round(report.volume);
     if (!report.muted && nextVolume > 0) {
       this.lastAudibleVolume = nextVolume;
@@ -180,6 +183,7 @@ export class HlsNativePlayer {
       this.state.volume === nextVolume &&
       this.state.behindLive === report.behindLive &&
       this.state.error === report.error &&
+      this.state.actualResolution === actualResolution &&
       (report.status !== "playing" || this.state.transition === undefined)
     ) {
       return;
@@ -191,6 +195,7 @@ export class HlsNativePlayer {
       volume: nextVolume,
       behindLive: report.behindLive,
       error: report.error,
+      actualResolution,
       transition: report.status === "playing" ? undefined : this.state.transition,
     });
   }

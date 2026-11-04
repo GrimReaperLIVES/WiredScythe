@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import type { SpectatorPreset } from "../../shared/spectator-layout";
 
+function previousLayoutSources(scene: string): string[] {
+  try {
+    if (localStorage.getItem("cyberwire.obs.layoutScene") !== scene) return [];
+    const value: unknown = JSON.parse(localStorage.getItem("cyberwire.obs.sources") ?? "[]");
+    return Array.isArray(value) ? value.filter((name): name is string => typeof name === "string" && name.length <= 200).slice(0, 9) : [];
+  } catch { return []; }
+}
+
 export function ObsSettings() {
   const [port, setPort] = useState(() => Number(localStorage.getItem("cyberwire.obs.port")) || 4455);
   const [password, setPassword] = useState("");
@@ -18,13 +26,38 @@ export function ObsSettings() {
   const [audible, setAudible] = useState<string | null>(() => localStorage.getItem("cyberwire.obs.audible"));
   useEffect(() => {
     let cancelled = false;
-    void window.desktop.obs.status().then(async (info) => {
-      if (cancelled || !info.connected) return;
-      setScenes(info.scenes); setScene(info.scene || info.scenes[0] || ""); setHotkey(info.hotkey); setStatus("Connected to OBS.");
-      const available = await window.desktop.obs.sources(); if (!cancelled) setSources(available);
-    }).catch((error: unknown) => { if (!cancelled) setStatus(error instanceof Error ? error.message : "OBS unavailable."); });
-    return () => { cancelled = true; };
+    let reading = false;
+    let sourcesLoaded = false;
+    const read = async () => {
+      if (reading) return;
+      reading = true;
+      try {
+        const info = await window.desktop.obs.status();
+        if (cancelled) return;
+        if (!info.connected) { sourcesLoaded = false; setScenes([]); setSources([]); setStatus("Disconnected. Connect to OBS to use Spectator Mode."); return; }
+        setScenes(info.scenes); setScene(info.scene || info.scenes[0] || ""); setHotkey(info.hotkey);
+        setStatus(previous => previous.startsWith("Disconnected") ? "Connected to OBS." : previous);
+        if (!sourcesLoaded) { const available = await window.desktop.obs.sources(); if (!cancelled) setSources(available); sourcesLoaded = true; }
+      } catch (error) { if (!cancelled) { setScenes([]); setSources([]); setStatus(error instanceof Error ? error.message : "OBS unavailable."); } }
+      finally { reading = false; }
+    };
+    void read();
+    const timer = window.setInterval(() => void read(), 3_000);
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, []);
+  async function refreshSources() {
+    setBusy(true);
+    try {
+      const info = await window.desktop.obs.status();
+      if (!info.connected) throw new Error("Connect to OBS first.");
+      const available = await window.desktop.obs.sources();
+      setScenes(info.scenes); setSources(available);
+      setSelected(previous => previous.filter(name => available.includes(name)));
+      setAudible(previous => previous && available.includes(previous) ? previous : null);
+      setStatus("OBS scenes and sources refreshed.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Unable to refresh OBS sources."); }
+    finally { setBusy(false); }
+  }
   async function connect() {
     setBusy(true);
     try {
@@ -51,11 +84,12 @@ export function ObsSettings() {
     <button type="button" disabled={busy || !scene || !scenes.length} onClick={() => { setBusy(true); void window.desktop.obs.toggle(scene).then((current) => setStatus(`OBS scene: ${current}`)).catch((error: unknown) => setStatus(error instanceof Error ? error.message : "Scene switch failed.")).finally(() => setBusy(false)); }}>Spectator / return to gameplay</button></div>
     <div className="settings-card"><label>Layout scene name <input aria-label="Layout scene name" maxLength={200} value={layoutScene} onChange={(event) => setLayoutScene(event.target.value)} /></label><label>Camera layout <select value={preset} onChange={(event) => setPreset(event.target.value as SpectatorPreset)}><option value="two">Two cameras</option><option value="four">Camera grid</option><option value="main">Main camera + smaller cameras</option></select></label></div>
     <div className="settings-card" style={{ display: "grid", gap: 8 }}><strong>OBS capture layers (first selection is the main camera)</strong>{sources.map((name) => <label key={name}><input type="checkbox" checked={selected.includes(name)} disabled={!selected.includes(name) && selected.length >= 9} onChange={() => setSelected((previous) => previous.includes(name) ? previous.filter((entry) => entry !== name) : [...previous, name])} /> {name}</label>)}{!sources.length && <span>Connect to OBS and add Window Capture sources for your stream pop-outs in OBS.</span>}</div>
-    <div className="settings-card"><label>Camera audio <select value={audible ?? ""} onChange={(event) => setAudible(event.target.value || null)}><option value="">Mute selected camera sources</option>{selected.map((name) => <option key={name} value={name}>{name}</option>)}</select></label><small>OBS shares input audio between scenes. Applying this changes mute states for the selected sources wherever they are used.</small></div>
+    <button type="button" disabled={busy || !scenes.length} onClick={() => void refreshSources()}>Refresh OBS scenes and sources</button>
+    <div className="settings-card"><label>Camera audio <select value={audible ?? ""} onChange={(event) => setAudible(event.target.value || null)}><option value="">Mute selected camera sources</option>{selected.map((name) => <option key={name} value={name}>{name}</option>)}</select></label><small>Camera audio is applied when entering Spectator Mode. Original mute states are restored on return or disconnect. OBS inputs share audio across scenes.</small></div>
     <button type="button" disabled={busy || !scenes.length || !selected.length || !layoutScene.trim()} onClick={() => {
       setBusy(true);
       const target = layoutScene.trim();
-      void window.desktop.obs.layout({ scene: target, preset, sources: selected, audible }).then(async () => {
+      void window.desktop.obs.layout({ scene: target, preset, sources: selected, audible, previousSources: previousLayoutSources(target) }).then(async () => {
         localStorage.setItem("cyberwire.obs.sources", JSON.stringify(selected)); localStorage.setItem("cyberwire.obs.layoutScene", target);
         localStorage.setItem("cyberwire.obs.preset", preset); if (audible) localStorage.setItem("cyberwire.obs.audible", audible); else localStorage.removeItem("cyberwire.obs.audible");
         setScenes((previous) => previous.includes(target) ? previous : [...previous, target]); setScene(target); await window.desktop.obs.arm(target);

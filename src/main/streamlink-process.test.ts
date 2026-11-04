@@ -49,7 +49,7 @@ describe("secure Streamlink launching", () => {
       string,
       string[],
     ];
-    expect(executable).toMatch(/python\.exe$/i);
+    expect(executable).toMatch(/python(?:\.exe|3)$/i);
     expect(processArguments.join(" ")).not.toContain(token);
     expect(mocks.stdin.end).toHaveBeenCalledWith(
       `${JSON.stringify({ arguments: arguments_, token })}\n`,
@@ -85,5 +85,16 @@ describe("secure Streamlink launching", () => {
     ).toBe(
       "Authorization=OAuth [REDACTED] https://usher.ttvnw.net/a.m3u8?sig=[REDACTED]&token=[REDACTED]",
     );
+  });
+  it("keeps Kick cookies off the operating system command line", () => {
+    const arguments_ = ["--http-cookie", "session=fixture-secret", "https://kick.com/example", "720p"];
+    spawnStreamlink("streamlink", arguments_, null, { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    expect(mocks.spawn.mock.calls[0][1].join(" ")).not.toContain("fixture-secret");
+    expect(mocks.stdin.end).toHaveBeenCalledWith(`${JSON.stringify({ arguments: arguments_, token: null })}\n`, "utf8");
+  });
+  it("removes private cookies when no secure runtime is available", () => {
+    mocks.runtimeAvailable = false;
+    spawnStreamlink("streamlink", ["--http-cookie", "session=fixture-secret", "https://kick.com/example", "720p"], null, { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    expect(mocks.spawn.mock.calls[0][1]).toEqual(["https://kick.com/example", "720p"]);
   });
 });

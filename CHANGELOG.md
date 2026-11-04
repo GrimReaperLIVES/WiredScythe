@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.4-alpha.47] - 2026-11-04
+
+- Replaced the unsupported Standard embed with an explicit Twitch window: an isolated official website window with focus and close recovery. Native and multistream remain inside Cyber Wire.
+- Show decoded resolution alongside requested quality. Low resource playback no longer silently falls back above its quality cap.
+- Avoid redundant hidden overlay chat processing and unrelated video rerenders; preserve recent chat when switching panels and reject messages from other channels.
+- Continue Kick follows beyond ten pages, deduplicate results and reject incomplete pagination instead of replacing a complete list.
+- Restore OBS input audio when returning/disconnecting, reconcile removed cameras, roll back failed layouts, serialize mutations and recover connection status/return targets.
+- Add architecture-specific portable Mac playback runtimes, private authentication through stdin, packaged-runtime verification and equivalent Mac release checks. Mac runtime validation is required before publication; signing still requires publisher credentials.
+- Automated checks do not establish live service reliability, measured performance or real OBS broadcast behavior. Remaining checks are documented in the audit.
+
 ## [0.3.4-alpha.46] - 2026-11-04
 
 - Addressed 14 audited code gaps; remaining work and verification limits are tracked in the November 4 audit.

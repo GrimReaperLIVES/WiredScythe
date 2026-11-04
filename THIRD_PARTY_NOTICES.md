@@ -29,11 +29,17 @@ License: BSD 2-Clause
 Copyright (c) 2011-2016 Christopher Rosell
 Copyright (c) 2016-2026 Streamlink Team
 
-WiredScythe redistributes Streamlink's official unmodified Windows portable
+Cyber Wire redistributes Streamlink's official unmodified Windows portable
 runtime and launches it as a separate executable. The complete Streamlink
 license, Python license, and dependency notices remain inside that runtime.
-WiredScythe omits Streamlink's optional FFmpeg muxer because Chromium handles
+Cyber Wire omits Streamlink's optional FFmpeg muxer because Chromium handles
 HLS playback directly.
+
+Mac packages assemble Streamlink 8.4.0 and its dependencies from PyPI with
+Astral's python-build-standalone CPython 3.12.16 (release 20261026), separately
+for Intel and Apple Silicon. Runtime licenses and dependency dist-info notices
+remain bundled. Pinned archive sources and SHA256 checksums are recorded in
+the runtime's NATIVE_RUNTIME_SOURCES.md and versions.json.
 
 The authoritative Streamlink license is:
 <https://github.com/streamlink/streamlink/blob/master/LICENSE>

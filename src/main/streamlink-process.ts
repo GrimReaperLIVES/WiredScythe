@@ -14,11 +14,11 @@ interface StreamlinkSpawnOptions {
 function resolveSecureRuntime(): { launcherPath: string; pythonPath: string } | null {
   const nativeRoot = app.isPackaged
     ? path.join(process.resourcesPath, "native")
-    : path.join(app.getAppPath(), "vendor", "native");
+    : process.platform === "darwin" ? path.join(app.getAppPath(), "vendor", "native-mac", process.arch) : path.join(app.getAppPath(), "vendor", "native");
   const launcherPath = app.isPackaged
     ? path.join(process.resourcesPath, "native", "streamlink-launcher.py")
     : path.join(app.getAppPath(), "native", "streamlink-launcher.py");
-  const pythonPath = path.join(nativeRoot, "streamlink", "Python", "python.exe");
+  const pythonPath = process.platform === "win32" ? path.join(nativeRoot, "streamlink", "Python", "python.exe") : path.join(nativeRoot, "streamlink", "Python", "bin", "python3");
   return existsSync(launcherPath) && existsSync(pythonPath)
     ? { launcherPath, pythonPath }
     : null;
@@ -36,7 +36,8 @@ export function spawnStreamlink(
   playbackToken: string | null,
   options: StreamlinkSpawnOptions,
 ): ChildProcess {
-  if (!playbackToken) return spawn(streamlinkPath, arguments_, options);
+  const hasCookie = arguments_.some(value => value === "--http-cookie" || value.startsWith("--http-cookie="));
+  if (!playbackToken && !hasCookie) return spawn(streamlinkPath, arguments_, options);
 
   const runtime = resolveSecureRuntime();
   if (!runtime) {
@@ -45,10 +46,15 @@ export function spawnStreamlink(
     console.warn(
       "[streamlink] Secure authentication bridge unavailable; continuing anonymously.",
     );
-    return spawn(streamlinkPath, arguments_, options);
+    const anonymousArguments: string[] = [];
+    for (let index = 0; index < arguments_.length; index++) {
+      if (arguments_[index] === "--http-cookie") { index += 1; continue; }
+      if (!arguments_[index].startsWith("--http-cookie=")) anonymousArguments.push(arguments_[index]);
+    }
+    return spawn(streamlinkPath, anonymousArguments, options);
   }
 
-  const child: ChildProcess = spawn(runtime.pythonPath, [runtime.launcherPath], {
+  const child: ChildProcess = spawn(runtime.pythonPath, ["-I", runtime.launcherPath], {
     ...options,
     stdio: ["pipe", options.stdio[1], options.stdio[2]],
   });

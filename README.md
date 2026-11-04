@@ -36,6 +36,14 @@ Current changes and their validation are recorded in [the changelog](CHANGELOG.m
 
 ## Latest updates
 
+### v0.3.4-alpha.47
+
+- Explicit **Twitch window** playback replaces the unsupported Standard embed; Native and multistream stay inside the app.
+- Actual decoded resolution, strict Low resource quality limits, complete Kick follows and less duplicate chat processing.
+- OBS audio restoration, layout rollback, camera reconciliation and refreshed connection controls.
+- Portable Mac playback packaging and verification gates; Apple signing remains pending.
+- See the [current audit](AUDIT-2026-11-04.md) for remaining live checks and enhancements.
+
 ### v0.3.4-alpha.46
 
 - Addresses 14 audited code gaps in playback errors/caching, Kick startup retries, layouts, pop-outs and OBS disconnect handling.
@@ -67,7 +75,7 @@ To capture each streamer separately, pop out the streams in Cyber Wire and creat
 
 This update also includes remembered stream quality, bulk audio controls, pause/resume per tile, saved pop-out placement, Clean View fixes, and failure-preserving Kick status updates. Native player statistics show CPU, memory and GPU decode support to help diagnose playback issues.
 
-Mac downloads are labeled **x64** for Intel and **arm64** for Apple Silicon. Native playback on macOS currently requires a separate Streamlink installation; Homebrew locations are detected automatically. The Mac packages remain unsigned pending Apple credentials.
+Mac downloads are labeled **x64** for Intel and **arm64** for Apple Silicon. Alpha.47 and later bundle a separate playback runtime for each architecture; a separate Streamlink installation is unnecessary. The Mac packages remain unsigned pending Apple credentials.
 
 ### v0.3.4-alpha.40
 

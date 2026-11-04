@@ -692,13 +692,14 @@ const MultiTile = memo(function MultiTile({
         {tile.active && (
           <span
             className={`multi-tile-live-dot ${platform}`}
-            title="Audio playing"
+            title="Selected stream"
           />
         )}
         <ProviderLogo name={platform} />
         <span className="multi-tile-name" title={tooltip}>
           {name}
         </span>
+        {tile.state.actualResolution && <small title={`Requested quality: ${tile.state.quality}`}>{tile.state.actualResolution}</small>}
       </div>
       <div
         className="multi-tile-controls"

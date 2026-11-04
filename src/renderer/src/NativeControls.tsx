@@ -443,7 +443,7 @@ const OverlayChatMessageRow = memo(function OverlayChatMessageRow({
   );
 });
 
-export function NativeControls({
+export const NativeControls = memo(function NativeControls({
   inlineContext,
   inlineVisible = true,
   onOpenChatSettings,
@@ -542,8 +542,7 @@ export function NativeControls({
     handlePointerDown: handleChatPointerDown,
     scrollToCurrent: scrollChatToCurrent,
     revealDeleted: revealDeletedMessage,
-    reset: resetChatFeed,
-  } = useChatFeed(context?.channel);
+  } = useChatFeed(context.chatVisible && context.chatPresentation === "overlay" ? context.channel : null);
   const chatInputHost = useRef<HTMLDivElement>(null);
   const chatComposerHost = useRef<HTMLFormElement>(null);
   const currentChannel = useRef<string | null>(null);
@@ -584,7 +583,7 @@ export function NativeControls({
       parts.push(`Slow mode · ${chatRestrictions.slowModeSeconds}s`);
     }
     return parts.length > 0 ? parts.join(" · ") : null;
-  }, [chatRestrictions, context?.isFollowed]);
+  }, [chatRestrictions, context.isFollowed]);
   const chatBlocked =
     chatRestrictions.followersOnly && context?.isFollowed === false;
   const chatProviderEmotes = useMemo(() => {
@@ -657,10 +656,9 @@ export function NativeControls({
   useEffect(() => {
     if (currentChannel.current !== channel) {
       currentChannel.current = channel ?? null;
-      resetChatFeed();
       setReplyingTo(null);
     }
-  }, [channel, resetChatFeed]);
+  }, [channel]);
   useEffect(() => {
     if (!channel) return;
     window.desktop.player.controlNative({
@@ -1922,7 +1920,7 @@ export function NativeControls({
           type="button"
         >
           <SlidersHorizontal size={16} />
-          <span>{qualityLabel}</span>
+          <span title={`Requested quality: ${qualityLabel}`}>{state.actualResolution ? `${state.actualResolution} · requested ${qualityLabel}` : qualityLabel}</span>
         </button>
         <button
           aria-label={chatOverlayActive ? "Dock chat beside the video" : "Overlay chat on the video"}
@@ -1979,4 +1977,4 @@ export function NativeControls({
       </div>
     </div>
   );
-}
+});

@@ -49,7 +49,7 @@ export function getNativeRuntimeAvailability(): NativePlayerAvailability {
   const programFiles = process.env.ProgramFiles ?? "C:\\Program Files";
   const nativeResources = app.isPackaged
     ? path.join(process.resourcesPath, "native")
-    : path.join(app.getAppPath(), "vendor", "native");
+    : process.platform === "darwin" ? path.join(app.getAppPath(), "vendor", "native-mac", process.arch) : path.join(app.getAppPath(), "vendor", "native");
   const streamlinkPath = resolveExecutable(
     ["CYBERWIRE_STREAMLINK_PATH", "WIREDSCYTHE_STREAMLINK_PATH"],
     process.platform === "win32" ? "streamlink.exe" : "streamlink",

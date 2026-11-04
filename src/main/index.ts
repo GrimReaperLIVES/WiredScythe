@@ -33,6 +33,7 @@ import { z } from "zod";
 import { twitchChatColorInputSchema } from "../shared/twitch";
 import {
   channelKeySchema,
+  channelKey,
   parseChannelKey,
   type Platform,
 } from "../shared/platform";
@@ -129,6 +130,7 @@ const CHAT_WINDOW_NAME = "wiredscythe-chat";
 const STREAM_WINDOW_PREFIX = "wiredscythe-stream-";
 let chatPopoutWindow: BrowserWindow | null = null;
 let activePlayerMode: PlayerMode | null = null;
+let officialPlayerWindow: BrowserWindow | null = null;
 let activeChannelName: string | null = null;
 let playerOpenGeneration = 0;
 let appProtocolReady = false;
@@ -500,7 +502,7 @@ const kickService = new KickService();
 const kickChatService = new KickChatService(
   () => kickService,
   (message) => {
-    sendToChatSurfaces("chat:message", message);
+    sendToChatSurfaces("chat:message", { ...message, channel: channelKey("kick", parseChannelKey(message.channel).login) });
   },
   (state) => {
     sendToChatSurfaces("chat:state", state);
@@ -876,6 +878,9 @@ async function openSubscriptionModal(
 
 function destroyPlayer(invalidatePendingOpen = true): void {
   if (invalidatePendingOpen) playerOpenGeneration += 1;
+  const official = officialPlayerWindow;
+  officialPlayerWindow = null;
+  if (official && !official.isDestroyed()) official.close();
   if (channelActionWindow && !channelActionWindow.isDestroyed())
     channelActionWindow.close();
   channelActionWindow = null;
@@ -1164,7 +1169,7 @@ handleTrusted(
     const requestedMode = playerModeSchema.parse(requestedModeInput);
     // The embedded Standard player is unreliable without a signed-in browser
     // session. Native is the dependable guest-capable route for both services.
-    const effectiveMode: PlayerMode = "native";
+    const effectiveMode: PlayerMode = requestedMode === "official" && parseChannelKey(channel).platform === "twitch" ? "official" : "native";
     const requestedQuality =
       requestedQualityInput === undefined
         ? (preferencesService.get().channelQualityOverrides?.[
@@ -1195,6 +1200,25 @@ handleTrusted(
         return { channel, mode: effectiveMode };
       }
       if (!nativeResult.ok) fallbackReason = nativeResult.reason;
+    } else {
+      const playerWindow = new BrowserWindow({
+        title: `Cyber Wire · Twitch · ${channel}`, width: 1100, height: 720, minWidth: 480, minHeight: 320,
+        icon: applicationIcon, backgroundColor: "#000000", autoHideMenuBar: true,
+        webPreferences: { partition: TWITCH_WEBSITE_PARTITION, contextIsolation: true, nodeIntegration: false, sandbox: true },
+      });
+      officialPlayerWindow = playerWindow;
+      playerWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (isAllowedTwitchNavigation(url)) void playerWindow.loadURL(url).catch(() => undefined);
+        return { action: "deny" };
+      });
+      playerWindow.webContents.on("will-navigate", (event, url) => { if (!isAllowedTwitchNavigation(url)) event.preventDefault(); });
+      playerWindow.webContents.on("will-redirect", (event, url) => { if (!isAllowedTwitchNavigation(url)) event.preventDefault(); });
+      playerWindow.on("closed", () => {
+        if (officialPlayerWindow !== playerWindow) return;
+        officialPlayerWindow = null;
+        sendToWindow(mainWindow, "native-controls:action", "close-stream");
+      });
+      void playerWindow.loadURL(`https://www.twitch.tv/${encodeURIComponent(channel)}`).catch(() => undefined);
     }
 
     activePlayerMode = effectiveMode;
@@ -1217,14 +1241,19 @@ handleTrusted(
       mode: effectiveMode,
       fallbackReason:
         fallbackReason ??
-        (requestedMode === "official"
-          ? "Standard playback fell back to Cyber Wire Native so the public stream can play."
+        (requestedMode === "official" && effectiveMode === "native"
+          ? "Kick uses Native playback. The Twitch window option is for Twitch channels."
           : undefined),
     };
   },
 );
 
 handleTrusted("player:close", () => destroyPlayer());
+handleTrusted("player:focus-official", () => {
+  if (!officialPlayerWindow || officialPlayerWindow.isDestroyed()) return false;
+  if (officialPlayerWindow.isMinimized()) officialPlayerWindow.restore();
+  officialPlayerWindow.show(); officialPlayerWindow.focus(); return true;
+});
 
 handleTrusted("native-player:get-availability", () =>
   streamPlaybackResolver.getAvailability(),
@@ -1786,6 +1815,7 @@ handleTrusted("obs:layout", (_event, input: unknown) =>
           .max(9)
           .refine((entries) => new Set(entries).size === entries.length),
         audible: z.string().max(200).nullable(),
+        previousSources: z.array(z.string().min(1).max(200)).max(9).optional(),
       })
       .parse(input),
   ),
@@ -1793,8 +1823,8 @@ handleTrusted("obs:layout", (_event, input: unknown) =>
 handleTrusted("obs:toggle", (_event, input: unknown) =>
   obsService.toggle(z.string().min(1).max(200).parse(input)),
 );
-handleTrusted("obs:disconnect", () => {
-  obsService.disconnect();
+handleTrusted("obs:disconnect", async () => {
+  await obsService.restoreAndDisconnect();
   if (obsHotkey) globalShortcut.unregister(obsHotkey);
   obsHotkey = "";
   obsScene = "";

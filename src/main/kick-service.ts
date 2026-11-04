@@ -1115,9 +1115,12 @@ export class KickService {
   async getFollowedChannels(): Promise<KickChannel[]> {
     const channels: KickChannel[] = [];
     let cursor: string | null = null;
+    const visitedCursors = new Set<string>();
+    const seenChannels = new Set<string>();
+    let complete = false;
 
     // Bounded: a runaway cursor must not loop forever.
-    for (let page = 0; page < 10; page += 1) {
+    for (let page = 0; page < 1_000; page += 1) {
       const path: string =
         cursor === null
           ? "/api/v2/channels/followed"
@@ -1154,6 +1157,8 @@ export class KickService {
           rejected += 1;
           continue;
         }
+        if (seenChannels.has(slug.toLowerCase())) continue;
+        seenChannels.add(slug.toLowerCase());
         const category =
           typeof entry.data.category === "string"
             ? entry.data.category
@@ -1183,9 +1188,12 @@ export class KickService {
       }
 
       const next = parsed.data.next_cursor;
-      if (next === null || next === undefined || next === "" || next === 0) break;
+      if (next === null || next === undefined || next === "" || next === 0) { complete = true; break; }
       cursor = String(next);
+      if (visitedCursors.has(cursor)) throw new Error("Kick repeated a followed-list page. Keeping the previous complete channel list.");
+      visitedCursors.add(cursor);
     }
+    if (!complete) throw new Error("Kick's followed list exceeded the safety limit. Keeping the previous complete channel list.");
     await this.fillLiveDetails(channels);
     return channels;
   }
