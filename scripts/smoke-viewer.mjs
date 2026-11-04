@@ -30,6 +30,7 @@ app.on("browser-window-created", (_event, window) => {
     try {
       const result = await window.webContents.executeJavaScript(`(async () => {
         const wait = () => new Promise(resolve => setTimeout(resolve, 100));
+        const until = async condition => { for (let i = 0; i < 30 && !condition(); i++) await wait(); };
         const check = (condition, label) => { if (!condition) throw new Error(label); results.push(label); console.log('SMOKE: ' + label); };
         const results = [];
         await wait();
@@ -106,6 +107,7 @@ app.on("browser-window-created", (_event, window) => {
         for (let attempt = 0; attempt < 30 && !document.querySelector('[aria-label="Overlay chat on the video"]'); attempt++) await wait();
         check(Boolean(document.querySelector('[aria-label="Close stream"]')), 'Single stream exposes an explicit close action');
         document.querySelector('[aria-label="Overlay chat on the video"]').click(); await wait();
+        await until(() => { const element = document.querySelector('.native-video-chat'); return element && getComputedStyle(element).display !== 'none'; });
         const overlay = document.querySelector('.native-video-chat');
         check(Boolean(overlay) && getComputedStyle(overlay).display !== 'none', 'Native chat overlay appears even after chat was hidden');
         await new Promise(resolve => setTimeout(resolve, 350));
@@ -118,6 +120,7 @@ app.on("browser-window-created", (_event, window) => {
         window.desktop.player.sendNativeControlAction('side-chat'); await wait();
         check(!document.querySelector('.native-video-chat') && getComputedStyle(document.querySelector('.chat-panel')).display !== 'none', 'Overlay docks back beside the video');
         document.querySelector('[aria-label="Overlay chat on the video"]').click(); await wait();
+        await until(() => document.querySelector('.native-video-chat')?.textContent.includes('Overlay message check'));
         check(document.querySelector('.native-video-chat').textContent.includes('Overlay message check'), 'Recent chat survives side-to-overlay switching');
         document.querySelector('[aria-label="Close stream"]').click(); await wait();
         check(!document.querySelector('.player-page'), 'Close stream returns to browsing');
