@@ -701,10 +701,9 @@ export function App() {
     chat: false,
   });
   useEffect(() => {
-    localStorage.setItem(
-      "cyberwire.interface.panels",
-      JSON.stringify(panelModes),
-    );
+    try {
+      localStorage.setItem("cyberwire.interface.panels", JSON.stringify(panelModes));
+    } catch { setNotice("Panel settings could not be saved. Changes apply for this session."); }
   }, [panelModes]);
   useEffect(() => {
     const restore = (event: KeyboardEvent) => {
@@ -1581,7 +1580,8 @@ export function App() {
     let disposed = false;
     const applyPreferences = (preferences: AppPreferences) => {
       if (disposed) return;
-      setPreferredMode(preferences.preferredPlayerMode);
+      setPreferredMode("native");
+      if (preferences.preferredPlayerMode !== "native") void window.desktop.preferences.update({ preferredPlayerMode: "native" });
       setPlaybackLatencyMode(preferences.playbackLatencyMode);
       setChatTimestamps(preferences.chatTimestamps);
       setChatHistoryLimit(preferences.chatHistoryLimit);
@@ -2841,6 +2841,10 @@ export function App() {
   }
 
   async function choosePreferredMode(mode: PlayerMode) {
+    if (mode === "official") {
+      setNotice("Standard playback is unavailable in this desktop build. Use Native or open the channel in your browser.");
+      return;
+    }
     if (!(await savePreferredMode(mode))) return;
     if (
       mode === "native" &&
@@ -2848,13 +2852,11 @@ export function App() {
       !nativeAvailability.available
     ) {
       setNotice(
-        `Native is now the default, but it will fall back to Standard until ${nativeAvailability.reason ?? "Streamlink is available"}`,
+        `Native playback needs Streamlink. ${nativeAvailability.reason ?? "Install Streamlink, then restart Cyber Wire."}`,
       );
     } else {
       setNotice(
-        mode === "native"
-          ? "Cyber Wire Native will be used when you open the next stream."
-          : "Standard Twitch playback will be used when you open the next stream.",
+        "Cyber Wire Native will be used when you open the next stream.",
       );
     }
   }
@@ -4715,7 +4717,8 @@ export function App() {
                     ? void switchPlayerMode("official")
                     : void choosePreferredMode("official")
                 }
-                title="Use Twitch's Standard player (Twitch only)"
+                disabled
+                title="Standard playback is unavailable in this desktop build. Use Native or open the channel in your browser."
                 type="button"
               >
                 Standard
@@ -4729,7 +4732,7 @@ export function App() {
               onClick={() =>
                 multiStreamActive ? exitMultiStream() : void enterMultiStream()
               }
-              title="Watch up to 4 public streams at once — no sign-in needed"
+              title="Watch up to 9 public streams at once — no sign-in needed"
               type="button"
             >
               <LayoutGrid size={16} />
@@ -6927,6 +6930,8 @@ export function App() {
                   aria-pressed={preferredMode === "official"}
                   className={preferredMode === "official" ? "active" : ""}
                   onClick={() => void choosePreferredMode("official")}
+                  disabled
+                  title="Standard playback is unavailable in this desktop build"
                   type="button"
                 >
                   {preferredMode === "official" && <Check size={13} />}
@@ -7680,6 +7685,8 @@ export function App() {
                               preferredMode === "official" ? "active" : ""
                             }
                             onClick={() => void choosePreferredMode("official")}
+                            disabled
+                            title="Standard playback is unavailable in this desktop build"
                             type="button"
                           >
                             Standard

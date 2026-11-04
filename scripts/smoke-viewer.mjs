@@ -28,6 +28,7 @@ app.on("browser-window-created", (_event, window) => {
         await wait();
         const shell = document.querySelector('.app-shell');
         check(Boolean(shell), 'Renderer mounted');
+        check([...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Standard')?.disabled, 'Unsupported Standard playback is clearly unavailable');
         check(!shell.classList.contains('sidebar-hidden') && !shell.classList.contains('sidebar-collapsed'), 'Followed channels start expanded');
         document.querySelector('[aria-label="Collapse followed channels"]').click(); await wait();
         check(shell.classList.contains('sidebar-collapsed'), 'Followed channels minimize on request');
@@ -68,6 +69,8 @@ app.on("browser-window-created", (_event, window) => {
         check(saved.camera_a.width > 30 && saved.camera_a.width < 40, 'Resized tile position persists');
         [...document.querySelectorAll('.multi-stream-bar button')].find(button => button.textContent.trim() === 'Lock layout').click(); await wait();
         check(getComputedStyle(document.querySelector('.multi-tile')).resize === 'none', 'Layout lock prevents resizing');
+        await new Promise(resolve => setTimeout(resolve, 250));
+        check(localStorage.getItem('cyberwire.layout.locked') === 'true', 'Layout lock is saved');
         [...document.querySelectorAll('.multi-stream-bar button')].find(button => button.textContent.trim() === 'Pop out all').click(); await wait();
         check(document.querySelectorAll('.multi-grid > .multi-tile').length === 0, 'Pop out all moves both tiles out of the main grid');
         const firstPopout = window.open('', 'wiredscythe-stream-0');

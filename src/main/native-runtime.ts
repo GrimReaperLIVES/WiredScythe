@@ -39,9 +39,11 @@ function resolveExecutable(
 }
 
 let cachedAvailability: NativePlayerAvailability | null = null;
+let availabilityCheckedAt = 0;
 
 export function getNativeRuntimeAvailability(): NativePlayerAvailability {
-  if (cachedAvailability) return { ...cachedAvailability };
+  if (cachedAvailability && Date.now() - availabilityCheckedAt < 30_000) return { ...cachedAvailability };
+  availabilityCheckedAt = Date.now();
 
   const localAppData = process.env.LOCALAPPDATA ?? "";
   const programFiles = process.env.ProgramFiles ?? "C:\\Program Files";
@@ -63,7 +65,7 @@ export function getNativeRuntimeAvailability(): NativePlayerAvailability {
     ? { available: true, streamlinkPath }
     : {
         available: false,
-        reason: process.platform === "darwin" ? "Install Streamlink for macOS, then restart Cyber Wire. Homebrew installations are detected automatically." : "Streamlink is unavailable.",
+        reason: process.platform === "darwin" ? "Install Streamlink for macOS, then retry after 30 seconds. Homebrew installations are detected automatically." : "Streamlink is unavailable. Install it, then retry after 30 seconds.",
       };
   return { ...cachedAvailability };
 }

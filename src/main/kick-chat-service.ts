@@ -405,13 +405,24 @@ export class KickChatService {
     this.onRestrictions(NO_CHAT_RESTRICTIONS);
     this.onState("connecting");
 
+    await this.resolveChatroom(generation);
+  }
+
+  private async resolveChatroom(generation: number): Promise<void> {
+    if (generation !== this.connectGeneration || this.manuallyClosed || this.channel === null) return;
+
     // The chat socket is keyed by chatroom id, which only the channel endpoint
     // knows, so the lookup has to happen before subscribing.
-    const channel = await this.getKickService().getChannel(this.channel);
+    let channel;
+    try { channel = await this.getKickService().getChannel(this.channel); }
+    catch {
+      if (generation === this.connectGeneration && !this.manuallyClosed) this.scheduleReconnect();
+      return;
+    }
     if (generation !== this.connectGeneration || this.manuallyClosed) return;
 
     if (!channel?.chatroomId) {
-      this.onState("disconnected");
+      this.scheduleReconnect();
       return;
     }
     this.chatroomId = channel.chatroomId;
@@ -713,8 +724,9 @@ export class KickChatService {
     this.reconnectAttempt += 1;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      if (this.manuallyClosed || this.chatroomId === null) return;
-      this.openSocket();
+      if (this.manuallyClosed || this.channel === null) return;
+      if (this.chatroomId === null) void this.resolveChatroom(this.connectGeneration);
+      else this.openSocket();
     }, delay);
     this.reconnectTimer.unref();
   }

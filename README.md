@@ -36,6 +36,12 @@ Current changes and their validation are recorded in [the changelog](CHANGELOG.m
 
 ## Latest updates
 
+### v0.3.4-alpha.46
+
+- Addresses 14 audited code gaps in playback errors/caching, Kick startup retries, layouts, pop-outs and OBS disconnect handling.
+- Standard playback is explicitly unavailable in this desktop build; Native remains supported.
+- See [audit implementation progress](AUDIT-2026-11-04.md#implementation-progress--alpha46) for completed entries and the remaining 36 items.
+
 ### v0.3.4-alpha.45
 
 - Kick chat answers keepalive pings, confirms subscriptions and reconnects automatically when its connection stops responding.

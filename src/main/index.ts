@@ -1390,7 +1390,7 @@ onTrusted("player:preresolve", (_event, input: unknown) => {
   // skips the Streamlink round trip.
   const preferences = preferencesService.get();
   if (preferences.preferredPlayerMode !== "native") return;
-  streamPlaybackResolver.preresolve(result.data);
+  streamPlaybackResolver.preresolve(result.data, preferencesService.get().channelQualityOverrides?.[result.data.toLowerCase()] ?? "720p");
 });
 
 onTrusted("native-controls:action", (_event, input: unknown) => {

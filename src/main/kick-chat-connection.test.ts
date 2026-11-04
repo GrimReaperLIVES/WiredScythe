@@ -20,13 +20,15 @@ describe("Kick chat connection recovery", () => {
   let service: KickChatService;
   const states = vi.fn();
   const messages = vi.fn();
+  const getChannel = vi.fn();
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000_000);
     Socket.instances = [];
     vi.stubGlobal("WebSocket", Socket);
     states.mockClear(); messages.mockClear();
-    service = new KickChatService(() => ({ getChannel: async () => ({ id: "1", chatroomId: "2" }), getChatHistory: async () => [] }) as unknown as KickService, messages, states, vi.fn());
+    getChannel.mockReset().mockResolvedValue({ id: "1", chatroomId: "2" });
+    service = new KickChatService(() => ({ getChannel, getChatHistory: async () => [] }) as unknown as KickService, messages, states, vi.fn());
   });
   afterEach(() => { service.disconnect(); vi.useRealTimers(); vi.unstubAllGlobals(); });
   async function subscribe() {
@@ -81,6 +83,31 @@ describe("Kick chat connection recovery", () => {
   it("stops reconnecting when the viewer leaves", async () => {
     const socket = await subscribe(); socket.onerror?.(); service.disconnect();
     await vi.advanceTimersByTimeAsync(60_000);
+    expect(Socket.instances).toHaveLength(1);
+  });
+  it("retries failed and missing initial room lookups before opening a socket", async () => {
+    getChannel.mockRejectedValueOnce(new Error("Network unavailable")).mockResolvedValueOnce(null);
+    await service.connect("streamer");
+    expect(Socket.instances).toHaveLength(0);
+    expect(states).toHaveBeenLastCalledWith("reconnecting");
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(getChannel).toHaveBeenCalledTimes(3);
+    expect(Socket.instances).toHaveLength(1);
+  });
+  it("cancels pending room-lookup retries when leaving", async () => {
+    getChannel.mockRejectedValue(new Error("Network unavailable"));
+    await service.connect("streamer"); service.disconnect();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(getChannel).toHaveBeenCalledTimes(1);
+  });
+  it("ignores a stale lookup rejection after switching channels", async () => {
+    let rejectLookup!: (error: Error) => void;
+    getChannel.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectLookup = reject; }));
+    const first = service.connect("first");
+    await service.connect("second");
+    rejectLookup(new Error("Old lookup failed")); await first;
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(getChannel).toHaveBeenCalledTimes(2);
     expect(Socket.instances).toHaveLength(1);
   });
 });
