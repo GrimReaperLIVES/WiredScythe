@@ -35,7 +35,7 @@ export class StreamPlaybackResolver {
   private readonly preresolveProcesses = new Set<ChildProcess>();
   private readonly resolveCache = new Map<
     string,
-    { expiresAt: number; url: Promise<string> }
+    { expiresAt: number; url: Promise<string>; generation?: number }
   >();
   private readonly qualityCache = new Map<
     string,
@@ -121,7 +121,7 @@ export class StreamPlaybackResolver {
     if (!this.getAvailability().available) return;
     const key = `${channel.toLowerCase()}:${quality}:${await this.sessionKey(channel)}`;
     const cached = this.resolveCache.get(key);
-    if (cached && cached.expiresAt > Date.now()) return;
+    if (cached && cached.expiresAt > Date.now() && (cached.generation === undefined || cached.generation === this.resolutionGeneration)) return;
     if (this.preresolveProcesses.size >= MAX_CONCURRENT_PRERESOLVES) return;
     const url = this.resolveStreamUrl(channel, quality, false);
     this.storeResolvedUrl(key, url);
@@ -133,17 +133,18 @@ export class StreamPlaybackResolver {
     const key = `${channel.toLowerCase()}:${quality}:${await this.sessionKey(channel)}`;
     if (generation !== this.resolutionGeneration) throw Object.assign(new Error("Stream resolution cancelled."), { name: "AbortError" });
     const cached = this.resolveCache.get(key);
-    if (cached && cached.expiresAt > Date.now()) return cached.url;
+    if (cached && cached.expiresAt > Date.now() && (cached.generation === undefined || cached.generation === generation)) return cached.url;
     // A channel may be live without publishing the exact requested ladder
     // (for example, no 720p rendition). Fall back to the best available URL
     // instead of incorrectly reporting that the channel is offline.
     const url = this.resolveStreamUrl(channel, quality, true).catch((error) => {
+      if (generation !== this.resolutionGeneration) throw Object.assign(new Error("Stream resolution cancelled."), { name: "AbortError" });
       if (!isMissingRendition(error) || quality === "best" || quality === "worst" || quality === "audio_only") {
         throw error;
       }
       return this.resolveStreamUrl(channel, "best", true);
     });
-    this.storeResolvedUrl(key, url);
+    this.storeResolvedUrl(key, url, generation);
     return url;
   }
 
@@ -162,8 +163,8 @@ export class StreamPlaybackResolver {
     this.qualityCache.clear();
   }
 
-  private storeResolvedUrl(key: string, url: Promise<string>): void {
-    const entry = { expiresAt: Date.now() + RESOLVE_CACHE_LIFETIME, url };
+  private storeResolvedUrl(key: string, url: Promise<string>, generation?: number): void {
+    const entry = { expiresAt: Date.now() + RESOLVE_CACHE_LIFETIME, url, generation };
     this.resolveCache.set(key, entry);
     url.catch(() => {
       if (this.resolveCache.get(key) === entry) this.resolveCache.delete(key);

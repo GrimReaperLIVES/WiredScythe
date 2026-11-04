@@ -95,4 +95,22 @@ describe("resolver error recovery", () => {
     resolver.cancelActiveResolution(); finishCookie(null); await check;
     expect(children).toHaveLength(0);
   });
+  it("does not retry a completed rendition failure after the viewer cancels", async () => {
+    const result = resolver.resolve("streamer", "1080p");
+    const check = expect(result).rejects.toMatchObject({ name: "AbortError" });
+    await vi.waitFor(() => expect(children).toHaveLength(1));
+    children[0].stderr.emit("data", "The specified stream(s) '1080p' could not be found");
+    children[0].emit("close", 1); resolver.cancelActiveResolution(); await check;
+    expect(children).toHaveLength(1);
+  });
+  it("does not reuse a cancelled pending URL for a new same-channel request", async () => {
+    const first = resolver.resolve("streamer", "720p");
+    const check = expect(first).rejects.toMatchObject({ name: "AbortError" });
+    await vi.waitFor(() => expect(children).toHaveLength(1));
+    resolver.cancelActiveResolution();
+    const second = resolver.resolve("streamer", "720p");
+    await check; await vi.waitFor(() => expect(children).toHaveLength(2));
+    children[1].stdout.emit("data", "https://cdn.example/reopened.m3u8"); children[1].emit("close", 0);
+    await expect(second).resolves.toContain("reopened.m3u8");
+  });
 });
