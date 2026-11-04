@@ -36,6 +36,14 @@ Current changes and their validation are recorded in [the changelog](CHANGELOG.m
 
 ## Latest updates
 
+### v0.3.4-alpha.47
+
+- Explicit **Twitch window** playback replaces the unsupported Standard embed; Native and multistream stay inside the app.
+- Actual decoded resolution, strict Low resource quality limits, complete Kick follows and less duplicate chat processing.
+- OBS audio restoration, layout rollback, camera reconciliation and refreshed connection controls.
+- Portable Mac playback packaging and verification gates; Apple signing remains pending.
+- See the [current audit](AUDIT-2026-11-04.md) for remaining live checks and enhancements.
+
 ### v0.3.4-alpha.46
 
 - Addresses 14 audited code gaps in playback errors/caching, Kick startup retries, layouts, pop-outs and OBS disconnect handling.

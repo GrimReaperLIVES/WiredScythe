@@ -142,6 +142,8 @@ export class StreamPlaybackResolver {
       if (!isMissingRendition(error) || quality === "best" || quality === "worst" || quality === "audio_only") {
         throw error;
       }
+      const height = Number.parseInt(quality, 10);
+      if (Number.isFinite(height) && height <= 480) throw new Error(`No rendition at or below ${height}p is available. Choose a higher quality or disable Low resource mode.`, { cause: error });
       return this.resolveStreamUrl(channel, "best", true);
     });
     this.storeResolvedUrl(key, url, generation);

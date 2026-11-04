@@ -1,5 +1,5 @@
 import Hls, { ErrorDetails, ErrorTypes, Events } from "hls.js";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type {
   NativePlayerCommand,
   NativePlayerState,
@@ -70,7 +70,7 @@ function playbackStats(
   };
 }
 
-export function HlsNativeVideo({ state, target = "main" }: HlsNativeVideoProps) {
+export const HlsNativeVideo = memo(function HlsNativeVideo({ state, target = "main" }: HlsNativeVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pausedFrameRef = useRef<HTMLCanvasElement>(null);
   const audioGraph = useRef<AudioGraph | null>(null);
@@ -561,4 +561,4 @@ export function HlsNativeVideo({ state, target = "main" }: HlsNativeVideoProps) 
       />
     </>
   );
-}
+});

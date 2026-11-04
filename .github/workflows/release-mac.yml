@@ -1,6 +1,7 @@
 name: Release Cyber Wire for macOS
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -27,12 +28,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify Electron runtime
+        run: npx install-electron --no
+
       - name: Build macOS packages
+        # Both architectures are built below; verify the source on macOS first.
         run: npm run release:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      - name: Verify macOS build
+        run: |
+          npm run lint
+          npm test
+          npm run test:smoke
+          npm run test:official-window
+        env:
+          CYBERWIRE_TEST_USER_DATA: ${{ runner.temp }}/cyberwire-smoke
+
+      - name: Validate macOS packages
+        run: |
+          test -f release/CyberWire-arm64.dmg && test -f release/CyberWire-x64.dmg
+          node scripts/verify-mac-runtime.mjs
+
       - name: Wait for the GitHub release created by the Windows workflow
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -48,6 +68,7 @@ jobs:
           exit 1
 
       - name: Upload macOS packages
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

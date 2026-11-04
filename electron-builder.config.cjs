@@ -2,6 +2,7 @@ const repositorySlug = process.env.GITHUB_REPOSITORY ?? "";
 const [repositoryOwner, repositoryName] = repositorySlug.split("/");
 const hasGitHubRepository = Boolean(repositoryOwner && repositoryName);
 const windowsPublisherName = process.env.WINDOWS_PUBLISHER_NAME?.trim();
+const nativeRuntimeSource = process.platform === "darwin" ? "vendor/native-mac/${arch}" : "vendor/native";
 
 module.exports = {
   appId: "app.wiredscythe.viewer",
@@ -19,7 +20,7 @@ module.exports = {
     { from: "build/wiredscythe-icon.png", to: "icon.png" },
     { from: "THIRD_PARTY_NOTICES.md", to: "THIRD_PARTY_NOTICES.md" },
     {
-      from: "vendor/native",
+      from: nativeRuntimeSource,
       to: "native",
       filter: ["streamlink/**/*", "NATIVE_RUNTIME_SOURCES.md", "THIRD_PARTY_NOTICES.md", "versions.json"],
     },

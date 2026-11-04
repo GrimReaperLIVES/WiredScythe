@@ -10,7 +10,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import {
   ArrowDown,
   Badge,
@@ -127,7 +126,6 @@ import { ChatMessageRow } from "./ChatMessageRow";
 import { ChatWindowPlacer } from "./ChatWindowPlacer";
 import { ChatWindowPortal } from "./ChatWindowPortal";
 import { useChatWindow } from "./use-chat-window";
-import { useStreamWindows } from "./use-stream-windows";
 import { ObsSettings } from "./ObsSettings";
 import {
   defaultInterfacePanels,
@@ -669,13 +667,6 @@ export function App() {
     open: openChatWindow,
     close: closeChatWindow,
   } = useChatWindow();
-  const {
-    targets: singleStreamWindowTargets,
-    open: openSingleStreamWindow,
-    close: closeSingleStreamWindow,
-  } = useStreamWindows();
-  const singleStreamWindowTarget =
-    singleStreamWindowTargets.get("single-player");
   const closeChatWindowRef = useRef(closeChatWindow);
   useEffect(() => {
     if (settingsSection !== "emotes" || !settingsOpen) return;
@@ -974,13 +965,6 @@ export function App() {
       "true",
   });
   const [activeMode, setActiveMode] = useState<PlayerMode | null>(null);
-  useEffect(() => {
-    // Standard streams can render in a resizable local window. Native
-    // playback uses Chromium's picture-in-picture surface to retain its one
-    // active decoder and live buffer.
-    if (activeChannel && activeMode === "official") return;
-    closeSingleStreamWindow("single-player");
-  }, [activeChannel, activeMode, closeSingleStreamWindow]);
   // Twitch-style floating mini player: the HLS session keeps playing in a
   // small draggable corner while the user browses other sections.
   const [miniPlayerActive, setMiniPlayerActive] = useState(false);
@@ -1213,6 +1197,8 @@ export function App() {
   const categoryStreamLoadPending = useRef(false);
   const nativeControlsTimer = useRef<number | null>(null);
   const watchChannelGeneration = useRef(0);
+  const closePlayerRef = useRef<() => void>(() => undefined);
+  closePlayerRef.current = () => { void closePlayer(); };
   const lastPlayerPointerPosition = useRef<{ x: number; y: number } | null>(
     null,
   );
@@ -1580,8 +1566,7 @@ export function App() {
     let disposed = false;
     const applyPreferences = (preferences: AppPreferences) => {
       if (disposed) return;
-      setPreferredMode("native");
-      if (preferences.preferredPlayerMode !== "native") void window.desktop.preferences.update({ preferredPlayerMode: "native" });
+      setPreferredMode(preferences.preferredPlayerMode);
       setPlaybackLatencyMode(preferences.playbackLatencyMode);
       setChatTimestamps(preferences.chatTimestamps);
       setChatHistoryLimit(preferences.chatHistoryLimit);
@@ -2088,12 +2073,12 @@ export function App() {
     setOledMode((current) => !current);
   }
 
-  function openFullChatSettings(): void {
+  const openFullChatSettings = useCallback((): void => {
     setChatSettingsOpen(false);
     setSettingsSection("chat");
     setSettingsSearch("");
     setSettingsOpen(true);
-  }
+  }, []);
 
   function runUpdateAction(): void {
     if (updateStatus.state === "downloaded") {
@@ -2817,6 +2802,8 @@ export function App() {
           setChatLayout("hidden");
         } else if (action === "side-chat") {
           setChatLayout("side");
+        } else if (action === "close-stream") {
+          closePlayerRef.current();
         } else if (action === "overlay-chat") {
           setChatLayout("overlay");
         }
@@ -2841,10 +2828,6 @@ export function App() {
   }
 
   async function choosePreferredMode(mode: PlayerMode) {
-    if (mode === "official") {
-      setNotice("Standard playback is unavailable in this desktop build. Use Native or open the channel in your browser.");
-      return;
-    }
     if (!(await savePreferredMode(mode))) return;
     if (
       mode === "native" &&
@@ -2856,7 +2839,7 @@ export function App() {
       );
     } else {
       setNotice(
-        "Cyber Wire Native will be used when you open the next stream.",
+        mode === "native" ? "Cyber Wire Native will be used when you open the next stream." : "Twitch channels will open in a separate official Twitch window. Kick and multistream use Native.",
       );
     }
   }
@@ -3900,6 +3883,11 @@ export function App() {
   const toolbarTags = streamMetadata?.tags ?? activeChannelIdentity?.tags;
   const toolbarIsMature =
     streamMetadata?.isMature ?? activeChannelIdentity?.isMature;
+  const controlsContext = useMemo(() => ({
+    channel: activeChannel ?? "", fullscreen, theaterMode, chatVisible, chatPresentation,
+    channelDisplayName: activeChannelDisplayName ?? undefined, viewerLogin,
+    isFollowed: activeChannelFollowState ?? undefined,
+  }), [activeChannel, fullscreen, theaterMode, chatVisible, chatPresentation, activeChannelDisplayName, viewerLogin, activeChannelFollowState]);
 
   return (
     <div
@@ -4717,11 +4705,11 @@ export function App() {
                     ? void switchPlayerMode("official")
                     : void choosePreferredMode("official")
                 }
-                disabled
-                title="Standard playback is unavailable in this desktop build. Use Native or open the channel in your browser."
+                disabled={multiStreamActive || Boolean(activeChannel && parseChannelKey(activeChannel).platform === "kick")}
+                title="Open Twitch's website player in its own resizable window. Kick and multistream use Native."
                 type="button"
               >
-                Standard
+                Twitch window
               </button>
             </div>
             <button
@@ -5490,39 +5478,15 @@ export function App() {
                   {activeMode !== "native" && (
                     <>
                       <button
-                        aria-label={
-                          singleStreamWindowTarget
-                            ? "Dock stream"
-                            : "Pop out stream"
-                        }
-                        aria-pressed={Boolean(singleStreamWindowTarget)}
-                        className={
-                          singleStreamWindowTarget
-                            ? "toolbar-action active"
-                            : "toolbar-action"
-                        }
-                        onClick={() => {
-                          if (singleStreamWindowTarget) {
-                            closeSingleStreamWindow("single-player");
-                            return;
-                          }
-                          if (activeChannel) {
-                            openSingleStreamWindow(
-                              "single-player",
-                              activeChannelDisplayName ?? activeChannel,
-                            );
-                          }
-                        }}
-                        title={
-                          singleStreamWindowTarget
-                            ? "Dock stream back in Cyber Wire"
-                            : "Open a resizable picture-in-picture window"
-                        }
+                        aria-label="Show Twitch window"
+                        className="toolbar-action"
+                        onClick={() => void window.desktop.player.focusOfficialWindow()}
+                        title="Show the official Twitch window"
                         type="button"
                       >
                         <PictureInPicture2 size={16} />
                         <span>
-                          {singleStreamWindowTarget ? "Dock" : "Pop out"}
+                          Show Twitch window
                         </span>
                       </button>
                       <button
@@ -5659,60 +5623,19 @@ export function App() {
                     event.preventDefault();
                   }}
                 >
-                  {activeMode === "official" &&
-                    (singleStreamWindowTarget ? (
-                      createPortal(
-                        <div className="single-stream-popout-shell">
-                          <iframe
-                            allow="autoplay; fullscreen; picture-in-picture"
-                            allowFullScreen
-                            className="standard-player-frame"
-                            key={`standard-player:${activeChannel}`}
-                            sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
-                            src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
-                            aria-label={`Official Twitch player for ${activeChannel}`}
-                          />
-                          <button
-                            aria-label="Dock stream"
-                            className="single-stream-popout-dock"
-                            onClick={() =>
-                              closeSingleStreamWindow("single-player")
-                            }
-                            title="Dock stream back in Cyber Wire"
-                            type="button"
-                          >
-                            Dock stream
-                          </button>
-                        </div>,
-                        singleStreamWindowTarget.document.body,
-                        "single-stream-popout",
-                      )
-                    ) : (
-                      <iframe
-                        allow="autoplay; fullscreen; picture-in-picture"
-                        allowFullScreen
-                        className="standard-player-frame"
-                        key={`standard-player:${activeChannel}`}
-                        sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
-                        src={`https://player.twitch.tv/?channel=${encodeURIComponent(activeChannel)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true&muted=false`}
-                        aria-label={`Official Twitch player for ${activeChannel}`}
-                      />
-                    ))}
+                  {activeMode === "official" && (
+                    <div className="official-window-placeholder" role="status">
+                      <strong>Twitch is open in its own window</strong>
+                      <p>Use Twitch's playback and quality controls there. Choose Native to watch inside Cyber Wire.</p>
+                      <button type="button" onClick={() => void window.desktop.player.focusOfficialWindow()}>Show Twitch window</button>
+                      <button type="button" onClick={() => void closePlayer()}>Close stream</button>
+                    </div>
+                  )}
                   {activeMode === "native" && (
                     <>
                       <NativeControls
                         key={`inline-native-controls:${activeChannel}`}
-                        inlineContext={{
-                          channel: activeChannel,
-                          fullscreen,
-                          theaterMode,
-                          chatVisible,
-                          chatPresentation,
-                          channelDisplayName:
-                            activeChannelDisplayName ?? undefined,
-                          viewerLogin,
-                          isFollowed: activeChannelFollowState ?? undefined,
-                        }}
+                        inlineContext={controlsContext}
                         inlineVisible={nativeControlsVisible}
                         onOpenChatSettings={openFullChatSettings}
                       />
@@ -6930,12 +6853,11 @@ export function App() {
                   aria-pressed={preferredMode === "official"}
                   className={preferredMode === "official" ? "active" : ""}
                   onClick={() => void choosePreferredMode("official")}
-                  disabled
-                  title="Standard playback is unavailable in this desktop build"
+                  title="Open Twitch in its own resizable window"
                   type="button"
                 >
                   {preferredMode === "official" && <Check size={13} />}
-                  Standard
+                  Twitch window
                 </button>
               </div>
             </div>
@@ -7685,11 +7607,10 @@ export function App() {
                               preferredMode === "official" ? "active" : ""
                             }
                             onClick={() => void choosePreferredMode("official")}
-                            disabled
-                            title="Standard playback is unavailable in this desktop build"
+                            title="Open Twitch in its own resizable window"
                             type="button"
                           >
-                            Standard
+                            Twitch window
                           </button>
                         </div>
                       </div>

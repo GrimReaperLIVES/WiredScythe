@@ -7,5 +7,5 @@ export interface ObsApi {
   toggle(scene: string): Promise<string>;
   arm(scene: string): Promise<void>;
   sources(): Promise<string[]>;
-  layout(config: { scene: string; preset: import("./spectator-layout").SpectatorPreset; sources: string[]; audible: string | null }): Promise<void>;
+  layout(config: { scene: string; preset: import("./spectator-layout").SpectatorPreset; sources: string[]; audible: string | null; previousSources?: string[] }): Promise<void>;
 }

@@ -62,6 +62,7 @@ export const nativeControlActionSchema = z.enum([
   "hide-chat",
   "side-chat",
   "overlay-chat",
+  "close-stream",
 ]);
 export const nativeControlsContextSchema = z.object({
   // A channel key, not a Twitch login: this context carries whichever service
@@ -190,7 +191,7 @@ export function presentNativePlaybackError(message: string): string {
 
 /** A normal channel state, not a failure of Native playback. */
 export function isNativeStreamUnavailable(message: string): boolean {
-  return /no playable streams|stream is offline|channel is offline/i.test(
+  return /^(?:stream|channel) is offline\.?$/i.test(
     message,
   );
 }
@@ -216,6 +217,7 @@ export interface NativePlayerState {
   compressorEnabled: boolean;
   behindLive: boolean;
   quality: NativeQualityValue;
+  actualResolution?: string;
   hlsSource?: {
     sessionId: string;
     playlistUrl: string;
@@ -270,6 +272,7 @@ export interface DesktopApi {
   updates: UpdateApi;
   preferences: PreferencesApi;
   player: {
+    focusOfficialWindow(): Promise<boolean>;
     open(
       channel: string,
       mode: PlayerMode,

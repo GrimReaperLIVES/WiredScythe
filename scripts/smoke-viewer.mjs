@@ -14,8 +14,15 @@ const timeout = setTimeout(() => {
   app.exit(1);
 }, 30000);
 app.on("browser-window-created", (_event, window) => {
+  window.webContents.on("console-message", (_event, ...args) => {
+    const message = args.find(value => typeof value === "string" && value.startsWith("SMOKE:"));
+    if (message) console.log(message);
+  });
   const chatFixture = setInterval(() => {
-    if (!window.isDestroyed()) window.webContents.send("chat:message", { id: "overlay-smoke-message", channel: "overlay_fixture", login: "viewer_fixture", displayName: "Viewer", color: "#ff4444", text: "Overlay message check", badges: [], sentAt: Date.now(), twitchEmotes: [] });
+    if (!window.isDestroyed()) {
+      window.webContents.send("chat:message", { id: "overlay-smoke-message", channel: "overlay_fixture", login: "viewer_fixture", displayName: "Viewer", color: "#ff4444", text: "Overlay message check", badges: [], sentAt: Date.now(), twitchEmotes: [] });
+      window.webContents.send("chat:message", { id: "wrong-room-message", channel: "unrelated_channel", login: "other", displayName: "Other", color: "#ff4444", text: "Wrong channel must not leak", badges: [], sentAt: Date.now(), twitchEmotes: [] });
+    }
   }, 200);
   window.once("closed", () => clearInterval(chatFixture));
   window.webContents.once("did-finish-load", async () => {
@@ -23,12 +30,12 @@ app.on("browser-window-created", (_event, window) => {
     try {
       const result = await window.webContents.executeJavaScript(`(async () => {
         const wait = () => new Promise(resolve => setTimeout(resolve, 100));
-        const check = (condition, label) => { if (!condition) throw new Error(label); results.push(label); };
+        const check = (condition, label) => { if (!condition) throw new Error(label); results.push(label); console.log('SMOKE: ' + label); };
         const results = [];
         await wait();
         const shell = document.querySelector('.app-shell');
         check(Boolean(shell), 'Renderer mounted');
-        check([...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Standard')?.disabled, 'Unsupported Standard playback is clearly unavailable');
+        check(Boolean([...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Twitch window')), 'Official Twitch window is clearly labeled');
         check(!shell.classList.contains('sidebar-hidden') && !shell.classList.contains('sidebar-collapsed'), 'Followed channels start expanded');
         document.querySelector('[aria-label="Collapse followed channels"]').click(); await wait();
         check(shell.classList.contains('sidebar-collapsed'), 'Followed channels minimize on request');
@@ -103,12 +110,15 @@ app.on("browser-window-created", (_event, window) => {
         check(Boolean(overlay) && getComputedStyle(overlay).display !== 'none', 'Native chat overlay appears even after chat was hidden');
         await new Promise(resolve => setTimeout(resolve, 350));
         check(overlay.textContent.includes('Overlay message check'), 'Incoming Twitch-shaped chat messages render in the overlay');
+        check(!overlay.textContent.includes('Wrong channel must not leak'), 'Messages from other channels do not leak into the overlay');
         shell.classList.add('panel-chat-hover', 'panel-chat-revealed'); shell.classList.remove('panel-chat-always');
         check(getComputedStyle(overlay).display !== 'none', 'Hover reveal restores native chat overlay');
         shell.classList.remove('panel-chat-hover', 'panel-chat-revealed'); shell.classList.add('panel-chat-always');
         check(getComputedStyle(overlay.querySelector('.native-video-chat-tools')).opacity === '1', 'Overlay hide and dock controls stay visible');
         window.desktop.player.sendNativeControlAction('side-chat'); await wait();
         check(!document.querySelector('.native-video-chat') && getComputedStyle(document.querySelector('.chat-panel')).display !== 'none', 'Overlay docks back beside the video');
+        document.querySelector('[aria-label="Overlay chat on the video"]').click(); await wait();
+        check(document.querySelector('.native-video-chat').textContent.includes('Overlay message check'), 'Recent chat survives side-to-overlay switching');
         document.querySelector('[aria-label="Close stream"]').click(); await wait();
         check(!document.querySelector('.player-page'), 'Close stream returns to browsing');
         return results;

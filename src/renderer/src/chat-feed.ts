@@ -27,6 +27,9 @@ import {
 
 // Chat renders in batches: one commit per interval instead of per message.
 const CHAT_BATCH_INTERVAL = 100;
+// Share recent messages when moving between side/overlay views without running
+// two independent hidden rendering feeds for the same channel.
+const latestMessagesByChannel = new Map<string, ChatMessage[]>();
 // A user scrolling up moves scrollTop upward; every app-generated scroll event
 // (jump-to-bottom, composer padding transition, image loads, smooth scroll)
 // moves down or clamps. Only an upward move past this slack pauses auto-scroll.
@@ -99,7 +102,7 @@ export function useChatFeed(
   onIncoming?: (message: ChatMessage) => void,
 ): ChatFeed {
   const channelKey = channel?.trim().toLowerCase() ?? "";
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => latestMessagesByChannel.get(channelKey) ?? []);
   const [recentChatterState, setRecentChatterState] = useState<{
     channel: string;
     items: ChatMentionCandidate[];
@@ -127,8 +130,16 @@ export function useChatFeed(
   useEffect(() => {
     onIncomingRef.current = onIncoming;
   }, [onIncoming]);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (channelRef.current === channelKey) return;
     channelRef.current = channelKey;
+    if (batchTimer.current !== null) window.clearTimeout(batchTimer.current);
+    batchTimer.current = null; batch.current = [];
+    const recent = latestMessagesByChannel.get(channelKey) ?? [];
+    messageCount.current = recent.length;
+    autoScrollRef.current = true;
+    scrollAnchor.current = null;
+    setMessages(recent); setAutoScroll(true); setPausedNewCount(0); setRevealedDeleted(new Set());
   }, [channelKey]);
   const blockedChatters = useBlockedChatters();
   // Blocking somebody takes away what they have already said as well, so it is
@@ -197,12 +208,19 @@ export function useChatFeed(
         next = next.slice(-CHAT_MESSAGE_LIMIT);
       }
       messageCount.current = next.length;
+      const key = channelRef.current;
+      if (key) {
+        latestMessagesByChannel.delete(key);
+        latestMessagesByChannel.set(key, next.slice(-CHAT_MESSAGE_LIMIT));
+        if (latestMessagesByChannel.size > 32) latestMessagesByChannel.delete(latestMessagesByChannel.keys().next().value!);
+      }
       return next;
     });
   }, []);
 
   useEffect(() => {
     const removeListener = window.desktop.chat.onMessage((message) => {
+      if (!channelRef.current || message.channel.trim().toLowerCase() !== channelRef.current) return;
       // A blocked chatter is dropped on arrival, so their messages never take a
       // place in the buffer, never sound a mention, and never push somebody
       // else's message out of a busy chat.

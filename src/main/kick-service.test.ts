@@ -19,6 +19,26 @@ vi.mock("electron", () => ({
 import { getKickLoginUrl, KickService } from "./kick-service";
 
 describe("KickService authentication", () => {
+  it("loads followed channels beyond the old ten-page limit", async () => {
+    let page = 0;
+    electronState.fetch.mockImplementation(async () => {
+      page += 1;
+      return new Response(JSON.stringify({ channels: [{ id: page, channel_slug: `channel${page}`, is_live: false }], next_cursor: page < 12 ? String(page) : null }), { status: 200 });
+    });
+    const channels = await new KickService().getFollowedChannels();
+    expect(channels).toHaveLength(12);
+    expect(channels.at(-1)?.slug).toBe("channel12");
+  });
+  it("rejects cursor loops instead of returning an incomplete follow list", async () => {
+    electronState.fetch.mockImplementation(async () => new Response(JSON.stringify({ channels: [], next_cursor: "repeated" }), { status: 200 }));
+    await expect(new KickService().getFollowedChannels()).rejects.toThrow("repeated a followed-list page");
+    expect(electronState.fetch).toHaveBeenCalledTimes(2);
+  });
+  it("deduplicates followed channels appearing on adjacent pages", async () => {
+    let page = 0;
+    electronState.fetch.mockImplementation(async () => new Response(JSON.stringify({ channels: [{ id: 1, channel_slug: "same", is_live: false }], next_cursor: ++page === 1 ? "next" : null }), { status: 200 }));
+    expect(await new KickService().getFollowedChannels()).toHaveLength(1);
+  });
   it("does not replace the channel list with empty results after a transient failure", async () => {
     electronState.fetch.mockRejectedValue(new Error("network interrupted"));
     await expect(new KickService().getFollowedChannels()).rejects.toThrow("temporarily unavailable");

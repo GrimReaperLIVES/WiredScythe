@@ -43,7 +43,9 @@ jobs:
           WINDOWS_PUBLISHER_NAME: ${{ secrets.WINDOWS_PUBLISHER_NAME }}
 
       - name: Verify renderer behavior
-        run: npm run test:smoke
+        run: |
+          npm run test:smoke
+          npm run test:official-window
         env:
           CYBERWIRE_TEST_USER_DATA: ${{ runner.temp }}/cyberwire-smoke
 

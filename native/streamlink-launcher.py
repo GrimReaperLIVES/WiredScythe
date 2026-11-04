@@ -21,14 +21,13 @@ def main() -> None:
         isinstance(argument, str) for argument in arguments
     ):
         raise SystemExit("Invalid Streamlink argument payload.")
-    if not isinstance(token, str) or not token or any(
+    if token is not None and (not isinstance(token, str) or not token or any(
         character in token for character in "\r\n\0"
-    ):
+    )):
         raise SystemExit("Invalid Twitch playback token.")
 
-    runtime_root = Path(sys.executable).resolve().parent.parent
-    packages = runtime_root / "pkgs"
-    if not packages.is_dir():
+    packages = next((parent / "pkgs" for parent in list(Path(sys.executable).resolve().parents)[:3] if (parent / "pkgs").is_dir()), None)
+    if packages is None:
         raise SystemExit("The bundled Streamlink packages are unavailable.")
     sys.path.insert(0, str(packages))
 
@@ -37,7 +36,7 @@ def main() -> None:
     # exact documented authentication option and all existing playback flags.
     sys.argv = [
         "streamlink",
-        f"--twitch-api-header=Authorization=OAuth {token}",
+        *([f"--twitch-api-header=Authorization=OAuth {token}"] if token else []),
         *arguments,
     ]
     del payload

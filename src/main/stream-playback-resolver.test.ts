@@ -82,7 +82,7 @@ describe("resolver error recovery", () => {
   it("reuses the prewarmed requested quality", async () => {
     resolver.preresolve("streamer", "480p");
     await vi.waitFor(() => expect(children).toHaveLength(1));
-    expect(spawnMock.mock.calls[0][1].at(-1)).toBe("480p");
+    expect(spawnMock.mock.calls[0][1].at(-1)).toMatch(/^480p,/);
     children[0].stdout.emit("data", "https://cdn.example/warm.m3u8"); children[0].emit("close", 0);
     await expect(resolver.resolve("streamer", "480p")).resolves.toContain("warm.m3u8");
     expect(children).toHaveLength(1);
@@ -102,6 +102,13 @@ describe("resolver error recovery", () => {
     children[0].stderr.emit("data", "The specified stream(s) '1080p' could not be found");
     children[0].emit("close", 1); resolver.cancelActiveResolution(); await check;
     expect(children).toHaveLength(1);
+  });
+  it("does not silently upgrade a low-resource rendition to best", async () => {
+    const result = resolver.resolve("streamer", "480p");
+    const check = expect(result).rejects.toThrow("No rendition at or below 480p");
+    await vi.waitFor(() => expect(children).toHaveLength(1));
+    children[0].stderr.emit("data", "The specified stream(s) '480p' could not be found. Available streams: 1080p"); children[0].emit("close", 1);
+    await check; expect(children).toHaveLength(1);
   });
   it("does not reuse a cancelled pending URL for a new same-channel request", async () => {
     const first = resolver.resolve("streamer", "720p");

@@ -213,6 +213,7 @@ const api: DesktopApi = {
     },
   } satisfies PreferencesApi,
   player: {
+    focusOfficialWindow: () => ipcRenderer.invoke("player:focus-official") as Promise<boolean>,
     open: (channel: string, mode: PlayerMode, quality?: NativeQualityValue) =>
       ipcRenderer.invoke("player:open", channel, mode, quality),
     close: () => ipcRenderer.invoke("player:close"),

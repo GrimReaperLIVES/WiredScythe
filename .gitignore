@@ -12,3 +12,4 @@ coverage/
 vendor/native/
 native/*/build/
 AGENTS.md
+vendor/native-mac/
