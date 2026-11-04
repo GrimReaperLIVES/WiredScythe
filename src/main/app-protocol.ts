@@ -56,6 +56,10 @@ export function resolveAppAssetPath(
     return null;
   }
 
+  // App asset URLs use forward slashes on every platform. Do not let a
+  // Windows separator become a literal filename on Unix or vice versa.
+  if (pathname.includes("\\") || pathname.includes("\0")) return null;
+
   const root = path.resolve(rendererDirectory);
   const relativePath =
     pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
