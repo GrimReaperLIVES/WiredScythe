@@ -407,12 +407,12 @@ export function MultiStreamView({
               onToggleMute={onToggleMute}
               onSetVolume={onSetVolume}
               onToggleCompressor={onToggleCompressor}
-              onSetQuality={(id, quality) => {
-                if (resourceMode) {
+              onSetQuality={(id, quality, remember = true) => {
+                if (resourceMode && remember) {
                   manualQualityOverrides.current.add(id);
                   originalQualities.current.delete(id);
                 }
-                onSetQuality(id, quality);
+                onSetQuality(id, quality, remember);
               }}
               poppedOut={Boolean(popoutTarget)}
               placement={
@@ -496,7 +496,7 @@ interface MultiTileProps {
   onToggleMute: (id: number) => void;
   onSetVolume: (id: number, volume: number) => void;
   onToggleCompressor: (id: number, enabled: boolean) => void;
-  onSetQuality: (id: number, quality: NativeQualityValue) => void;
+  onSetQuality: (id: number, quality: NativeQualityValue, remember?: boolean) => void;
   poppedOut: boolean;
   onTogglePopout: (id: number, name: string) => void;
 }
@@ -686,6 +686,15 @@ const MultiTile = memo(function MultiTile({
                 : `Loading ${name}`}
           </strong>
           {status === "error" && !offline && error && <p>{error}</p>}
+          {status === "error" && (
+            <button
+              type="button"
+              className="multi-tile-retry"
+              onClick={() => onSetQuality(tile.id, tile.state.quality, false)}
+            >
+              Retry {name}
+            </button>
+          )}
         </div>
       )}
       <div className="multi-tile-name-box">

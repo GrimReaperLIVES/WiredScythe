@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.4-alpha.48] - 2026-11-05
+
+- Skip sign-in-only Twitch channel metadata requests during guest multistream.
+- Show a playback error when HLS startup stalls, and let viewers retry an individual tile at its current quality.
+- Prevent superseded playback starts from publishing stale state and close relays that fail during startup.
+
 ## [0.3.4-alpha.47] - 2026-11-04
 
 - Replaced the unsupported Standard embed with an explicit Twitch window: an isolated official website window with focus and close recovery. Native and multistream remain inside Cyber Wire.

@@ -10,6 +10,7 @@ if (!process.env.CYBERWIRE_TEST_USER_DATA)
     "Smoke test requires a separate CYBERWIRE_TEST_USER_DATA profile.",
   );
 let guestMetadataRequests = 0;
+const tileRetries = [];
 const timeout = setTimeout(() => {
   console.error("Smoke test timed out");
   app.exit(1);
@@ -69,6 +70,7 @@ app.on("browser-window-created", (_event, window) => {
         for (let attempt = 0; attempt < 30 && document.querySelectorAll('.multi-tile').length !== 2; attempt++) await wait();
         check(document.querySelectorAll('.multi-tile').length === 2, 'Multistream fixture renders two independent video tiles: ' + document.querySelectorAll('.multi-tile').length + ' / ' + document.querySelector('main')?.textContent.slice(0, 400));
         const layout = document.querySelector('[aria-label="Stream layout"]');
+        document.querySelector('.multi-tile-retry').click(); await wait();
         layout.value = 'free'; layout.dispatchEvent(new Event('change', { bubbles: true })); await wait();
         check(document.querySelector('.multi-grid').classList.contains('layout-free'), 'Custom canvas activates');
         const tile = document.querySelector('.multi-tile');
@@ -130,6 +132,9 @@ app.on("browser-window-created", (_event, window) => {
       if (guestMetadataRequests !== 0) {
         throw new Error(`Guest playback requested Twitch metadata ${guestMetadataRequests} times`);
       }
+      if (JSON.stringify(tileRetries) !== JSON.stringify([[1, "720p", false]])) {
+        throw new Error("Retry must restart only the failed tile at its current quality without saving a preference");
+      }
       console.log(JSON.stringify({ smokeTests: result, guestMetadataRequests }));
       clearTimeout(timeout);
       app.exit(0);
@@ -150,13 +155,15 @@ ipcMain.handle("twitch:get-stream-metadata", () => {
 ipcMain.handle("player:open", (_event, channel) => ({ channel, mode: "native" }));
 // Network-free UI fixture: only this test entry replaces playback IPC.
 ipcMain.removeHandler("native-multi:start");
+ipcMain.removeHandler("native-multi:set-quality");
+ipcMain.handle("native-multi:set-quality", (_event, ...args) => { tileRetries.push(args); });
 ipcMain.handle("native-multi:start", () =>
   ["camera_a", "camera_b"].map((channel, id) => ({
     id,
     channel,
     active: id === 0,
     state: {
-      status: "idle",
+      status: id === 1 ? "error" : "idle",
       quality: "720p",
       muted: true,
       paused: false,

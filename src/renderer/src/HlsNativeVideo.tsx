@@ -497,6 +497,20 @@ export const HlsNativeVideo = memo(function HlsNativeVideo({ state, target = "ma
     video.addEventListener("pause", onPause);
     video.addEventListener("ended", onEnded);
 
+    // Network recovery can keep reloading a playlist that never produces
+    // playable media. Surface a retry instead of leaving a tile loading forever.
+    const startupTimer = window.setTimeout(() => {
+      if (disposed || !playbackRequested || video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      if (recoveryTimer !== null) {
+        window.clearTimeout(recoveryTimer);
+        recoveryTimer = null;
+      }
+      player.stopLoad();
+      report("error", "Playback did not start. Retry the stream.");
+    }, 30_000);
+    const clearStartupTimer = () => window.clearTimeout(startupTimer);
+    video.addEventListener("playing", clearStartupTimer, { once: true });
+
     const statsTimer = window.setInterval(() => {
       if (disposed || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       const now = performance.now();
@@ -516,10 +530,12 @@ export const HlsNativeVideo = memo(function HlsNativeVideo({ state, target = "ma
       disposed = true;
       if (recoveryTimer !== null) window.clearTimeout(recoveryTimer);
       window.clearInterval(statsTimer);
+      window.clearTimeout(startupTimer);
       cancelPendingVideoFrame();
       removeCommandListener();
       video.removeEventListener("play", onPlay);
       video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("playing", clearStartupTimer);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("ended", onEnded);
       // A new playback session gets a new media element (the component is
