@@ -117,6 +117,12 @@ export class StreamPlaybackResolver {
     void this.prewarm(channel, quality).catch(() => undefined);
   }
 
+  /**
+   * Group cached URLs by channel, quality, and session.
+   * Reuse an unexpired result when possible.
+   * Ignore warm-up failures until the user requests playback.
+   * Maintain a limit on background resolver processes.
+   */
   private async prewarm(channel: string, quality: NativeQualityValue): Promise<void> {
     if (!this.getAvailability().available) return;
     const key = `${channel.toLowerCase()}:${quality}:${await this.sessionKey(channel)}`;
@@ -128,6 +134,12 @@ export class StreamPlaybackResolver {
     url.catch(() => undefined);
   }
 
+  /**
+   * Group cached results by channel, quality, and session.
+   * Reject work cancelled during session lookup.
+   * Inspect missing-rendition errors before trying a fallback.
+   * Maintain the quality cap for low-resource requests.
+   */
   async resolve(channel: string, quality: NativeQualityValue): Promise<string> {
     const generation = this.resolutionGeneration;
     const key = `${channel.toLowerCase()}:${quality}:${await this.sessionKey(channel)}`;
@@ -150,6 +162,12 @@ export class StreamPlaybackResolver {
     return url;
   }
 
+  /**
+   * Give future requests a new generation.
+   * Retire the current resolver process when present.
+   * Invalidate stale primary work even without a child process.
+   * Maintain separate tracking for background prewarming.
+   */
   cancelActiveResolution(): void {
     this.resolutionGeneration += 1;
     if (!this.resolverProcess) return;
@@ -165,6 +183,12 @@ export class StreamPlaybackResolver {
     this.qualityCache.clear();
   }
 
+  /**
+   * Give each cached result its own expiration time.
+   * Retain the in-flight promise so callers can share it.
+   * Invalidate failed lookups so a later request can retry.
+   * Match the original entry before deleting it. [QBSW55]
+   */
   private storeResolvedUrl(key: string, url: Promise<string>, generation?: number): void {
     const entry = { expiresAt: Date.now() + RESOLVE_CACHE_LIFETIME, url, generation };
     this.resolveCache.set(key, entry);

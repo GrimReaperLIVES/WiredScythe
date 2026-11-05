@@ -61,6 +61,12 @@ export class MultiStreamManager {
       .map((tile) => tile.channel);
   }
 
+  /**
+   * Gather unique channels in selection order.
+   * Respect the maximum tile count.
+   * Initialize chat focus on the first tile.
+   * Mount each player independently.
+   */
   async start(channels: string[]): Promise<MultiStreamTileState[]> {
     this.stop();
     const unique: string[] = [];
@@ -76,6 +82,12 @@ export class MultiStreamManager {
     return this.getTiles();
   }
 
+  /**
+   * Get the normalized channel key before checking for duplicates.
+   * Reject duplicates and requests beyond the tile limit.
+   * Initialize chat focus if the grid was empty.
+   * Make room for the new stream using the first free tile ID.
+   */
   async addTile(channel: string): Promise<MultiStreamTileState | null> {
     const login = channel.toLowerCase();
     if (!login) return null;
@@ -89,6 +101,12 @@ export class MultiStreamManager {
     return tile ? this.toTileState(tile) : null;
   }
 
+  /**
+   * Get the tile before touching its resources.
+   * Release its player and resolver together.
+   * Inform the renderer that the tile was removed.
+   * Move chat focus only if the removed tile held it.
+   */
   removeTile(id: number): void {
     const tile = this.tiles.get(id);
     if (!tile) return;
@@ -104,6 +122,12 @@ export class MultiStreamManager {
     }
   }
 
+  /**
+   * Guard against selecting a missing tile.
+   * Retain each stream’s audio settings.
+   * Identify the active chat tile by ID.
+   * Mirror the updated selection to every tile.
+   */
   setActive(id: number): void {
     if (!this.tiles.has(id) || this.activeId === id) return;
     this.activeId = id;
