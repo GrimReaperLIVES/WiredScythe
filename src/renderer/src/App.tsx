@@ -1429,6 +1429,7 @@ export function App() {
   useEffect(() => {
     if (!multiStreamActive || !effectiveMultiChatChannel) return;
     const target = parseChannelKey(effectiveMultiChatChannel);
+    if (target.platform === "twitch" && authState.status !== "signed-in") return;
     let cancelled = false;
     const request =
       target.platform === "kick"
@@ -1451,7 +1452,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [multiStreamActive, effectiveMultiChatChannel]);
+  }, [multiStreamActive, effectiveMultiChatChannel, authState.status]);
 
   // Buffer every tile channel's chat. Messages are batched on a short interval
   // so busy channels don't re-render the app per message.
@@ -1837,7 +1838,7 @@ export function App() {
   // channels already fetched.
   const warmedChatChannels = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (!multiStreamActive) return;
+    if (!multiStreamActive || authState.status !== "signed-in") return;
     let cancelled = false;
     for (const tile of multiTiles) {
       if (warmedChatChannels.current.has(tile.channel)) continue;

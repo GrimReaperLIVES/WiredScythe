@@ -51,6 +51,9 @@ export class HlsNativePlayer {
     const generation = ++this.generation;
     this.cancelPlaybackResolution();
     await this.closeRelay();
+    if (generation !== this.generation) {
+      return { ok: false, reason: "Native playback was cancelled." };
+    }
     const storedVolume = this.clampVolume(this.getStoredVolume());
     if (storedVolume > 0) this.lastAudibleVolume = storedVolume;
     const volume = this.state.muted ? 0 : storedVolume;
@@ -89,7 +92,13 @@ export class HlsNativePlayer {
           mediaTransport: this.mediaTransport,
         },
       );
-      const playlistUrl = await relay.start(sourceUrl);
+      let playlistUrl: string;
+      try {
+        playlistUrl = await relay.start(sourceUrl);
+      } catch (error) {
+        await relay.close().catch(() => undefined);
+        throw error;
+      }
       if (generation !== this.generation) {
         await relay.close();
         return { ok: false, reason: "Native playback was cancelled." };

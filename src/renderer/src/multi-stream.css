@@ -504,6 +504,15 @@
   font-size: 14px;
 }
 
+.multi-tile-retry {
+  padding: 6px 12px;
+  border: 1px solid #52525b;
+  border-radius: 6px;
+  background: #27272a;
+  color: #fafafa;
+  cursor: pointer;
+}
+
 .multi-tile-overlay p {
   max-width: 320px;
   margin: 0;
