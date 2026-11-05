@@ -9,6 +9,7 @@ if (!process.env.CYBERWIRE_TEST_USER_DATA)
   throw new Error(
     "Smoke test requires a separate CYBERWIRE_TEST_USER_DATA profile.",
   );
+let guestMetadataRequests = 0;
 const timeout = setTimeout(() => {
   console.error("Smoke test timed out");
   app.exit(1);
@@ -126,7 +127,10 @@ app.on("browser-window-created", (_event, window) => {
         check(!document.querySelector('.player-page'), 'Close stream returns to browsing');
         return results;
       })()`);
-      console.log(JSON.stringify({ smokeTests: result }));
+      if (guestMetadataRequests !== 0) {
+        throw new Error(`Guest playback requested Twitch metadata ${guestMetadataRequests} times`);
+      }
+      console.log(JSON.stringify({ smokeTests: result, guestMetadataRequests }));
       clearTimeout(timeout);
       app.exit(0);
     } catch (error) {
@@ -138,6 +142,11 @@ app.on("browser-window-created", (_event, window) => {
 });
 await import(pathToFileURL(path.resolve("dist-electron/main/index.js")).href);
 ipcMain.removeHandler("player:open");
+ipcMain.removeHandler("twitch:get-stream-metadata");
+ipcMain.handle("twitch:get-stream-metadata", () => {
+  guestMetadataRequests += 1;
+  return null;
+});
 ipcMain.handle("player:open", (_event, channel) => ({ channel, mode: "native" }));
 // Network-free UI fixture: only this test entry replaces playback IPC.
 ipcMain.removeHandler("native-multi:start");
