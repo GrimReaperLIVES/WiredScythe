@@ -43,6 +43,12 @@ export class HlsNativePlayer {
     private readonly mediaTransport?: HlsMediaTransport,
   ) {}
 
+  /**
+   * Give each start its own generation.
+   * Retire the previous relay before resolving a new URL.
+   * Ignore results from superseded starts.
+   * Make the new session visible only after its relay is ready. [LWNR5]
+   */
   async start(
     channel: string,
     quality: NativeQualityValue,
@@ -241,6 +247,12 @@ export class HlsNativePlayer {
     });
   }
 
+  /**
+   * Grab the current relay before clearing its reference.
+   * Release the reference before awaiting shutdown.
+   * Ignore repeated closes once the relay is detached.
+   * Make a restart independent of the old relay’s teardown.
+   */
   private async closeRelay(): Promise<void> {
     const relay = this.relay;
     this.relay = null;
